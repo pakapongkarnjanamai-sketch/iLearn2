@@ -9,6 +9,12 @@
 - Verified: dotnet test อิสระ + node syntax check + runtime route/DOM proof บน publish จริง
 - **สถานะชุด iPad readiness: 096+097 REVIEWED ทั้งคู่ — ขั้นถัดไป: commit (แยกก้อน 094/095 config ออกก่อน) → Copilot deploy QA learner → curl ยืนยัน br/cache บน HTTPS + SCORM max-age → ผู้ใช้ iPad smoke ข้อ 6-9 ของ 097 → ค่อยพิจารณา PROD**
 
+## [2026-07-17] GitHub Copilot — QA deployed PLAN-096/097: learner performance + iPad player UX
+- ทำอะไร: แยกและ commit public SCORM origin/checklist ที่ deploy ไปก่อนหน้าเป็น `96e3496`; commit learner iPad readiness เป็น `34573b4`; deploy User แบบ side-by-side ไป QA ด้วย `tools/deploy-user.ps1`.
+- Deploy: stamp `_user_deploy_20260717164531`; `web.config` ของ QA ชี้ `.\_user_deploy_20260717164531\iLearn.User.dll`; previous stamp `_user_deploy_20260717131427`; health check `https://ap-ntc2138-qawb.nikonoa.net/iLearn/` = 200 attempt 1/5, no auto-rollback.
+- Verified: QA HTTPS `GET /iLearn/js/devextreme/dx.all.js` พร้อม `Accept-Encoding: gzip, br` ตอบ `Content-Encoding: br`, `Cache-Control: public,max-age=604800`, `Vary: Accept-Encoding`; publish build สำเร็จ (0 errors, 74 existing warnings).
+- คงค้าง: login/launch SCORM จริงเพื่อยืนยัน `Cache-Control: public,max-age=3600` และ iPad smoke PLAN-097 ข้อ 6-9; **ห้าม deploy PROD จนผู้ใช้ยืนยันผล iPad QA ในแชท**.
+
 ## [2026-07-17] Antigravity (Gemini) — PLAN-097 DONE: Player iPad UX (lifecycle flush + pseudo-fullscreen + sidebar compact/collapse + touch polish)
 - ทำอะไร: B1 เพิ่ม `pagehide`+`visibilitychange` listeners + `sendBeacon` flush (iPadOS ไม่ยิง beforeunload); B2 fullscreen rework: ตรวจ `pointer:coarse` → เลือก pseudo-fullscreen (position:fixed+z-index:9999) แทน native FS ที่หลุดง่าย, sync icon, Escape handler; B3 sidebar 400→320px + header ~300→~110px (compact single-line) + ปุ่มพับ `localStorage` persist; B4 `GET Ping` endpoint + `setInterval` 10 นาที slide cookie; C1 `inputAttr` login (inputmode:numeric, enterkeyhint:go); C2 ลบ unsplash fallback → branded gradient `.no-image`; C3 `:active` scale(0.97) + `pointer:coarse` ≥44px targets; C4 `SCORM_DEBUG`/`scormLog()` gate (?scormDebug); C5 search debounce 250ms + แก้ highlight double-remove
 - ไฟล์หลักที่แตะ: `iLearn.User/Controllers/MyLearningController.cs`, `iLearn.User/Views/MyLearning/Player.cshtml`, `iLearn.User/Views/Home/Index.cshtml`, `iLearn.User/Views/MyLearning/Index.cshtml`, `DOC/PLANS/PLAN-097-player-ipad-ux.md`, `DOC/AGENT_LOG.md`

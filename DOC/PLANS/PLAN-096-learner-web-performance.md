@@ -1,6 +1,6 @@
 # PLAN-096: Learner web performance — compression + cache + ตัด asset ที่ไม่ใช้ (iPad readiness ชุด A)
 
-- **Status:** DONE → REVIEWED (code + local runtime ผ่าน — เหลือ QA deploy + iPad smoke ก่อน VERIFIED)
+- **Status:** QA DEPLOYED (code + QA HTTPS header verification ผ่าน — เหลือ iPad smoke ก่อน VERIFIED)
 - **Assigned:** GitHub Copilot
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-17
@@ -121,3 +121,10 @@ Deploy QA (ตาม `DOC/DEPLOY-CHECKLIST.md` — learner deploy script เด�
 - **คงค้างก่อน VERIFIED:** (1) deploy QA แล้ว curl ยืนยัน br บน **HTTPS จริง** (local ทดสอบได้แค่ HTTP — `EnableForHttps` ยืนยันจากโค้ด) (2) SCORM `Cache-Control: max-age=3600` ตรวจ local ไม่ได้ (เครื่อง dev ไม่มี `D:\iLearnContent` — middleware skip) ต้องดูบน QA (3) iPad smoke ตามแผน — ทั้งหมดควรทำหลัง commit ชุดนี้ (precedent PLAN-093: deploy จาก tree ที่ commit แล้วเท่านั้น)
 
 **สรุป: ผ่านรีวิว ไม่มี finding ต้องแก้ — รอ commit + QA rollout**
+
+## QA Deployment (2026-07-17)
+
+- Commit: `34573b4` (`feat(learner): improve iPad performance and player UX (PLAN-096/097)`)
+- Deploy: QA stamp `20260717164531`; `web.config` now runs `.\_user_deploy_20260717164531\iLearn.User.dll`; public health check returned HTTP 200 and no rollback occurred.
+- HTTPS header verification: `GET /iLearn/js/devextreme/dx.all.js` with `Accept-Encoding: gzip, br` returned `Content-Encoding: br`, `Cache-Control: public,max-age=604800`, and `Vary: Accept-Encoding`.
+- Remaining gate: verify a real SCORM content asset returns `Cache-Control: public,max-age=3600`, then complete the shared iPad smoke tests before marking VERIFIED or considering PROD.

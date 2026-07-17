@@ -1,6 +1,6 @@
 # PLAN-097: Player iPad UX — lifecycle flush + pseudo-fullscreen + sidebar กระชับ/พับได้ + touch เก็บตก (iPad readiness ชุด B+C)
 
-- **Status:** DONE → REVIEWED (code + local runtime ผ่าน, 1 observation ไม่บล็อก — เหลือ QA deploy + iPad smoke ก่อน VERIFIED)
+- **Status:** QA DEPLOYED (code + local runtime ผ่าน, 1 observation ไม่บล็อก — เหลือ iPad smoke ก่อน VERIFIED)
 - **Assigned:** Antigravity (Gemini)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-17
@@ -188,3 +188,9 @@ Implemented by **Antigravity (Gemini)** — 2026-07-17
 - **คงค้างก่อน VERIFIED:** iPad smoke ข้อ 6-9 ของ Verification (pseudo-fullscreen ไม่หลุดตอนเลื่อน/หมุน/คีย์บอร์ด, pagehide flush, ping >35 นาที, numeric keypad) — หลัง commit + QA deploy
 
 **สรุป: ผ่านรีวิว — observation เดียวไม่บล็อก, รอ commit + QA rollout + iPad smoke**
+
+## QA Deployment (2026-07-17)
+
+- Commit: `34573b4` (`feat(learner): improve iPad performance and player UX (PLAN-096/097)`)
+- Deploy: QA stamp `20260717164531`; public learner root health check returned HTTP 200 and no rollback occurred.
+- Remaining gate: complete iPad verification items 6-9 (pseudo-fullscreen, pagehide progress flush, 35-minute Player keep-alive, and numeric login/toast) before marking VERIFIED or considering PROD.
