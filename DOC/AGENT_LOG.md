@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-17] GitHub Copilot — PLAN-093 DONE: PROD migrations + API/Admin React rollout and smoke
+- ทำอะไร: ผู้ใช้ยืนยัน QA ผ่านและอนุมัติ commit/deploy PROD. Commit QA SignalR follow-up เป็น `01c06f4`; apply PROD migrations `AddNotifications` + `SoftDeleteFilteredUniqueIndexes` ก่อน deploy แล้ว verify ไม่มี Pending. Deploy API side-by-side stamp `_deploy_20260717101558` (health 401 ตาม Windows-auth, auto-rollback=false, request limit 1 GB) และ deploy Admin React bundle SignalR-enabled. PROD smoke แบบไม่แก้ข้อมูลผ่าน: health 200 (DB/file share/EmployeeHub), session/Notifications/Reports endpoints 200, Dashboard `Live` + hub negotiate 200 หนึ่งเส้น, bell อยู่เหนือ assignment grid, assignment list และ Compliance Report render, console 0 error.
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-091-notifications-p2-frontend.md`, `DOC/PLANS/PLAN-093-qa-prod-rollout-migrate-deploy.md`, `DOC/AGENT_LOG.md`; deploy output บน QA/PROD
+- Contract ที่เปลี่ยน (API shape / props / DB): PROD DB apply schema/index ของ PLAN-088/092 แล้ว; API shape ไม่เปลี่ยนเพิ่ม
+- Verified: EF migration list ไม่มี Pending ทั้ง QA/PROD; PROD health pass 3 checks; browser/API smoke ตาม PLAN-093 ผ่าน; `npm run lint` + production build ผ่านก่อน deploy
+- คงค้าง: ไม่ทำ destructive SCORM upload หรือ per-user notification trigger บน PROD; ใช้ QA sandbox/บัญชีทดสอบสำหรับ E2E เหล่านั้นเท่านั้น
+
 ## [2026-07-17] GitHub Copilot — PLAN-093 QA rollout: migrations, API/React deploy, smoke complete with SignalR follow-up
 - ทำอะไร: Gate 0 ผ่านจาก commit `5d88312` แล้ว apply QA migrations `AddNotifications` + `SoftDeleteFilteredUniqueIndexes` ก่อน deploy; verify ไม่มี Pending และ read-back filtered unique indexes ทั้ง 3. Deploy API side-by-side stamp `_deploy_20260717100037` (Staging, 1 GB request limit) + health ผ่านครบ database/file share/EmployeeHub. Deploy React QA; พบ release env ปิด SignalR อยู่ จึงเปลี่ยน `VITE_ILEARN_ADMIN_ENABLE_SIGNALR=true` และเพิ่ม Dashboard badge `Live`/`Polling` จาก `isConnected`, rebuild/deploy ใหม่. QA browser ยืนยัน bundle flag true, hub negotiate 200 เพียงหนึ่ง connection, Dashboard `Live`, bell/dropdown/notifications routes, Report Hub 4 หน้า, และ `POST Assignments/306/courses` add `Software back up (Re.3)` สำเร็จ (ไม่มี 500).
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/.env.production`, `iLearn.Admin.React/src/pages/DashboardPage.tsx`, `DOC/PLANS/PLAN-091-notifications-p2-frontend.md`, `DOC/PLANS/PLAN-093-qa-prod-rollout-migrate-deploy.md`, `DOC/AGENT_LOG.md`

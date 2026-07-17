@@ -1,6 +1,6 @@
 # PLAN-093: Rollout — รัน migration + deploy ขึ้น QA แล้วต่อ PROD (Notifications P1+P2, Report Hub, PLAN-092 index fix)
 
-- **Status:** QA DEPLOYED — awaiting QA sign-off and review/commit of the QA SignalR follow-up before PROD
+- **Status:** DONE — QA and PROD rollout completed; production smoke passed
 - **Assigned:** GitHub Copilot
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-17
@@ -108,8 +108,11 @@ dotnet ef database update --project iLearn.Infrastructure --startup-project iLea
 6. NOT RUN — per-user targeting requires a second approved admin account and a notification-producing operation.
 7. NOT DETERMINISTIC — API deployment restart ran the digest hosted service; today has zero qualifying due-soon/overdue work and SQL count is zero, so no empty digest was created. Duplicate-after-restart cannot be demonstrated without qualifying QA data.
 
-### Before PROD
+### PROD execution — 2026-07-17
 
-- Wait for explicit user confirmation of QA results in chat (mandatory).
-- Review and commit the QA SignalR follow-up (`.env.production` plus Dashboard Live/Polling indicator) before building the PROD artifact.
-- Do not run the Phase 2 migration or deploy commands until both gates are satisfied.
+- User confirmed QA testing passed and explicitly approved commit plus PROD rollout. QA SignalR follow-up committed as `01c06f4` before the PROD build.
+- PROD migrations applied before app deployment: `20260715024809_AddNotifications`, `20260717011356_SoftDeleteFilteredUniqueIndexes`; follow-up migration list showed no Pending migrations.
+- API deployed side-by-side to PROD stamp `_deploy_20260717101558`; deployment health check returned HTTP 401 (valid Windows-auth liveness), `AutoRolledBack=False`, and production root `web.config` points to the new stamp with `maxAllowedContentLength=1084227584`.
+- Admin React rebuilt from the committed source and deployed. PROD serves `index-BWhG2qli.js` with `VITE_ILEARN_ADMIN_ENABLE_SIGNALR:true`.
+- Non-destructive PROD smoke passed: `/api/health` 200 with database/course-file-share/EmployeeHub all passing; session, Notifications, and report aggregate APIs returned 200; Compliance Report and Assignment list rendered in the browser; Dashboard showed `Live`; one hub negotiation returned 200; bell dropdown rendered above the assignment grid; browser console had no errors.
+- Intentionally not run on PROD: SCORM upload mutation/notification trigger. Those remain suitable for a designated sandbox only.

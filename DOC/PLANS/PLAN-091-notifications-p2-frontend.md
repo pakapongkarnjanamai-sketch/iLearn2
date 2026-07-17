@@ -1,6 +1,6 @@
 # PLAN-091: Notifications Phase 2 — Frontend (หน้า /notifications เต็ม + รวม SignalR connection เดียว)
 
-- **Status:** VERIFIED — QA follow-up deployed (SignalR enablement + Live indicator); review and commit required before PROD
+- **Status:** VERIFIED — SignalR enablement + Live indicator committed (`01c06f4`) and deployed to QA/PROD
 - **Assigned:** Antigravity (Gemini)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-15
