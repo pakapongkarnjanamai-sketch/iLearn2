@@ -50,6 +50,8 @@ repo นี้มี AI agent มากกว่าหนึ่งตัวท�
 - **งานที่เขียนไฟล์ถาวรก่อน validate** (เช่น SCORM archive) ต้องลบไฟล์ + row ที่เพิ่งสร้างใน `catch` — ไม่งั้นไฟล์ค้างบน disk ทุกครั้งที่ upload พัง (PLAN-084: leak ได้ถึง 1GB/ครั้ง)
 - **Side-effect เสริม** (notification / activity log) ต้องห่อ try/catch + log เอง **ห้ามให้มันพังแล้วทำ request หลักล้ม** และห้ามเปลี่ยน HTTP status/body เดิมของ endpoint ที่ไป hook
 - **Migration:** ต้องอยู่ `iLearn.Infrastructure/Migrations/` + namespace `iLearn.Infrastructure.Migrations` เท่านั้น (ที่เดียวกับ `AppDbContextModelSnapshot`) — วางที่อื่น EF ยัง scan เจอ (ไม่พัง runtime) แต่ไฟล์จะกระจายคนละที่ (PLAN-088)
+- **Deploy build ที่มี migration ใหม่ = ต้องรัน `dotnet ef database update --connection <env>` คู่กันเสมอ** (ไม่มี auto-migrate) — deploy PLAN-088 โดยไม่รัน migration ทำ endpoint ใหม่ 500 ทั้ง QA (PLAN-092)
+- **Unique index บนตารางที่ soft-delete:** ต้องมี `.HasFilter("[IsDeleted] = 0")` เสมอ — ไม่งั้น row ที่ลบแล้ว (ซึ่ง query filter ฝั่งแอปมองไม่เห็น) จะบล็อกการสร้าง row ใหม่ค่าซ้ำ = duplicate key 500 (PLAN-092: add คอร์สที่เคยลบกลับเข้า batch; precedent เดิม: ScormRuntimeState)
 - **SignalR per-user push:** `Clients.User(id)` ใช้ค่าจาก `NidUserIdProvider` ซึ่งต้อง normalize **ให้ตรงกับ `ICurrentUserService.UserId` เป๊ะ** (Nid ล้วน ไม่มี domain prefix) — ถ้าไม่ตรง push จะ**เงียบหายโดยไม่มี error** หาบั๊กยากมาก (PLAN-088)
 
 ## คำสั่งตรวจสอบ (รันก่อนปิดงานเสมอ)

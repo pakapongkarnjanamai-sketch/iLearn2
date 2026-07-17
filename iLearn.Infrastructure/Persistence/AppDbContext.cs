@@ -88,10 +88,12 @@ namespace iLearn.Infrastructure.Persistence
                 .HasForeignKey(ea => ea.AssignmentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Unique: 1 Enrollment ต่อ 1 Assignment (ไม่ซ้ำ)
+            // Unique: 1 Enrollment ต่อ 1 Assignment (ไม่ซ้ำ) — เฉพาะ row ที่ยังไม่ถูก soft-delete
+            // (ไม่ filter แล้ว link เก่าที่ลบไปจะบล็อกการ add กลับ ทั้งที่ query ฝั่งแอปมองไม่เห็นมัน)
             modelBuilder.Entity<EnrollmentAssignment>()
                 .HasIndex(ea => new { ea.EnrollmentId, ea.AssignmentId })
-                .IsUnique();
+                .IsUnique()
+                .HasFilter("[IsDeleted] = 0");
 
             // 2. Config CourseContentItem (Many-to-Many)
             modelBuilder.Entity<CourseContentItem>()
@@ -229,10 +231,11 @@ namespace iLearn.Infrastructure.Persistence
                 .HasForeignKey(ac => ac.CourseId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Unique: 1 Assignment + 1 Course (ไม่ซ้ำ)
+            // Unique: 1 Assignment + 1 Course (ไม่ซ้ำ) — เฉพาะ row ที่ยังไม่ถูก soft-delete
             modelBuilder.Entity<AssignmentCourse>()
                 .HasIndex(ac => new { ac.AssignmentId, ac.CourseId })
-                .IsUnique();
+                .IsUnique()
+                .HasFilter("[IsDeleted] = 0");
 
             // ── Read-only view: vw_AssignmentList (keyless — no soft-delete filter needed) ──
             modelBuilder.Entity<AssignmentListRow>(entity =>
@@ -257,10 +260,13 @@ namespace iLearn.Infrastructure.Persistence
                 .Property(a => a.AssignmentNo)
                 .HasMaxLength(32);
 
+            // Unique เฉพาะ rule ที่ยังไม่ถูก soft-delete — remove course จาก batch เป็น soft delete
+            // ถ้า index ไม่ filter IsDeleted การ add คอร์สเดิมกลับเข้า batch จะชน duplicate key
+            // ทั้งที่ LoadBatchAsync (global query filter) มองไม่เห็น rule ที่ลบแล้ว
             modelBuilder.Entity<Assignment>()
                 .HasIndex(a => new { a.AssignmentNo, a.CourseId })
                 .IsUnique()
-                .HasFilter("[AssignmentNo] IS NOT NULL AND [CourseId] IS NOT NULL");
+                .HasFilter("[AssignmentNo] IS NOT NULL AND [CourseId] IS NOT NULL AND [IsDeleted] = 0");
 
             // Config Course <-> CourseType
             modelBuilder.Entity<Course>()
