@@ -768,6 +768,27 @@
             color: #d0d0d0;
         }
 
+        /* --- C2: Course image fallback --- */
+        .course-thumb.no-image {
+            background: linear-gradient(135deg, var(--brand-color) 0%, var(--brand-dark) 100%);
+        }
+
+        /* --- C3: :active touch feedback --- */
+        .btn-continue:active,
+        .btn-list-view:active,
+        .category-menu-item:active,
+        .toggle-btn:active {
+            transform: scale(0.97);
+        }
+
+        @@media (pointer: coarse) {
+            .catalog-view-toggle .toggle-btn {
+                padding: var(--space-3) var(--space-4);
+                min-width: 44px;
+                min-height: 44px;
+            }
+        }
+
         /* --- Logout Dialog --- */
         .logout-dialog-icon {
             font-size: 2.5rem;
@@ -995,6 +1016,8 @@ else
         }
 
         // ========== Search Box ==========
+        let searchDebounceTimer = null;
+
         function initSearchBox() {
             $("#searchBoxContainer").dxTextBox({
                 placeholder: "ค้นหาหลักสูตร...",
@@ -1002,7 +1025,10 @@ else
                 width: 300,
                 valueChangeEvent: "keyup",
                 onValueChanged: function(e) {
-                    filterCatalog(e.value);
+                    clearTimeout(searchDebounceTimer);
+                    searchDebounceTimer = setTimeout(function() {
+                        filterCatalog(e.value);
+                    }, 250);
                 }
             });
         }
@@ -1084,7 +1110,7 @@ else
                 const course = en.course || {};
                 const progress = en.progress || 0;
                 const isCompleted = !!en.isCompleted;
-                const bgImage = course.coverImageUrl || 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80';
+                const bgImage = course.coverImageUrl;
 
                 const courseCode = en.courseCode || course.code || '-';
                 const courseTypeName = en.courseTypeName || '';
@@ -1101,8 +1127,8 @@ else
                     .attr('data-status', statusClass)
                     .html(`
                         <div class="my-course-card">
-                            <div class="course-thumb">
-                                 <img src="${bgImage}" alt="${en.courseTitle}" loading="lazy">
+                            <div class="course-thumb${bgImage ? '' : ' no-image'}">
+                                 ${bgImage ? `<img src="${bgImage}" alt="${en.courseTitle}" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-image')">` : ''}
 
                                 <div class="course-code-overlay">
                                     <div class="course-code-text">
@@ -1422,14 +1448,14 @@ else
 
         // ========== Render Single Catalog Card (Grid) ==========
         function renderCatalogCard(course) {
-            const bgImage = course.coverImageUrl || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80';
+            const bgImage = course.coverImageUrl;
             const courseCode = course.code || '-';
 
             return $(`
                 <div class="col-md-6 col-lg-4 col-xl-3 catalog-course-item">
                     <div class="my-course-card">
-                        <div class="course-thumb">
-                            <img src="${bgImage}" alt="${course.title}" loading="lazy">
+                        <div class="course-thumb${bgImage ? '' : ' no-image'}">
+                            ${bgImage ? `<img src="${bgImage}" alt="${course.title}" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-image')">` : ''}
                             <div class="course-code-overlay">
                                 <div class="course-code-text">${courseCode}</div>
                             </div>
@@ -1476,6 +1502,7 @@ else
                 return;
             }
 
+            removeHighlights();
             const lowerSearch = searchText.toLowerCase();
             $items.each(function() {
                 const $item = $(this);
@@ -1493,7 +1520,6 @@ else
 
         // ========== Highlight Search Text ==========
         function highlightText($item, searchText) {
-            removeHighlights();
             const $title = $item.find('.course-title');
             const $code = $item.find('.course-code-text, .list-code-badge');
 

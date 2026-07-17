@@ -3,7 +3,7 @@
 @inject IConfiguration Configuration
 @inject IFileVersionProvider FileVersionProvider
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -22,17 +22,12 @@
         @@font-face { font-family: 'Sarabun'; font-style: normal; font-weight: 700; font-display: swap; src: url('@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, Url.Content("~/fonts/sarabun/Sarabun-Bold.ttf"))') format('truetype'); }
     </style>
 
-    <script src="~/js/devextreme/jquery.js" asp-append-version="true"></script>
+    <script src="~/js/devextreme/jquery.min.js" asp-append-version="true"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
-    <script src="~/js/devextreme/filesaver.min.js" asp-append-version="true"></script>
-    <script src="~/js/devextreme/dx-exceljs-fork.min.js" asp-append-version="true"></script>
     <script src="~/js/devextreme/dx.all.js" asp-append-version="true"></script>
-    <script src="~/js/devextreme/aspnet/dx.aspnet.mvc.js" asp-append-version="true"></script>
-    <script src="~/js/devextreme/aspnet/dx.aspnet.data.js" asp-append-version="true"></script>
     <script src="~/src/devextreme-license.js" asp-append-version="true"></script>
 
     <script src="~/js/site.js" asp-append-version="true"></script>
-    <script src="~/lib/font-awesome/js/all.min.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("ExternalDependencies", required: false)
 
@@ -70,48 +65,8 @@
     </footer>
 
     <script>
-        const API_BASE = '@Configuration["ApiSettings:BaseUrl"]';
-        const serviceUrl = API_BASE;
         const learnerLoginUrl = '@Url.Action("Index", "Home")';
         let learnerSessionRedirecting = false;
-
-        function createDataStore(baseUrl, controllerName, options) {
-            const defaults = {
-                key: 'Id',
-                loadUrl: `${baseUrl}/${controllerName}/Get`,
-                insertUrl: `${baseUrl}/${controllerName}/Post`,
-                updateUrl: `${baseUrl}/${controllerName}/Put`,
-                deleteUrl: `${baseUrl}/${controllerName}/Delete`,
-                onBeforeSend: function (method, ajaxOptions) {
-                    ajaxOptions.xhrFields = { withCredentials: true };
-                }
-            };
-
-            if (options && options.action) {
-                defaults.loadUrl = `${baseUrl}/${controllerName}/${options.action}`;
-                if (options.ParamKey) {
-                    defaults.loadUrl += `/${options.ParamKey}`;
-                }
-            }
-
-            return DevExpress.data.AspNet.createStore($.extend(true, defaults, options));
-        }
-
-        function handleExporting(e, fileName) {
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet(fileName || 'Sheet1');
-
-            DevExpress.excelExporter.exportDataGrid({
-                component: e.component,
-                worksheet: worksheet,
-                autoFilterEnabled: true
-            }).then(function () {
-                workbook.xlsx.writeBuffer().then(function (buffer) {
-                    saveAs(new Blob([buffer], { type: 'application/octet-stream' }), (fileName || 'Data') + '.xlsx');
-                });
-            });
-            e.cancel = true;
-        }
 
         /* --- Skeleton Loader ------------------------------------------------- */
 
@@ -144,7 +99,7 @@
 
         /* --- Notifications & Feedback ---------------------------------------- */
 
-        // showToast: DevExpress.ui.notify Stack (bottom center, up-push)
+        // showToast: DevExpress.ui.notify Stack (top center, down-push)
         // type: 'success' | 'error' | 'warning' | 'info'
         function showToast(message, type, duration) {
             type = type || 'info';
@@ -172,7 +127,7 @@
                             .html('<i class="fas ' + icon + ' me-2"></i><span>' + message + '</span>');
                     }
                 },
-                { position: 'bottom center', direction: 'up-push' }
+                { position: 'top center', direction: 'down-push' }
             );
         }
 

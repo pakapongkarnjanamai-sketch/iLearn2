@@ -2,7 +2,9 @@
 using iLearn.Application.Common;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.FileProviders;
+using System.IO.Compression;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +20,15 @@ builder.Services.AddControllersWithViews()
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
+
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
 
 // ── Session ──
 builder.Services.AddSession(options =>
@@ -74,7 +85,14 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseResponseCompression();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context =>
+    {
+        context.Context.Response.Headers.CacheControl = "public,max-age=604800";
+    }
+});
 app.UseCourseStaticFiles();
 
 app.UseRouting();
@@ -184,6 +202,7 @@ static class CourseStaticFileApplicationBuilderExtensions
             OnPrepareResponse = context =>
             {
                 context.Context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+                context.Context.Response.Headers.CacheControl = "public,max-age=3600";
             }
         });
     }

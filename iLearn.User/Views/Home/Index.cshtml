@@ -123,6 +123,14 @@
                 mode: "text",
                 height: 50,
                 stylingMode: "outlined",
+                inputAttr: {
+                    inputmode: "numeric",
+                    autocomplete: "off",
+                    autocorrect: "off",
+                    autocapitalize: "off",
+                    spellcheck: "false",
+                    enterkeyhint: "go"
+                },
                 onEnterKey: function(e) {
                     e.event.preventDefault();
                     e.event.stopPropagation();

@@ -10,7 +10,7 @@
 @section Styles {
     <style>
         :root {
-            --sidebar-width: 400px;
+            --sidebar-width: 320px;
         }
 
         footer {
@@ -37,6 +37,24 @@
             flex-direction: column;
             background: #000;
             position: relative;
+        }
+
+        /* --- Pseudo-fullscreen (touch/iPad) --- */
+        .scorm-section.pseudo-fullscreen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        body.pseudo-fs-lock {
+            overflow: hidden;
+            overscroll-behavior: none;
+        }
+
+        .pseudo-fullscreen .js-toc-btn {
+            display: none;
         }
 
         .scorm-toolbar {
@@ -95,6 +113,7 @@
             flex: 1;
             position: relative;
             background: #e9ecef;
+            overscroll-behavior: none;
         }
 
         iframe#scormFrame {
@@ -151,60 +170,39 @@
         }
 
         .course-header-panel {
-            padding: var(--space-4) var(--space-5);
+            padding: 12px 16px;
             background-color: #fff;
             border-bottom: 1px solid #f0f0f0;
         }
 
-        .course-eyebrow {
-            color: var(--brand-color);
-            font-size: 0.72rem;
-            font-weight: 800;
-            letter-spacing: 0.02em;
-            text-transform: uppercase;
-            margin-bottom: 5px;
-        }
-
         .course-title {
             color: #172033;
-            font-size: 1.05rem;
+            font-size: 0.95rem;
             font-weight: 800;
             line-height: 1.35;
-            margin-bottom: 14px;
+            margin-bottom: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
-        .course-meta-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+        .course-meta-line {
+            display: flex;
+            align-items: center;
             gap: 8px;
-            margin-bottom: 12px;
-        }
-
-        .course-meta-item {
+            margin-bottom: 8px;
             min-width: 0;
-            border: 1px solid #eef2f4;
-            border-radius: 8px;
-            background: #fbfcfc;
-            padding: 9px 10px;
         }
 
-        .course-meta-label {
-            display: block;
+        .course-meta-text {
             color: #64748b;
-            font-size: 0.72rem;
-            font-weight: 700;
-            margin-bottom: 3px;
-        }
-
-        .course-meta-value {
-            display: block;
-            min-width: 0;
-            color: #1f2937;
-            font-size: 0.86rem;
-            font-weight: 700;
+            font-size: 0.78rem;
+            font-weight: 600;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            min-width: 0;
         }
 
         .course-status-pill {
@@ -214,8 +212,9 @@
             align-items: center;
             border-radius: 999px;
             padding: 2px 9px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             line-height: 1.45;
+            flex-shrink: 0;
         }
 
         .status-muted {
@@ -238,24 +237,7 @@
             color: #9a6700;
         }
 
-        .course-progress-panel {
-            border: 1px solid #e7f1f1;
-            border-radius: 8px;
-            background: #f7fbfb;
-            padding: 10px;
-        }
-
-        .course-progress-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            color: #475569;
-            font-size: 0.78rem;
-            font-weight: 700;
-            margin-bottom: 7px;
-        }
-
-        .course-progress-body {
+        .course-progress-row {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -263,7 +245,7 @@
 
         .course-progress-value {
             color: var(--brand-color);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 800;
             flex: 0 0 auto;
         }
@@ -271,7 +253,7 @@
         .course-progress-track {
             flex: 1 1 auto;
             min-width: 0;
-            height: 7px;
+            height: 6px;
             background: #dcebea;
             border-radius: 999px;
             overflow: hidden;
@@ -286,7 +268,7 @@
         }
 
         .toc-header {
-            padding: var(--space-4) var(--space-5);
+            padding: 8px 16px;
             background-color: #fff;
             font-weight: 700;
             color: #333;
@@ -298,7 +280,7 @@
         .course-toc {
             flex: 1;
             overflow-y: auto;
-            padding: var(--space-4);
+            padding: 12px;
             background-color: #fff;
         }
 
@@ -309,8 +291,8 @@
             background: #fff;
             border: 1px solid #e9ecef;
             border-radius: var(--radius-md);
-            margin-bottom: var(--space-3);
-            padding: var(--space-4);
+            margin-bottom: 8px;
+            padding: 10px 12px;
             position: relative;
             overflow: hidden;
         }
@@ -359,7 +341,7 @@
 
         /* --- Save Button --- */
         .save-btn-container {
-            padding: var(--space-4) var(--space-5);
+            padding: 8px 12px;
             border-top: 1px solid #dee2e6;
             background: #fff;
         }
@@ -486,7 +468,7 @@
             opacity: 0.2;
         }
         .player-icon-slot {
-            width: 30px;
+            width: 24px;
             text-align: center;
         }
         .player-status-icon {
@@ -529,6 +511,32 @@
             color: var(--danger-color) !important;
         }
 
+        /* --- Sidebar Collapse --- */
+        .viewer-container.sidebar-collapsed {
+            grid-template-columns: 1fr 0;
+        }
+
+        .sidebar-collapsed .info-section {
+            display: none;
+        }
+
+        /* --- :active touch feedback --- */
+        .btn-continue:active,
+        .start-btn:active,
+        .contentItem-item:active,
+        .player-back-link:active,
+        .toolbar-icon-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* --- Touch-device toolbar --- */
+        @@media (pointer: coarse) {
+            .toolbar-icon-btn {
+                width: 44px;
+                min-height: 44px;
+            }
+        }
+
         /* --- Responsive --- */
         @@media (max-width: 992px) {
             body {
@@ -551,10 +559,6 @@
                 border-left: none;
                 border-top: 1px solid #dee2e6;
             }
-
-            .course-meta-grid {
-                grid-template-columns: 1fr;
-            }
         }
     </style>
 }
@@ -568,12 +572,15 @@
                     <i class="fas fa-arrow-left"></i>
                     <span>กลับ</span>
                 </a>
-                <button type="button" class="toolbar-icon-btn d-lg-none" onclick="scrollToToc()" title="ดูเนื้อหาหลักสูตร">
+                <button type="button" class="toolbar-icon-btn js-toc-btn d-lg-none" onclick="scrollToToc()" title="ดูเนื้อหาหลักสูตร">
                     <i class="fas fa-list"></i>
                 </button>
             </div>
             <div class="scorm-toolbar-actions">
-                <button type="button" class="toolbar-icon-btn" onclick="toggleFullscreen()" title="Fullscreen">
+                <button type="button" class="toolbar-icon-btn d-none d-lg-inline-flex" id="btnToggleSidebar" onclick="toggleSidebar()" title="พับแถบข้อมูล">
+                    <i class="fas fa-angle-double-right"></i>
+                </button>
+                <button type="button" class="toolbar-icon-btn" id="btnFullscreen" onclick="toggleFullscreen()" title="เต็มจอ">
                     <i class="fas fa-expand fa-lg"></i>
                 </button>
             </div>
@@ -627,42 +634,22 @@
                 </div>
             </div>
 
-            <iframe id="scormFrame"></iframe>
+            <iframe id="scormFrame" allowfullscreen allow="fullscreen"></iframe>
         </div>
     </div>
 
     <div class="info-section" id="tocSection">
         <div class="course-header-panel">
-            <div class="course-eyebrow">รายละเอียดหลักสูตร</div>
             <h5 class="course-title" id="courseTitleDisplay">กำลังโหลดข้อมูล...</h5>
-            <div class="course-meta-grid">
-                <div class="course-meta-item">
-                    <span class="course-meta-label">ผู้เรียน</span>
-                    <span class="course-meta-value" id="learnerCodeDisplay">-</span>
-                </div>
-                <div class="course-meta-item">
-                    <span class="course-meta-label">Category</span>
-                    <span class="course-meta-value" id="categoryNameDisplay">-</span>
-                </div>
-                <div class="course-meta-item">
-                    <span class="course-meta-label">Course Type</span>
-                    <span class="course-meta-value" id="courseTypeNameDisplay">-</span>
-                </div>
-                <div class="course-meta-item">
-                    <span class="course-meta-label">สถานะ</span>
-                    <span class="course-meta-value course-status-pill status-muted" id="courseStatusDisplay">-</span>
-                </div>
+            <div class="course-meta-line">
+                <span class="course-status-pill status-muted" id="courseStatusDisplay">-</span>
+                <span class="course-meta-text">
+                    <span id="categoryNameDisplay">-</span> · <span id="courseTypeNameDisplay">-</span> · <span id="learnerCodeDisplay">-</span>
+                </span>
             </div>
-            <div class="course-progress-panel">
-                <div class="course-progress-head">
-                    <span>ความคืบหน้าหลักสูตร</span>
-                </div>
-                <div class="course-progress-body">
-                    <div class="course-progress-track">
-                        <div class="course-progress-fill" id="courseProgressFill"></div>
-                    </div>
-                    <span class="course-progress-value" id="courseProgressDisplay">0%</span>
-                </div>
+            <div class="course-progress-row">
+                <div class="course-progress-track"><div class="course-progress-fill" id="courseProgressFill"></div></div>
+                <span class="course-progress-value" id="courseProgressDisplay">0%</span>
             </div>
         </div>
 
@@ -694,9 +681,13 @@
         const COURSE_ID = "@courseId"; // ใช้ Course ID แทน
         const currentLearnerCode = '@learnerCode';
         const currentLearnerName = '@learnerName';
-        const baseUrl = (typeof serviceUrl !== 'undefined') ? serviceUrl : '';
         const playerInfoUrl = '@Url.Action("GetPlayerInfo", "MyLearning")';
         const commitRuntimeUrl = '@Url.Action("CommitRuntime", "MyLearning")';
+        const pingUrl = '@Url.Action("Ping", "MyLearning")';
+
+        // C4: Gate SCORM adapter logging — add ?scormDebug to URL to enable
+        const SCORM_DEBUG = new URLSearchParams(window.location.search).has('scormDebug');
+        function scormLog(...args) { if (SCORM_DEBUG) console.log(...args); }
 
         // ========================================
         // State Management
@@ -714,14 +705,53 @@
         // ========================================
         // Initialization
         // ========================================
+        // B2: Detect fullscreen mode once at init
+        const useNativeFullscreen =
+            !window.matchMedia("(pointer: coarse)").matches &&
+            !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+
         $(function() {
             console.log("🚀 Application Starting...");
             initScormAdapter();
             loadCourseData();
 
+            // --- B1: Lifecycle flush ---
             window.addEventListener("beforeunload", function (e) {
                 flushSelectedContentItemRuntime({ includeSessionTime: true, useBeacon: true, reason: "beforeunload" });
             });
+            window.addEventListener("pagehide", function () {
+                flushSelectedContentItemRuntime({ includeSessionTime: true, useBeacon: true, reason: "pagehide" });
+            });
+            document.addEventListener("visibilitychange", function () {
+                if (document.visibilityState === "hidden") {
+                    flushSelectedContentItemRuntime({ includeSessionTime: true, useBeacon: true, reason: "visibility-hidden" });
+                }
+            });
+
+            // --- B2: Fullscreen change listeners (sync icon when user presses Esc / system exits) ---
+            document.addEventListener("fullscreenchange", syncFullscreenIcon);
+            document.addEventListener("webkitfullscreenchange", syncFullscreenIcon);
+            document.addEventListener("keydown", function (e) {
+                if (e.key === "Escape") {
+                    const scormSection = document.getElementById("fullscreenArea");
+                    if (scormSection && scormSection.classList.contains("pseudo-fullscreen")) {
+                        exitPseudoFullscreen();
+                    }
+                }
+            });
+
+            // --- B3: Restore sidebar collapsed state ---
+            if (window.matchMedia("(min-width: 992px)").matches && localStorage.getItem("playerSidebarCollapsed") === "1") {
+                document.querySelector(".viewer-container").classList.add("sidebar-collapsed");
+                updateSidebarToggleIcon(true);
+            }
+
+            // --- B4: Keep-alive ping every 10 minutes ---
+            setInterval(function () {
+                if (!document.hidden) {
+                    $.ajax({ url: pingUrl, method: 'GET', xhrFields: { withCredentials: true } }).fail(function () { /* swallow */ });
+                }
+            }, 10 * 60 * 1000);
         });
 
         // ========================================
@@ -911,11 +941,14 @@
 
         function renderCourseDetails(data) {
             const initialProgress = data.isCompleted ? 100 : normalizeProgressValue(data.progress || 0);
+            const titleText = data.courseTitle || "ไม่มีชื่อหลักสูตร";
+            const categoryText = data.categoryName || "ไม่ระบุหมวดหมู่";
+            const typeText = data.courseTypeName || "ไม่ระบุประเภท";
 
-            $("#courseTitleDisplay").text(data.courseTitle || "ไม่มีชื่อหลักสูตร");
+            $("#courseTitleDisplay").text(titleText).attr("title", titleText);
             $("#learnerCodeDisplay").text(currentLearnerCode || "-");
-            $("#categoryNameDisplay").text(data.categoryName || "ไม่ระบุหมวดหมู่");
-            $("#courseTypeNameDisplay").text(data.courseTypeName || "ไม่ระบุประเภท");
+            $("#categoryNameDisplay").text(categoryText).attr("title", categoryText);
+            $("#courseTypeNameDisplay").text(typeText).attr("title", typeText);
             setCourseProgressDisplay(initialProgress);
 
             if (data.isCompleted) {
@@ -1024,7 +1057,7 @@
                 "cmi.comments_from_learner._count": "0",
                 "cmi.comments_from_lms._count": "0"
             };
-            console.log("✅ SCORM Model Reset - lesson_status:", cmiModel["cmi.core.lesson_status"], "entry:", entry, "location:", lessonLocation);
+            scormLog("✅ SCORM Model Reset - lesson_status:", cmiModel["cmi.core.lesson_status"], "entry:", entry, "location:", lessonLocation);
         }
 
         function setCmiModelValue(elementName, value) {
@@ -1221,7 +1254,7 @@
                 return Promise.resolve(null);
             }
 
-            console.log(`💾 Runtime commit (${options.reason || "unspecified"})`, payload);
+            scormLog(`💾 Runtime commit (${options.reason || "unspecified"})`, payload);
 
             if (options.useBeacon === true && navigator.sendBeacon) {
                 const body = new Blob([JSON.stringify(payload)], { type: 'application/json' });
@@ -1408,9 +1441,9 @@
                 flushSelectedContentItemRuntime({ includeSessionTime: true, reason: "contentItem-switch" });
             }
 
-            console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-            console.log(`📌 Selected ContentItem [${index}]: ${currentData.contentItems[index].name}`);
-            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+            scormLog(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+            scormLog(`📌 Selected ContentItem [${index}]: ${currentData.contentItems[index].name}`);
+            scormLog(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
             // 🔴 CRITICAL: หยุด iframe เดิมทันที
             const iframe = document.getElementById("scormFrame");
@@ -1430,8 +1463,8 @@
 
             // รีเซ็ต SCORM Model ทันทีเมื่อเลือกบทใหม่
             resetScormModel(contentItem);
-            console.log(`✅ SCORM Model cleared for new Learn `);
-            console.log(`🛑 Previous iframe stopped`);
+            scormLog(`✅ SCORM Model cleared for new Learn `);
+            scormLog(`🛑 Previous iframe stopped`);
         }
 
         // ========================================
@@ -1446,9 +1479,9 @@
                 return;
             }
 
-            console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            console.log(`🚀 Starting ContentItem [${selectedContentItemIndex}]: ${contentItem.name}`);
-            console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            scormLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            scormLog(`🚀 Starting ContentItem [${selectedContentItemIndex}]: ${contentItem.name}`);
+            scormLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
             // 1. โหลด SCORM Model จาก runtime state ล่าสุด
             resetScormModel(contentItem);
@@ -1464,8 +1497,8 @@
             setTimeout(() => {
                 iframe.style.display = "block";
                 iframe.src = contentItem.launchUrl;
-                console.log(`🌐 Loading: ${contentItem.launchUrl}`);
-                console.log(`📦 Initial cmiModel:`, JSON.stringify(cmiModel, null, 2));
+                scormLog(`🌐 Loading: ${contentItem.launchUrl}`);
+                scormLog(`📦 Initial cmiModel:`, JSON.stringify(cmiModel, null, 2));
             }, 100);
         }
 
@@ -1474,19 +1507,19 @@
         // ========================================
         function updateContentItemData(key, value) {
             if (isReadOnly) {
-                console.log(`⚠️ Read-only mode - ignoring update`);
+                scormLog(`⚠️ Read-only mode - ignoring update`);
                 return;
             }
 
             if (selectedContentItemIndex === -1 || !currentData) {
-                console.log(`⚠️ No contentItem selected - ignoring update`);
+                scormLog(`⚠️ No contentItem selected - ignoring update`);
                 return;
             }
 
             // 🔴 CRITICAL: ตรวจสอบว่า iframe ยังแสดงอยู่หรือไม่
             const iframe = document.getElementById("scormFrame");
             if (iframe.style.display === "none" || iframe.src === "about:blank") {
-                console.log(`⚠️ Iframe not active - ignoring SCORM update from old content`);
+                scormLog(`⚠️ Iframe not active - ignoring SCORM update from old content`);
                 return;
             }
 
@@ -1494,50 +1527,50 @@
             let needsRecalc = false;
             const valStr = String(value).toLowerCase().trim();
 
-            console.log(`📊 updateContentItemData - ContentItem [${selectedContentItemIndex}] ${key}: ${value}`);
+            scormLog(`📊 updateContentItemData - ContentItem [${selectedContentItemIndex}] ${key}: ${value}`);
 
             if (key === "status") {
-                console.log(`📊 ContentItem [${selectedContentItemIndex}] Status Update: ${valStr}`);
+                scormLog(`📊 ContentItem [${selectedContentItemIndex}] Status Update: ${valStr}`);
                 if (valStr === "passed") {
                     contentItem.clientStatus = "passed";
                     contentItem.clientProgress = 100;
                     contentItem.sessionTerminalStatus = "passed";
                     needsRecalc = true;
                     captureSessionTime(contentItem);
-                    console.log(`✅ Status: PASSED (100%)`);
+                    scormLog(`✅ Status: PASSED (100%)`);
                 }
                 else if (valStr === "completed") {
                     contentItem.clientStatus = contentItem.clientSuccessStatus === "failed" ? "failed" : "passed";
                     if (contentItem.clientStatus === "failed") {
                         contentItem.sessionTerminalStatus = "failed";
                         needsRecalc = true;
-                        console.log(`❌ Status remains FAILED because success_status is failed`);
+                        scormLog(`❌ Status remains FAILED because success_status is failed`);
                     } else {
                         contentItem.clientProgress = 100;
                         contentItem.sessionTerminalStatus = "passed";
                         needsRecalc = true;
                         captureSessionTime(contentItem);
-                        console.log(`✅ Status: COMPLETED → PASSED (100%)`);
+                        scormLog(`✅ Status: COMPLETED → PASSED (100%)`);
                     }
                 }
                 else if (valStr === "failed") {
                     contentItem.clientStatus = "failed";
                     contentItem.sessionTerminalStatus = "failed";
                     needsRecalc = true;
-                    console.log(`❌ Status: FAILED`);
+                    scormLog(`❌ Status: FAILED`);
                 }
                 else {
                     if (contentItem.sessionTerminalStatus !== "passed" && contentItem.sessionTerminalStatus !== "failed") {
                         contentItem.clientStatus = "incomplete";
                         contentItem.clientProgress = getIncompleteContentItemProgress(contentItem);
                         needsRecalc = true;
-                        console.log(`⏳ Status: INCOMPLETE`);
+                        scormLog(`⏳ Status: INCOMPLETE`);
                     }
                 }
             }
             else if (key === "successStatus") {
                 contentItem.clientSuccessStatus = valStr;
-                console.log(`📊 ContentItem [${selectedContentItemIndex}] Success Status Update: ${valStr}`);
+                scormLog(`📊 ContentItem [${selectedContentItemIndex}] Success Status Update: ${valStr}`);
 
                 if (valStr === "passed") {
                     contentItem.clientStatus = "passed";
@@ -1545,31 +1578,31 @@
                     contentItem.sessionTerminalStatus = "passed";
                     needsRecalc = true;
                     captureSessionTime(contentItem);
-                    console.log(`✅ Success Status: PASSED (100%)`);
+                    scormLog(`✅ Success Status: PASSED (100%)`);
                 }
                 else if (valStr === "failed") {
                     contentItem.clientStatus = "failed";
                     contentItem.sessionTerminalStatus = "failed";
                     needsRecalc = true;
                     captureSessionTime(contentItem);
-                    console.log(`❌ Success Status: FAILED`);
+                    scormLog(`❌ Success Status: FAILED`);
                 }
                 else if (contentItem.clientStatus !== "passed" && contentItem.clientStatus !== "failed") {
                     contentItem.clientStatus = "incomplete";
                     needsRecalc = true;
-                    console.log(`⏳ Success Status: UNKNOWN`);
+                    scormLog(`⏳ Success Status: UNKNOWN`);
                 }
             }
             else if (key === "completionStatus") {
                 contentItem.clientCompletionStatus = valStr;
-                console.log(`📊 ContentItem [${selectedContentItemIndex}] Completion Status Update: ${valStr}`);
+                scormLog(`📊 ContentItem [${selectedContentItemIndex}] Completion Status Update: ${valStr}`);
 
                 if (valStr === "completed") {
                     if (contentItem.clientSuccessStatus === "failed" || contentItem.clientStatus === "failed") {
                         contentItem.clientStatus = "failed";
                         contentItem.sessionTerminalStatus = "failed";
                         needsRecalc = true;
-                        console.log(`❌ Completion Status: COMPLETED but success status is FAILED`);
+                        scormLog(`❌ Completion Status: COMPLETED but success status is FAILED`);
                     }
                     else if (contentItem.clientSuccessStatus === "passed" || String(contentItem.type).toLowerCase() !== "exam") {
                         contentItem.clientStatus = "passed";
@@ -1577,12 +1610,12 @@
                         contentItem.sessionTerminalStatus = "passed";
                         needsRecalc = true;
                         captureSessionTime(contentItem);
-                        console.log(`✅ Completion Status: COMPLETED`);
+                        scormLog(`✅ Completion Status: COMPLETED`);
                     }
                     else {
                         contentItem.clientStatus = "incomplete";
                         needsRecalc = true;
-                        console.log(`⏳ Completion Status: COMPLETED, waiting for exam success_status`);
+                        scormLog(`⏳ Completion Status: COMPLETED, waiting for exam success_status`);
                     }
                 }
                 else if (valStr === "incomplete" || valStr === "not attempted" || valStr === "unknown") {
@@ -1590,7 +1623,7 @@
                         contentItem.clientStatus = "incomplete";
                         contentItem.clientProgress = getIncompleteContentItemProgress(contentItem);
                         needsRecalc = true;
-                        console.log(`⏳ Completion Status: INCOMPLETE`);
+                        scormLog(`⏳ Completion Status: INCOMPLETE`);
                     }
                 }
             }
@@ -1600,12 +1633,12 @@
                 if (prog > contentItem.clientProgress) {
                     contentItem.clientProgress = prog;
                     needsRecalc = true;
-                    console.log(`📈 Progress: ${prog}%`);
+                    scormLog(`📈 Progress: ${prog}%`);
                 }
             }
             else if (key === "score") {
                 contentItem.clientScore = parseFloat(value) || 0;
-                console.log(`🎯 Score: ${contentItem.clientScore}`);
+                scormLog(`🎯 Score: ${contentItem.clientScore}`);
             }
 
             if (needsRecalc) {
@@ -1646,7 +1679,7 @@
                 contentItem.clientTime = effectiveSessionTime;
                 cmiModel["cmi.core.session_time"] = effectiveSessionTime;
                 cmiModel["cmi.session_time"] = effectiveSessionTime;
-                console.log(`⏱️ Session Time: ${effectiveSessionTime}`);
+                scormLog(`⏱️ Session Time: ${effectiveSessionTime}`);
             }
         }
 
@@ -1658,7 +1691,7 @@
             let totalContentItems = currentData.contentItems.length;
             let passedCount = 0;
 
-            console.log(`\n🔄 Recalculating Progress...`);
+            scormLog(`\n🔄 Recalculating Progress...`);
             currentData.contentItems.forEach((r, idx) => {
                 if (!isReadOnly) {
                     const bar = $(`#res-bar-${idx}`);
@@ -1686,7 +1719,7 @@
                 } else {
                     iconContainer.html('');
                 }
-                console.log(`  [${idx}] ${r.name}: ${r.clientStatus} (${r.clientProgress}%)`);
+                scormLog(`  [${idx}] ${r.name}: ${r.clientStatus} (${r.clientProgress}%)`);
             });
 
             if (!isReadOnly) {
@@ -1697,18 +1730,18 @@
                 const allPassed = (passedCount === totalContentItems);
                 const hasFailed = currentData.contentItems.some(r => r.clientStatus === "failed");
 
-                console.log(`📊 Summary: ${passedCount}/${totalContentItems} passed, Completion: ${completionProgress}%`);
+                scormLog(`📊 Summary: ${passedCount}/${totalContentItems} passed, Completion: ${completionProgress}%`);
                 if (allPassed) {
                     setCourseStatusDisplay("พร้อมแสดงผล", "success");
                     $("#btnPreSave").prop("disabled", false);
-                    console.log(`✅ All contentItems PASSED - Save button enabled`);
+                    scormLog(`✅ All contentItems PASSED - Save button enabled`);
                 } else {
                     if (hasFailed) {
                         setCourseStatusDisplay("ไม่ผ่านเกณฑ์", "danger");
-                        console.log(`❌ Has FAILED contentItems`);
+                        scormLog(`❌ Has FAILED contentItems`);
                     } else {
                         setCourseStatusDisplay("กำลังเรียน", "muted");
-                        console.log(`⏳ Still in progress`);
+                        scormLog(`⏳ Still in progress`);
                     }
                     $("#btnPreSave").prop("disabled", true);
                 }
@@ -1791,28 +1824,28 @@
             // ========================================
             window.API = {
                 LMSInitialize: function(p) {
-                    console.log("🎬 SCORM 1.2: LMSInitialize");
+                    scormLog("🎬 SCORM 1.2: LMSInitialize");
                     return "true";
                 },
 
                 LMSGetValue: function(e) {
                     if (!isIframeActive()) {
-                        console.log(`⚠️ LMSGetValue blocked - iframe not active`);
+                        scormLog(`⚠️ LMSGetValue blocked - iframe not active`);
                         return "";
                     }
 
                     const value = cmiModel.hasOwnProperty(e) ? cmiModel[e] : "";
-                    console.log(`📖 SCORM 1.2 GetValue("${e}") = "${value}"`);
+                    scormLog(`📖 SCORM 1.2 GetValue("${e}") = "${value}"`);
                     return value;
                 },
 
                 LMSSetValue: function(e, v) {
                     if (!isIframeActive()) {
-                        console.log(`⚠️ LMSSetValue blocked - iframe not active: "${e}" = "${v}"`);
+                        scormLog(`⚠️ LMSSetValue blocked - iframe not active: "${e}" = "${v}"`);
                         return "true";
                     }
 
-                    console.log(`📝 SCORM 1.2 SetValue("${e}", "${v}")`);
+                    scormLog(`📝 SCORM 1.2 SetValue("${e}", "${v}")`);
                     setCmiModelValue(e, v);
                     syncScorm12RuntimeAliases(e, v);
                     markSelectedContentItemDirty();
@@ -1830,16 +1863,16 @@
 
                 LMSCommit: function(p) {
                     if (!isIframeActive()) {
-                        console.log(`⚠️ LMSCommit blocked - iframe not active`);
+                        scormLog(`⚠️ LMSCommit blocked - iframe not active`);
                         return "true";
                     }
-                    console.log("💾 SCORM 1.2: LMSCommit");
+                    scormLog("💾 SCORM 1.2: LMSCommit");
                     flushSelectedContentItemRuntime({ includeSessionTime: false, reason: "scorm12-commit" });
                     return "true";
                 },
 
                 LMSFinish: function(p) {
-                    console.log("🏁 SCORM 1.2: LMSFinish");
+                    scormLog("🏁 SCORM 1.2: LMSFinish");
                     flushSelectedContentItemRuntime({ includeSessionTime: true, reason: "scorm12-finish" });
                     sessionStartTime = null;
                     return "true";
@@ -1855,12 +1888,12 @@
             // ========================================
             window.API_1484_11 = {
                 Initialize: function(p) {
-                    console.log("🎬 SCORM 2004: Initialize");
+                    scormLog("🎬 SCORM 2004: Initialize");
                     return "true";
                 },
 
                 Terminate: function(p) {
-                    console.log("🏁 SCORM 2004: Terminate");
+                    scormLog("🏁 SCORM 2004: Terminate");
                     flushSelectedContentItemRuntime({ includeSessionTime: true, reason: "scorm2004-terminate" });
                     sessionStartTime = null;
                     return "true";
@@ -1868,22 +1901,22 @@
 
                 GetValue: function(e) {
                     if (!isIframeActive()) {
-                        console.log(`⚠️ GetValue blocked - iframe not active`);
+                        scormLog(`⚠️ GetValue blocked - iframe not active`);
                         return "";
                     }
 
                     const value = cmiModel.hasOwnProperty(e) ? cmiModel[e] : "";
-                    console.log(`📖 SCORM 2004 GetValue("${e}") = "${value}"`);
+                    scormLog(`📖 SCORM 2004 GetValue("${e}") = "${value}"`);
                     return value;
                 },
 
                 SetValue: function(e, v) {
                     if (!isIframeActive()) {
-                        console.log(`⚠️ SetValue blocked - iframe not active: "${e}" = "${v}"`);
+                        scormLog(`⚠️ SetValue blocked - iframe not active: "${e}" = "${v}"`);
                         return "true";
                     }
 
-                    console.log(`📝 SCORM 2004 SetValue("${e}", "${v}")`);
+                    scormLog(`📝 SCORM 2004 SetValue("${e}", "${v}")`);
                     setCmiModelValue(e, v);
                     markSelectedContentItemDirty();
 
@@ -1905,10 +1938,10 @@
 
                 Commit: function(p) {
                     if (!isIframeActive()) {
-                        console.log(`⚠️ Commit blocked - iframe not active`);
+                        scormLog(`⚠️ Commit blocked - iframe not active`);
                         return "true";
                     }
-                    console.log("💾 SCORM 2004: Commit");
+                    scormLog("💾 SCORM 2004: Commit");
                     flushSelectedContentItemRuntime({ includeSessionTime: false, reason: "scorm2004-commit" });
                     return "true";
                 },
@@ -1922,17 +1955,66 @@
         }
 
         // ========================================
-        // Utility Functions
+        // Fullscreen (B2: native/pseudo dual-path)
         // ========================================
         function toggleFullscreen() {
             const elem = document.getElementById("fullscreenArea");
-            if (!document.fullscreenElement) {
-                elem.requestFullscreen().catch(err => {
-                    console.log(`Error attempting to enable full-screen mode: ${err.message}`);
-                });
+            if (useNativeFullscreen) {
+                // --- Native path (desktop) ---
+                const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+                if (!isFs) {
+                    const rfs = elem.requestFullscreen || elem.webkitRequestFullscreen;
+                    if (rfs) rfs.call(elem).catch(function () {});
+                } else {
+                    const efs = document.exitFullscreen || document.webkitExitFullscreen;
+                    if (efs) efs.call(document);
+                }
             } else {
-                document.exitFullscreen();
+                // --- Pseudo path (touch/iPad) ---
+                if (elem.classList.contains("pseudo-fullscreen")) {
+                    exitPseudoFullscreen();
+                } else {
+                    elem.classList.add("pseudo-fullscreen");
+                    document.body.classList.add("pseudo-fs-lock");
+                    syncFullscreenIcon();
+                }
             }
+        }
+
+        function exitPseudoFullscreen() {
+            const elem = document.getElementById("fullscreenArea");
+            elem.classList.remove("pseudo-fullscreen");
+            document.body.classList.remove("pseudo-fs-lock");
+            syncFullscreenIcon();
+        }
+
+        function syncFullscreenIcon() {
+            const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement) ||
+                         document.getElementById("fullscreenArea").classList.contains("pseudo-fullscreen");
+            const $btn = $("#btnFullscreen");
+            $btn.find("i").removeClass("fa-expand fa-compress").addClass(isFs ? "fa-compress" : "fa-expand");
+            $btn.attr("title", isFs ? "ออกจากเต็มจอ" : "เต็มจอ");
+        }
+
+        // ========================================
+        // Sidebar Toggle (B3)
+        // ========================================
+        function toggleSidebar() {
+            const container = document.querySelector(".viewer-container");
+            const collapsed = container.classList.toggle("sidebar-collapsed");
+            if (collapsed) {
+                localStorage.setItem("playerSidebarCollapsed", "1");
+            } else {
+                localStorage.removeItem("playerSidebarCollapsed");
+            }
+            updateSidebarToggleIcon(collapsed);
+        }
+
+        function updateSidebarToggleIcon(collapsed) {
+            const $btn = $("#btnToggleSidebar");
+            $btn.find("i").removeClass("fa-angle-double-right fa-angle-double-left")
+                .addClass(collapsed ? "fa-angle-double-left" : "fa-angle-double-right");
+            $btn.attr("title", collapsed ? "แสดงแถบข้อมูล" : "พับแถบข้อมูล");
         }
 
         function scrollToToc() {

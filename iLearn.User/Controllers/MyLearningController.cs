@@ -1,4 +1,4 @@
-﻿using iLearn.Application.Common;
+using iLearn.Application.Common;
 using iLearn.Application.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -251,6 +251,10 @@ namespace iLearn.User.Controllers
                 });
             }
         }
+
+        // Keep-alive endpoint for Player — slides learner cookie without touching API
+        [HttpGet]
+        public IActionResult Ping() => NoContent();
 
         private string? GetAuthenticatedLearnerCode()
         {
