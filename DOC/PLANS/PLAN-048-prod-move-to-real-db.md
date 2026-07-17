@@ -1,6 +1,6 @@
 # PLAN-048: ย้าย prod จาก QA DB → Production DB จริง (10.10.154.119)
 
-- **Status:** READY
+- **Status:** DONE -> VERIFIED (reconciled 2026-07-17)
 - **Assigned:** GitHub Copilot (GPT)  _(deploy/infra owner; ผู้ใช้ reroute ได้)_
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-02
@@ -85,4 +85,8 @@ prod app ใช้ `appsettings.Production.json` (env=Production). ปัจจ�
 4. ล้าง QA test data ~3 record ไหม (หรือปล่อย)
 
 ## Implementer Notes
-_(GPT เติม: ชื่อ .bak/path, เวลา restore, ค่า verify counts, วิธีจัดการ secret ที่ใช้จริง, ผล E2E + perf หลังย้าย)_
+
+- 2026-07-02: ผู้ใช้ทำ backup/restore ไปยัง production database ด้วยตนเองแล้ว และมีการตรวจยืนยันโดย Copilot ว่า QA ชี้ `AP-NTC2138-QADB` และ production ชี้ `AP-NTC2139-COSS` โดยใช้ `iLearnDB_New` ทั้งสองฝั่ง
+- Verification หลัง cutover: production API, learner, admin และ SCORM content smoke tests ผ่าน; catalog และ published content counts ตรงกับข้อมูลที่ restore
+- 2026-07-06: มีการยืนยันซ้ำว่า QA และ production แยก database กันแล้วหลังแก้ configuration contamination ใน PLAN-051
+- ไม่มีงาน implementation หรือ cutover ค้างจากแผนนี้; checklist ด้านบนเก็บไว้เป็น historical runbook

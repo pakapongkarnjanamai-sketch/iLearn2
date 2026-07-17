@@ -5,7 +5,8 @@ import { useNotifications } from '../../lib/notificationContext'
 import { IconButton } from '../ui/IconButton'
 import { AppButton } from '../ui/AppButton'
 import { Badge } from '../ui/Badge'
-import { formatNumber, formatRelativeTime } from '../../lib/format'
+import { formatNumber } from '../../lib/format'
+import { NotificationRow } from '../shared/NotificationRow'
 import type { NotificationDto } from '../../lib/notificationTypes'
 
 export function NotificationBell() {
@@ -71,11 +72,10 @@ export function NotificationBell() {
     await markAllRead()
   }
 
-  const levelToneMap = {
-    success: 'success',
-    error: 'danger',
-    info: 'info',
-  } as const
+  const handleViewAll = () => {
+    setIsOpen(false)
+    navigate('/notifications')
+  }
 
   return (
     <div className="relative inline-block text-left" ref={buttonRef}>
@@ -127,45 +127,26 @@ export function NotificationBell() {
               </div>
             ) : (
               items.map(item => (
-                <button
+                <NotificationRow
                   key={item.id}
-                  onClick={() => void handleItemClick(item)}
-                  className={`w-full px-4 py-3 text-left transition cursor-pointer flex gap-3 items-start border-none ${
-                    item.isRead ? 'bg-white hover:bg-slate-50/80' : 'bg-indigo-50/20 hover:bg-indigo-50/40'
-                  }`}
-                >
-                  <div className="mt-1 shrink-0 flex items-center">
-                    {!item.isRead && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 mr-1.5 shrink-0" title="Unread" />
-                    )}
-                    <Badge
-                      tone={levelToneMap[item.level as keyof typeof levelToneMap] || 'neutral'}
-                      size="xxs"
-                      variant="soft"
-                      className="uppercase font-bold"
-                    >
-                      {item.level}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <h4 className={`text-[13px] text-slate-800 truncate ${item.isRead ? 'font-medium' : 'font-semibold'}`}>
-                        {item.title}
-                      </h4>
-                      <span className="text-[10px] text-slate-400 shrink-0">
-                        {formatRelativeTime(item.createdAt)}
-                      </span>
-                    </div>
-                    {item.message && (
-                      <p className="text-xs text-slate-500 mt-0.5 line-clamp-2 break-words">
-                        {item.message}
-                      </p>
-                    )}
-                  </div>
-                </button>
+                  item={item}
+                  onClick={handleItemClick}
+                  compact
+                />
               ))
             )}
+          </div>
+
+          {/* §3: Footer — View all notifications */}
+          <div className="border-t border-slate-100">
+            <AppButton
+              variant="ghost"
+              size="sm"
+              onClick={handleViewAll}
+              className="w-full text-xs py-2.5 min-h-0 rounded-none animate-none"
+            >
+              View all notifications
+            </AppButton>
           </div>
         </div>
       )}

@@ -24,10 +24,9 @@ import { AppButton } from '../components/ui/AppButton'
 import { LoadingState } from '../components/ui/LoadingState'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import { useSession } from '../lib/sessionContext'
+import { useNotifications } from '../lib/notificationContext'
 import { toast } from '../lib/toast'
 import { formatDateTime, formatNumber, formatPercent } from '../lib/format'
-import { appConfig } from '../config/appConfig'
-import { HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr'
 import {
   fetchDashboardOverview,
   fetchMaintenanceStatus,
@@ -111,11 +110,11 @@ class ChartErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryStat
 export function DashboardPage() {
   const navigate = useNavigate()
   const { user, isSuperAdmin } = useSession()
+  const { isConnected: isSignalRConnected, subscribeHubEvent } = useNotifications()
   const [overview, setOverview] = useState<DashboardOverview | null>(null)
   const [maintenance, setMaintenance] = useState<MaintenanceStatus | null>(null)
   const [activities, setActivities] = useState<AdminActivity[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isSignalRConnected, setIsSignalRConnected] = useState(false)
   const isSignalRConnectedRef = useRef(false)
 
   useEffect(() => {
@@ -163,37 +162,16 @@ export function DashboardPage() {
     }
   }, [])
 
-  // Live admin activity feed via SignalR (best-effort; falls back to polling above)
+  // Live admin activity feed via SignalR — uses the central connection from NotificationProvider
+  // instead of opening a second connection to the same hub (tech debt fix from PLAN-089).
   useEffect(() => {
-    if (!appConfig.enableSignalR) return
-    const hubUrl = `${appConfig.signalRBaseUrl.replace(/\/$/, '')}/hubs/admin-activity`
-    const connection = new HubConnectionBuilder()
-      .withUrl(hubUrl, { withCredentials: true })
-      .withAutomaticReconnect()
-      .configureLogging(LogLevel.Warning)
-      .build()
-
-    connection.on('AdminActivityCreated', () => {
+    const unsubscribe = subscribeHubEvent('AdminActivityCreated', () => {
       fetchRecentAdminActivities(10)
         .then(setActivities)
         .catch(() => undefined)
     })
-
-    connection.onreconnecting(() => setIsSignalRConnected(false))
-    connection.onreconnected(() => setIsSignalRConnected(true))
-    connection.onclose(() => setIsSignalRConnected(false))
-
-    connection.start()
-      .then(() => setIsSignalRConnected(true))
-      .catch(() => setIsSignalRConnected(false))
-
-    return () => {
-      if (connection.state !== HubConnectionState.Disconnected) {
-        connection.stop().catch(() => undefined)
-      }
-      setIsSignalRConnected(false)
-    }
-  }, [])
+    return unsubscribe
+  }, [subscribeHubEvent])
 
   const scopeLabel = useMemo(() => {
     if (!overview) return user?.divisionName ?? '—'

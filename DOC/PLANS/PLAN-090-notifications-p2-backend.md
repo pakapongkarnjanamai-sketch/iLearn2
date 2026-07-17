@@ -1,6 +1,6 @@
 # PLAN-090: Notifications Phase 2 — Backend (deadline digest scheduler ตัวแรกของระบบ + retention + paging)
 
-- **Status:** READY
+- **Status:** DONE → VERIFIED (no findings)
 - **Assigned:** GitHub Copilot
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-15
@@ -126,4 +126,23 @@ Remove-Item -Recurse -Force artifacts\verify-test
 
 ## Implementer Notes
 
-*(เติมหลังทำเสร็จ)*
+- เพิ่ม `NotificationListDto.TotalCount`, `skip` ให้ `GET api/Notifications` และ clamp `skip` เป็นศูนย์เมื่อส่งค่าติดลบ; response เดิมยังเป็น `{ success, data }` และ endpoint ที่ไม่ส่ง `skip` ยังคงพฤติกรรมเดิม
+- เพิ่ม `NotificationTypes.DeadlineDigest` และ `NotificationRetentionDays = 90`; ไม่มี migration เพราะ schema เดิมรองรับอยู่แล้ว
+- เพิ่ม `IDeadlineDigestService` และ `DeadlineDigestService`: dedupe ต่อวัน, ใช้ `IDateTime.Now`, อ่าน overdue จาก `EnrollmentAssignment.DueDate`, รวม digest หนึ่งฉบับต่อ recipient ต่อวัน, จำกัด division admin ตาม role และให้ SuperAdmin เห็นทุก division รวม assignment ที่ไม่มี division
+- เพิ่ม `DeadlineDigestHostedService`: run ทันทีเมื่อ API start, แล้ว schedule เวลา 08:00 ตามเวลาไทย; ทุก run สร้าง DI scope ใหม่, ส่ง cancellation token, log/retry ทุก 1 นาทีเมื่อ error เพื่อไม่ให้ host ตาย
+- เพิ่ม hard-delete retention เป็น batch ละ 500 รายการสำหรับ notification ที่เก่ากว่า 90 วัน
+- เพิ่ม `DeadlineDigestServiceTests` 5 cases: daily dedupe, division/SuperAdmin recipient scope, effective link due date, no empty digest และ retention; เพิ่ม paging/TotalCount regression test ใน `NotificationServiceTests`
+- Verification: `dotnet build iLearn.Tests -o artifacts\\verify-plan090-final` ผ่าน และ `dotnet test artifacts\\verify-plan090-final\\iLearn.Tests.dll` ผ่าน **203/203**; ลบ artifacts หลังจบแล้ว
+- Manual verification ที่ยังต้องทำบน environment จริง: start/restart API เพื่อตรวจ digest startup/dedupe, ตรวจ run เวลา 08:00 จาก log, และ smoke `GET Notifications?skip=20&take=20` กับ Windows-auth user จริง
+
+## Reviewer Sign-off (Claude Code, 2026-07-17)
+
+ตรวจ diff เต็ม + build/test อิสระ (`dotnet test` **203 passed** — 6 DeadlineDigestServiceTests ใหม่ครบทุกเคสในแผน §5 รวม idempotency/link-DueDate/retention):
+
+- **DeadlineDigestService:** `IDateTime.Now` ทุกจุด ✅ dedupe รายวันด้วย `CreatedAt >= now.Date` (source เดียวกับที่ SaveChanges ใช้ — timezone ตรง) ✅ overdue นับจาก `link.DueDate` + `!SnapshotCompleted && !IsCompleted` ตาม effective-dates ✅ `IsDueSoon` ไม่นับวันเลยกำหนด (>= today) — ไม่นับซ้อนกับ overdue ✅ SuperAdmin ได้ org-wide + ไม่โดนส่งซ้ำจาก division role ✅ digest ว่างไม่ส่ง ✅ retention batch RemoveRange 500 รันแม้วันที่ dedupe-skip ✅ query 2 ก้อนไม่มี N+1, AsNoTracking, global soft-delete filter ครอบ ✅
+- **HostedService:** wrapper บางตามสเปค — startup run ทันที (dedupe กันซ้ำ), scope ต่อรอบ, try/catch ครอบ iteration + retry 1 นาที, next run 08:00 จาก IDateTime, host ไม่มีทางตาย ✅
+- **Contract §1:** `TotalCount` (COUNT ก่อน Skip/Take ตาม filter เดียวกัน) + `skip` clamp ≥0 + `DeadlineDigest`/`NotificationRetentionDays` const — ตรง freeze; endpoint เดิมพฤติกรรมเดิม ✅
+- Observation (ยอมรับได้): dedupe เป็น global รายวัน — ถ้า run ตายกลางคัน recipient ที่เหลือจะไม่ได้รับจนวันถัดไป (ตามสเปคแผนเป๊ะ; โอกาสต่ำ ไม่บล็อก)
+- **CLAUDE.md กติกาใหม่ได้ผลจริง:** รอบนี้ไม่มี finding เรื่อง DateTime/effective dates/migration path เลย — ครั้งแรกที่ backend ผ่านสะอาด
+
+**สรุป: ผ่านรีวิว ไม่มี finding ต้องแก้ — scheduler ตัวแรกของระบบเขียนได้มาตรฐานดี**

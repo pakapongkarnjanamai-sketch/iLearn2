@@ -36,6 +36,7 @@ import { ComplianceReportPage } from './pages/reports/ComplianceReportPage'
 import { TranscriptReportPage } from './pages/reports/TranscriptReportPage'
 import { CourseSummaryReportPage } from './pages/reports/CourseSummaryReportPage'
 import { ActivityReportPage } from './pages/reports/ActivityReportPage'
+import { NotificationsPage } from './pages/notifications/NotificationsPage'
 
 function LegacyStudentGroupsRedirect() {
   const location = useLocation()
@@ -106,6 +107,9 @@ export function App() {
         {/* Learners */}
         <Route path="learners" element={<LearnerListPage />} />
         <Route path="learners/:id/profile" element={<Remount><LearnerProfilePage /></Remount>} />
+
+        {/* Notifications (full page — entry via bell footer, no sidebar item) */}
+        <Route path="notifications" element={<Remount><NotificationsPage /></Remount>} />
 
         {/* Reports */}
         <Route path="reports" element={<Remount><ReportHubPage /></Remount>} />

@@ -27,6 +27,8 @@ namespace iLearn.API.Extensions
             services.AddSingleton<IAdminActivityRealtimeNotifier, SignalRAdminActivityNotifier>();
             services.AddSingleton<IUserIdProvider, NidUserIdProvider>();
             services.AddScoped<INotificationService, NotificationService>();
+            services.AddScoped<IDeadlineDigestService, DeadlineDigestService>();
+            services.AddHostedService<DeadlineDigestHostedService>();
 
             return services;
         }

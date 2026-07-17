@@ -1,6 +1,6 @@
 # PLAN-049: ปรับ prod — student ที่ /iLearn (root) + ปุ่มสลับ Admin 2 เวอร์ชัน
 
-- **Status:** READY
+- **Status:** DONE -> VERIFIED (reconciled 2026-07-17)
 - **Assigned:** Part A → GitHub Copilot (GPT, IIS infra) · Part B → Antigravity (Gemini, UI) _(ผู้ใช้ route ได้)_
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-02
@@ -73,4 +73,8 @@ dotnet build iLearn.Tests -o artifacts\verify-test ; dotnet test artifacts\verif
 ```
 
 ## Implementer Notes
-_(เติมหลังทำ: IIS restructure ที่ทำจริง, ผล E2E learner ที่ /iLearn, ไฟล์ที่แตะฝั่งปุ่ม, ผล build)_
+
+- 2026-07-03 Part B เสร็จ: React Header มีลิงก์ไป MVC และ MVC layout มีลิงก์กลับ React โดย derive จาก PathBase จึงใช้ได้กับ QA, production และ development โดยไม่ hardcode URL
+- 2026-07-03 Part A เสร็จ: ย้าย learner portal ไปที่ `/iLearn` root, รักษา `/Service`, `/admin`, `/admin-react` และ `/Courses` เป็น nested applications; smoke test ครบทุก endpoint และ SCORM content ผ่าน
+- 2026-07-06 PLAN-051 ลบ IIS application `/iLearn/student` ที่ค้างอยู่และวาง permanent redirect `/iLearn/student` -> `/iLearn`; ปิด residual 500.35 จากการย้ายครั้งแรก
+- ไม่มีงาน implementation หรือ IIS restructure ค้างจากแผนนี้; checklist ด้านบนเก็บไว้เป็น historical runbook

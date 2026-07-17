@@ -17,6 +17,7 @@ namespace iLearn.Application.DTOs
     public class NotificationListDto
     {
         public int UnreadCount { get; set; }
+        public int TotalCount { get; set; }
         public List<NotificationDto> Items { get; set; } = new();
     }
 }

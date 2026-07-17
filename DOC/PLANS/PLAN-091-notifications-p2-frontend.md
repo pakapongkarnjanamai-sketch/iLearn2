@@ -1,6 +1,6 @@
 # PLAN-091: Notifications Phase 2 — Frontend (หน้า /notifications เต็ม + รวม SignalR connection เดียว)
 
-- **Status:** READY
+- **Status:** DONE → VERIFIED — Finding 1 FIXED + re-review ผ่าน (Claude Code 2026-07-17) — Gate 0 เปิด
 - **Assigned:** Antigravity (Gemini)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-15
@@ -103,4 +103,38 @@ npm run build
 
 ## Implementer Notes
 
-*(เติมหลังทำเสร็จ)*
+- §1: Added `totalCount` to `NotificationListDto` per PLAN-090 contract.
+- §2: Created `src/components/shared/NotificationRow.tsx` — supports `compact` (dropdown) and full (page) modes. Kept `<button>` per row as accepted in PLAN-089 review.
+- §3: Added "View all notifications" footer to bell dropdown using `AppButton ghost`. Navigates to `/notifications` + closes dropdown.
+- §4: Created `src/pages/notifications/NotificationsPage.tsx` — full page with Card+SectionHeader, SegmentedToggle All/Unread filter, server-side paging (skip+=20, Load more), Showing X of Y from totalCount, empty state. Fetches via `fetchWithAccessControl` directly; mark read/all goes through provider for badge sync. Realtime prepend via `subscribeHubEvent` with id-based dedupe.
+- §5: Extended `NotificationProvider` with `subscribeHubEvent(event, handler) => unsubscribe` and `isConnected: boolean`.
+- §5b: `DashboardPage.tsx` — removed `HubConnectionBuilder` import + local SignalR useEffect (~30 lines). Now uses `subscribeHubEvent('AdminActivityCreated', ...)` and reads `isConnected` from provider for green dot. `isSignalRConnectedRef` polling-fallback guard still works correctly.
+- Route added in `App.tsx` wrapped in `<Remount>`. No sidebar item per plan spec.
+- ไม่มีอะไรทำต่างจากแผน ทำครบทุกข้อ
+
+## Reviewer Sign-off (Claude Code, 2026-07-17)
+
+ตรวจ diff เต็ม + lint/build อิสระ (0 err):
+
+- **NotificationsPage:** paging server-side + `totalCount` + dedupe realtime ด้วย seenIds + mark ผ่าน provider (badge sync) + empty/loading states ✅ mirror types อัปเดตครบ ✅ route `<Remount>` ✅ ไม่มี sidebar item ตามสเปค ✅
+- **NotificationRow** shared ระหว่าง dropdown/หน้าเต็ม, bell footer View all ✅ convention สะอาด (ไม่มี format inline/dangerouslySetInnerHTML) ✅
+- **DashboardPage:** ลบ connection ของตัวเอง + ใช้ `isConnected`/`subscribeHubEvent` จาก provider — เหลือ connection เส้นเดียวตามเป้า ✅
+
+### ⚠️ Finding 1 (MEDIUM-HIGH — ต้องแก้ก่อน deploy): `subscribeHubEvent` ผูก handler ไม่ติดเมื่อเรียกก่อน connection ถูกสร้าง
+- `subscribeHubEvent` ทำ `connectionRef.current?.on(...)` ณ เวลาที่เรียก — **ถ้า ref ยัง null = no-op เงียบ ๆ** (Implementer note ที่ว่า "connection.on() works pre-start" จริงเฉพาะ pre-*start* แต่ไม่ครอบ pre-*creation*)
+- **ลำดับเหตุการณ์จริง:** React รัน effect ของ**ลูกก่อนพ่อ** → ตอนเปิดแอปที่หน้า Dashboard (default route) effect ของ DashboardPage ยิง `subscribeHubEvent('AdminActivityCreated', ...)` ก่อน provider สร้าง connection (ซึ่งยิ่งช้าไปอีกเพราะรอ `sessionState === 'ready'`) → handler ไม่ถูกผูกและ **effect ไม่ re-run** (deps = `[subscribeHubEvent]` ที่ stable) ⇒ activity feed ไม่ realtime ทั้งที่จุดเขียวโชว์ connected (จุดเขียวใช้ `isConnected` ซึ่งทำงานปกติ — ยิ่งหลอก)
+- **แก้ (provider-side ให้ consumer ทุกตัวปลอดภัย):** เก็บ registry `Map<event, Set<handler>>` ใน ref — `subscribeHubEvent` ลง registry + bind ถ้า connection มีแล้ว; ตอน provider สร้าง connection ให้ **replay ผูก handler ทั้ง registry**; unsubscribe ถอดทั้ง registry และ connection
+- NotificationsPage โดนน้อยกว่า (ผู้ใช้มักไปถึงหน้านั้นหลัง connection พร้อมแล้ว) แต่ได้ประโยชน์จาก fix เดียวกัน
+
+**สรุป: โครงถูกทั้งหมด ติด Finding 1 ตัวเดียว — เป็น blocker ของ Gate 0 (PLAN-093) เพราะทำ regression กับ Dashboard realtime ที่เคยทำงาน**
+
+## Post-review Fix (GitHub Copilot, 2026-07-17)
+
+- `subscribeHubEvent` now records each handler in a ref-backed `Map<event, Set<handler>>` before binding it to an existing connection.
+- When `NotificationProvider` creates a central SignalR connection, it replays every registered handler. This covers Dashboard's child-first effect order and later connection recreation without restoring a second hub connection.
+- Unsubscribe removes the handler from both the registry and the current connection.
+- Verification: `npm run lint` and `npm run build` passed. Claude Code re-review remains required to clear Gate 0.
+
+## Re-review หลัง Fix (Claude Code, 2026-07-17)
+
+ตรวจ registry implementation แล้ว **ผ่าน**: `subscribeHubEvent` ลง `Map<event, Set<handler>>` ก่อน bind ✅ replay ทั้ง registry ตอน provider สร้าง connection (ครอบทั้ง child-first effect order และ connection recreation หลัง session เปลี่ยน) ✅ unsubscribe ถอดทั้ง registry และ connection ปัจจุบัน + เก็บกวาด Set ว่าง ✅ ไม่มีทาง double-bind บน connection เดียวกัน ✅ `npm run lint`+`build` + `dotnet test` 203 passed — **Gate 0 ของ PLAN-093 เปิดแล้ว**

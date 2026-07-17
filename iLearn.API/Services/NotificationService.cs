@@ -59,9 +59,10 @@ namespace iLearn.API.Services
             }
         }
 
-        public async Task<NotificationListDto> GetForUserAsync(string userId, bool unreadOnly, int take)
+        public async Task<NotificationListDto> GetForUserAsync(string userId, bool unreadOnly, int take, int skip = 0)
         {
             take = Math.Clamp(take, 1, 50);
+            skip = Math.Max(skip, 0);
 
             var query = _db.Notifications
                 .Where(n => n.RecipientUserId == userId && !n.IsDeleted);
@@ -69,8 +70,11 @@ namespace iLearn.API.Services
             if (unreadOnly)
                 query = query.Where(n => !n.IsRead);
 
+            var totalCount = await query.CountAsync();
+
             var items = await query
                 .OrderByDescending(n => n.CreatedAt)
+                .Skip(skip)
                 .Take(take)
                 .Select(n => new NotificationDto
                 {
@@ -93,6 +97,7 @@ namespace iLearn.API.Services
             return new NotificationListDto
             {
                 UnreadCount = unreadCount,
+                TotalCount = totalCount,
                 Items = items
             };
         }

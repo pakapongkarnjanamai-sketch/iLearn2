@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
 import { fetchWithAccessControl } from './apiClient'
 import { HubConnectionBuilder, HubConnectionState, LogLevel, type HubConnection } from '@microsoft/signalr'
 import { appConfig } from '../config/appConfig'
@@ -8,6 +8,10 @@ import { useSession } from './sessionContext'
 
 type ApiResponse<T> = { success: boolean; data: T; message?: string }
 
+/** Hub events that consumers can subscribe to via subscribeHubEvent */
+type HubEventName = 'AdminActivityCreated' | 'NotificationCreated'
+type HubEventHandler = (...args: unknown[]) => void
+
 interface NotificationContextType {
   items: NotificationDto[]
   unreadCount: number
@@ -15,6 +19,14 @@ interface NotificationContextType {
   loadList: () => Promise<void>
   markRead: (id: number) => Promise<void>
   markAllRead: () => Promise<void>
+  /** Whether the central SignalR connection is currently connected */
+  isConnected: boolean
+  /**
+   * Subscribe to a hub event on the central connection.
+    * Returns an unsubscribe function. Handlers are retained until a connection
+    * exists and rebound whenever the central connection is recreated.
+   */
+    subscribeHubEvent: (event: HubEventName, handler: HubEventHandler) => () => void
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
@@ -24,8 +36,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<NotificationDto[]>([])
   const [unreadCount, setUnreadCount] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(false)
+  const [isConnected, setIsConnected] = useState<boolean>(false)
   
   const connectionRef = useRef<HubConnection | null>(null)
+  const hubEventHandlersRef = useRef<Map<HubEventName, Set<HubEventHandler>>>(new Map())
   // Ids already pushed over SignalR this session — guards against duplicate redelivery.
   const seenIdsRef = useRef<Set<number>>(new Set())
 
@@ -74,10 +88,38 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  /**
+   * Subscribe to a hub event via the central connection.
+   * Keep subscriptions even when consumers mount before the connection exists.
+   */
+  const subscribeHubEvent = useCallback(
+    (event: HubEventName, handler: HubEventHandler): (() => void) => {
+      const handlers = hubEventHandlersRef.current.get(event) ?? new Set<HubEventHandler>()
+      handlers.add(handler)
+      hubEventHandlersRef.current.set(event, handlers)
+
+      const conn = connectionRef.current
+      conn?.on(event, handler)
+
+      return () => {
+        const registeredHandlers = hubEventHandlersRef.current.get(event)
+        registeredHandlers?.delete(handler)
+        if (registeredHandlers?.size === 0) {
+          hubEventHandlersRef.current.delete(event)
+        }
+
+        const c = connectionRef.current
+        c?.off(event, handler)
+      }
+    },
+    []
+  )
+
   useEffect(() => {
     if (sessionState !== 'ready') {
       setItems([])
       setUnreadCount(0)
+      setIsConnected(false)
       return
     }
 
@@ -101,6 +143,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     connectionRef.current = connection
 
+    for (const [event, handlers] of hubEventHandlersRef.current) {
+      for (const handler of handlers) {
+        connection.on(event, handler)
+      }
+    }
+
+    // Internal handler for NotificationCreated (bell badge + toast)
     connection.on('NotificationCreated', (dto: NotificationDto) => {
       // The hub can redeliver the same event around a reconnect. Gate on a ref, not on a
       // state updater: updaters run at re-render time, too late for the count/toast below.
@@ -119,7 +168,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    connection.start().catch(err => console.error('SignalR notifications connection failed:', err))
+    // Connection lifecycle → isConnected state for consumers (e.g. Dashboard green dot)
+    connection.onreconnecting(() => setIsConnected(false))
+    connection.onreconnected(() => setIsConnected(true))
+    connection.onclose(() => setIsConnected(false))
+
+    connection.start()
+      .then(() => setIsConnected(true))
+      .catch(err => {
+        console.error('SignalR notifications connection failed:', err)
+        setIsConnected(false)
+      })
 
     return () => {
       if (connectionRef.current) {
@@ -129,6 +188,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         }
         connectionRef.current = null
       }
+      setIsConnected(false)
     }
   }, [sessionState])
 
@@ -141,6 +201,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         loadList,
         markRead,
         markAllRead,
+        isConnected,
+        subscribeHubEvent,
       }}
     >
       {children}
