@@ -2,6 +2,14 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-21 —] Claude Code — PLAN-108 รอบ 3: เทียบภาพ QA vs PROD เจอ 3 จุดต่าง
+- ทำอะไร: ผู้ใช้ส่ง screenshot QA/PROD คู่กันและขอ "หน้าตาเหมือนเดิมใน PROD". ตรวจแล้ว: **Fix 4 ยังไม่ได้ทำเลย** (โค้ดไม่เปลี่ยนตั้งแต่ commit 78b4047 — list view ยังพังจาก specificity). **Fix 5 ใหม่:** หน้า login เสีย auto-focus — grep ยืนยันว่า `focus()` **หายทั้ง 2 จุด** ตอน rewrite (ของเดิมมี `setTimeout(...focus(), 300)` ตอนเข้าหน้า + refocus ใน `handleLoginError`) ⇒ PROD ขอบสีแบรนด์/label ลอย/placeholder โผล่ แต่ QA เป็นสถานะพัก; ไม่ใช่แค่หน้าตา — auto-focus คือตัวทำให้คีย์บอร์ดตัวเลขของ 097 ขึ้นบน iPad. **Fix 6 ใหม่:** ผู้ใช้เปลี่ยนใจจาก §2b — PROD มีปุ่ม `ดูเนื้อหา` จึงต้องเอากลับมาเป็น `<span>` (ไม่ใช่ `<a>`) เพื่อให้ตรง PROD แต่ยังกดได้ทั้งแถว
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-108-*.md` (→CHANGES REQUESTED + Fix 4 ค้าง/Fix 5/Fix 6 + verification ใหม่), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว)
+- Verified: เทียบ screenshot QA/PROD + grep ยืนยัน focus() หาย + `git diff 78b4047 HEAD -- iLearn.User/` = 0 ไฟล์
+- **ปิดข้อค้างจากรอบ 2 ได้ 2 ข้อจากภาพ:** ช่องค้นหา และการ์ด "หลักสูตรของฉัน" **ตรงกับ PROD แล้ว** ไม่ต้องแก้
+- **บังคับรอบหน้า: ต้องส่ง screenshot เทียบคู่ QA vs PROD** ทั้ง login / list view / grid view — รอบก่อนผมเซ็นผ่านโดยไม่มีภาพแล้วพลาด regression
+
 ## [2026-07-21 —] Claude Code — PLAN-108: พบ Fix 4 หลัง sign-off (list view พังจาก CSS specificity)
 - ทำอะไร: หลังผม sign-off รอบ 2 ไปแล้ว implementer แนบ screenshot มา **เห็นว่าแถวใน list view ของคลังหลักสูตรพัง** — แถบโค้ดยืดเต็มความกว้าง ชื่อ+ลูกศรตกลงมาแนวตั้ง. **สาเหตุ: specificity ชนกัน** — `<a class="catalog-list-item catalog-course-item">` โดน `a.catalog-course-item { display:block }` (0,1,1) ทับ `.catalog-list-item { display:flex }` (0,1,0) ⇒ flex row หาย. ระบุวิธีแก้ 2 ทาง (ยกเว้น list ออกจากกฎ block หรือยก specificity ของ list) + ให้ตรวจว่า grid ไม่พังตาม. **Fix 1-3 ยืนยันแล้วไม่ต้องแก้ซ้ำ** — screenshot login ยังยืนยัน Fix 2 ซ้ำอีกชั้น (label ลอยคร่อมขอบ สีแบรนด์ placeholder โผล่ ตรงของเดิม)
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-108-*.md` (→CHANGES REQUESTED + Fix 4), `DOC/AGENT_LOG.md`
