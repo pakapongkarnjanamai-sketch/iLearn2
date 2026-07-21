@@ -1,6 +1,6 @@
 # PLAN-106: กด Close ในเนื้อหาแล้วเรียนครบ → เปิดสรุปผลของเราพร้อมปุ่มกลับหน้าหลัก
 
-- **Status:** DONE → REVIEWED (code ผ่าน — **ยังไม่ผ่าน Gate 0** ต้องยืนยันบน QA ก่อน VERIFIED)
+- **Status:** VERIFIED (QA deploy + Gate 0/manual smoke ผ่าน)
 - **Assigned:** GitHub Copilot (took over from Gemini by user request)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-21
@@ -109,6 +109,14 @@ Manual (QA):
 ## Deploy note
 
 แตะเฉพาะ **iLearn.User** → deploy learner อย่างเดียว ไม่มี migration
+
+## QA Deploy & Smoke (GitHub Copilot, 2026-07-21 14:42)
+
+- Deploy QA learner สำเร็จใน bundle 105+106: `\\AP-NTC2138-QAWB\wwwroot\iLearn\_user_deploy_20260721142236`, root `web.config` → `.\_user_deploy_20260721142236\iLearn.User.dll`, previous `_user_deploy_20260721133726`; script health check `https://ap-ntc2138-qawb/iLearn/` ได้ `200`, `AutoRolledBack=False`.
+- Gate 0 ผ่านบน QA: เปิด `https://ap-ntc2138-qawb/iLearn/MyLearning/Player?courseId=540&debug` ด้วย learner `430339`, กดปุ่ม **Close** ใน SCORM package แล้ว console แสดง `🏁 SCORM 1.2: LMSFinish` จริง.
+- Manual completion smoke ผ่านแบบ end-to-end: reset QA enrollment `18217`, เล่น PDF item 366 จนครบ 7/7 หน้า (`completed` → `passed`, progress 50), ทำ exam item 397 ได้ `100% (5 points)`, กด **Close** แล้ว iLearn เปิด modal `ผลการเรียน` เอง มีตารางเวลาเรียน 2 บทและปุ่ม `กลับหน้าหลักสูตร`.
+- Finish commit หลัง Close ผ่าน: console มี `Runtime commit (scorm12-finish)` และ `CommitRuntime status: 200`; ไม่พบ console error, `Runtime commit failed`, หรือ `500`.
+- Persisted verification หลัง modal: `GetPlayerInfo?courseId=540` คืน `progress=100`, `isCompleted=True`; runtime state item 397 เป็น `lessonStatus=passed`, `completionStatus=completed`, `successStatus=passed`, `rawScore=100`, `sessionTime=00:03:13`.
 
 ## Implementer Notes
 

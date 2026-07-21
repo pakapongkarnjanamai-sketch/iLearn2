@@ -1,6 +1,6 @@
 # PLAN-105: HOTFIX — CommitRuntime 500 จาก race ตอน insert แถวแรก (duplicate key)
 
-- **Status:** DONE → REVIEWED (code+tests ผ่าน — รอ QA deploy + manual smoke ก่อน VERIFIED)
+- **Status:** VERIFIED (QA deploy + manual smoke ผ่าน)
 - **Assigned:** GitHub Copilot (§2 server + §1 client, took over §1 from Gemini by user request)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-21
@@ -110,6 +110,14 @@ Manual (QA — deploy API + learner):
 ## Deploy note
 
 §2 = **API**; §1 = **learner**. ไม่มี migration. PROD รอผู้ใช้ยืนยัน QA
+
+## QA Deploy & Smoke (GitHub Copilot, 2026-07-21 14:42)
+
+- Deploy QA สำเร็จ: API `\\AP-NTC2138-QAWB\wwwroot\iLearn\Service\_deploy_20260721142125` (`web.config` → `.\_deploy_20260721142125\iLearn.API.dll`), previous `_deploy_20260721133451`; Learner `\\AP-NTC2138-QAWB\wwwroot\iLearn\_user_deploy_20260721142236` (`web.config` → `.\_user_deploy_20260721142236\iLearn.User.dll`), previous `_user_deploy_20260721133726`. ทั้งสอง script health check ผ่านและ `AutoRolledBack=False`.
+- HTTP smoke ผ่าน: learner root `200`, learner AJAX no-cookie `440`, API session no-creds `401`, API session + Windows credentials `200`, API Dashboard/Stats + Windows credentials `200`.
+- Learner smoke ผ่านด้วย employee `430339`, enrollment `18217`, course `540`: `VerifyEmployee` สำเร็จ, `GetMyCourses` `200`, `Player?courseId=540&debug` `200`, `GetPlayerInfo` `200`, launch URLs เป็น root-relative `/iLearn/Courses/...`.
+- Runtime commit smoke ผ่าน: เปิด item แรกหลัง reset แล้ว commit แรก/commit ต่อเนื่องทุกครั้งตอบ `CommitRuntime status: 200`, ไม่มี `Runtime commit failed` หรือ `500`; ขณะ content initialize เห็นลำดับ `ajax→` แล้ว `ajax← status: 200` ก่อน commit ถัดไป จึงยืนยัน client serialization ทำงาน.
+- Persisted verification หลังจบ flow: `GetPlayerInfo?courseId=540` คืน `progress=100`, `isCompleted=True`; item 366 runtime `lessonStatus=completed`, `rawScore=100`, `sessionTime=00:00:54`; item 397 runtime `lessonStatus=passed`, `successStatus=passed`, `rawScore=100`, `sessionTime=00:03:13`.
 
 ## Implementer Notes
 
