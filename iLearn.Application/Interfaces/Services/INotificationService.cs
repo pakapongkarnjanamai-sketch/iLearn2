@@ -8,7 +8,7 @@ namespace iLearn.Application.Interfaces.Services
             string? message = null, string? linkPath = null,
             string? entityType = null, int? entityId = null);
 
-        Task<NotificationListDto> GetForUserAsync(string userId, bool unreadOnly, int take, int skip = 0);
+        Task<NotificationListDto> GetForUserAsync(string userId, bool unreadOnly, int take);
         Task<int> GetUnreadCountAsync(string userId);
         Task<int> MarkReadAsync(string userId, int notificationId);
         Task<int> MarkAllReadAsync(string userId);

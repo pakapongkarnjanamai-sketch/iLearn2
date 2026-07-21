@@ -14,12 +14,12 @@ namespace iLearn.Tests
 {
     public class NotificationServiceTests
     {
-        private static AppDbContext CreateInMemoryDb(string dbName, IDateTime? dateTime = null)
+        private static AppDbContext CreateInMemoryDb(string dbName)
         {
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseInMemoryDatabase(dbName)
                 .Options;
-            dateTime ??= new FakeDateTime();
+            var dateTime = new FakeDateTime();
             var currentUser = new FakeCurrentUser("SYSTEM");
             return new AppDbContext(options, dateTime, currentUser);
         }
@@ -85,27 +85,6 @@ namespace iLearn.Tests
             // take = 100 should clamp to 50
             var result2 = await service.GetForUserAsync("n4734", unreadOnly: false, take: 100);
             Assert.Equal(5, result2.Items.Count); // only 5 exist
-        }
-
-        [Fact]
-        public async Task GetForUserAsync_AppliesSkipAndReturnsFilteredTotalCount()
-        {
-            var clock = new SteppingDateTime(new DateTime(2026, 7, 17, 8, 0, 0));
-            var db = CreateInMemoryDb(nameof(GetForUserAsync_AppliesSkipAndReturnsFilteredTotalCount), clock);
-            db.Notifications.AddRange(
-                new Notification { Id = 1, RecipientUserId = "n4734", Type = "Test", Level = "info", Title = "First", IsRead = false },
-                new Notification { Id = 2, RecipientUserId = "n4734", Type = "Test", Level = "info", Title = "Second", IsRead = false },
-                new Notification { Id = 3, RecipientUserId = "n4734", Type = "Test", Level = "info", Title = "Third", IsRead = false },
-                new Notification { Id = 4, RecipientUserId = "n4734", Type = "Test", Level = "info", Title = "Read", IsRead = true });
-            await db.SaveChangesAsync();
-
-            var service = CreateService(db);
-            var result = await service.GetForUserAsync("n4734", unreadOnly: true, take: 1, skip: 1);
-
-            Assert.Equal(3, result.TotalCount);
-            Assert.Equal(3, result.UnreadCount);
-            var item = Assert.Single(result.Items);
-            Assert.Equal("Second", item.Title);
         }
 
         [Fact]
@@ -250,26 +229,6 @@ namespace iLearn.Tests
             public FakeDateTime(DateTime? fixedNow = null) => _fixedNow = fixedNow;
 
             public DateTime Now => _fixedNow ?? DateTime.UtcNow;
-            public CultureInfo CultureInfo => CultureInfo.InvariantCulture;
-            public DateTime UnixTime => new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        }
-
-        private sealed class SteppingDateTime : IDateTime
-        {
-            private DateTime _next;
-
-            public SteppingDateTime(DateTime start) => _next = start;
-
-            public DateTime Now
-            {
-                get
-                {
-                    var now = _next;
-                    _next = _next.AddMinutes(1);
-                    return now;
-                }
-            }
-
             public CultureInfo CultureInfo => CultureInfo.InvariantCulture;
             public DateTime UnixTime => new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         }

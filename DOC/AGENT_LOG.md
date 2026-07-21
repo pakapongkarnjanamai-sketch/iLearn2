@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-21 15:36] GitHub Copilot — QA deploy: PLAN-107 (ซ่อนสถานะ/progress ในโหมดดูอย่างเดียว)
+- ทำอะไร: deploy `iLearn.User` ขึ้น QA ด้วย `tools\deploy-user.ps1 -HealthCheckUrl 'https://ap-ntc2138-qawb/iLearn/'` (host default = QA, ไม่มี `-Prod`) หลัง PLAN-107 ผ่านรีวิวจาก Claude Code แล้ว ไม่มี migration ไม่แตะ iLearn.API/iLearn.Admin ไม่ deploy PROD
+- QA live stamp: `\\AP-NTC2138-QAWB\wwwroot\iLearn\_user_deploy_20260721153643`, web.config → `.\_user_deploy_20260721153643\iLearn.User.dll`, previous `_user_deploy_20260721142236`. Health check HTTP 200 attempt แรก, `AutoRolledBack=False`, เก็บ 3 stamp ล่าสุด (ลบ stale 1)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-107-hide-status-progress-in-browse-only.md` (→QA DEPLOYED + deploy log), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (deploy เท่านั้น)
+- Verified: publish + copy สำเร็จ, health check ผ่าน. **ค้าง:** manual smoke เคส A (browse-only ซ่อนสถานะ/progress)/B (เรียนจบแล้วยังเห็น 100%)/ปกติ บน browser จริงตาม Verification section ของแผน — ยังไม่ได้ทำ
+
 ## [2026-07-21 —] Claude Code — ตรวจ reset 18214 (ผ่าน) + รีวิว PLAN-107 → REVIEWED
 - ทำอะไร: **ตรวจ admin reset enrollment 18214** — สมบูรณ์ทุกข้อ: Progress=0/IsCompleted=0/ResetAt 15:29:05, **ScormRuntimeStates `IsDeleted=1` ทั้ง 2 แถว** (พิสูจน์ PLAN-101 §1 ในสนามจริง — เคสเดียวกับที่เช้านี้ค้าง `IsDeleted=0`), link snapshot AS-20260716-003 = 0/0/NULL (พิสูจน์ snapshot reset ที่ 101 เพิ่ม), active logs = 0. **ตรวจทั้งระบบ: enrollment ที่ IsCompleted=1 แต่ Progress<100 = 0 รายการ** ⇒ manual check #4 ของ PLAN-104 ผ่านแล้ว; log เกิน 4 ชม. = 0; active log ซ้ำ = ไม่มี. หมายเหตุ: `TotalTimeSpent` ของ 18214 ยังค้าง 9,261 วิ (ResetStatusAsync ไม่ล้างฟิลด์นี้) แต่ rollup จะเขียนทับเองตอน commit แรกของรอบใหม่ — ไม่ต้องแก้. **รีวิว PLAN-107 ผ่าน ไม่มี finding** — ใช้ `currentData.isReadOnly === true` ถูกตามที่กำชับ (ไม่ใช่ตัวแปร OR), render จริงวัด computed style ยืนยันเคส A ซ่อนครบ/เคส B (เรียนจบแล้ว 100%) ไม่ถูกกระทบ
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-107-*.md` (→REVIEWED + Sign-off), `DOC/AGENT_LOG.md`

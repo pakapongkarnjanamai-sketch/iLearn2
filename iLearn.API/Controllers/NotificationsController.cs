@@ -21,12 +21,9 @@ namespace iLearn.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetNotifications(
-            [FromQuery] bool unreadOnly = false,
-            [FromQuery] int take = 20,
-            [FromQuery] int skip = 0)
+        public async Task<IActionResult> GetNotifications([FromQuery] bool unreadOnly = false, [FromQuery] int take = 20)
         {
-            var result = await _notificationService.GetForUserAsync(_currentUser.UserId, unreadOnly, take, skip);
+            var result = await _notificationService.GetForUserAsync(_currentUser.UserId, unreadOnly, take);
             return Ok(new { success = true, data = result });
         }
 

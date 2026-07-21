@@ -2,15 +2,12 @@ namespace iLearn.Application.Common
 {
     public static class NotificationTypes
     {
-        public const int NotificationRetentionDays = 90;
-
         public const string ScormUploadSucceeded = "ScormUploadSucceeded";
         public const string ScormUploadFailed = "ScormUploadFailed";
         public const string ContentPublishSucceeded = "ContentPublishSucceeded";
         public const string ContentPublishFailed = "ContentPublishFailed";
         public const string BatchPublishCompleted = "BatchPublishCompleted";
         public const string BulkAssignCompleted = "BulkAssignCompleted";
-        public const string DeadlineDigest = "DeadlineDigest";
     }
 
     public static class NotificationLevels

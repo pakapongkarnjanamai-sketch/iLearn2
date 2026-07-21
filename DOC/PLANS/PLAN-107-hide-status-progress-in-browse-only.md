@@ -1,6 +1,6 @@
 # PLAN-107: โหมด "ดูอย่างเดียว" ไม่ต้องแสดงสถานะและ progress bar
 
-- **Status:** DONE → REVIEWED (code + render พิสูจน์ทั้ง 2 เคสแล้ว — รอ QA deploy + smoke บนของจริง)
+- **Status:** DONE → REVIEWED → **QA DEPLOYED** (รอ manual smoke บนของจริง)
 - **Assigned:** GitHub Copilot (เจ้าของ `Player.cshtml` ปัจจุบันต่อจาก 105/106)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-21
@@ -128,3 +128,11 @@ Manual (QA):
 - ระยะห่างหลังซ่อน: header เคส A สั้นลงเป็น 142px ไม่มีช่องว่างค้าง (implementer จดว่าไม่ต้องปรับ margin — ยืนยันแล้วว่าถูก)
 
 **สรุป: ผ่านรีวิว ไม่มี finding**
+
+## QA Deploy Log (GitHub Copilot, 2026-07-21)
+
+- Deploy ผ่าน `tools\deploy-user.ps1 -HealthCheckUrl 'https://ap-ntc2138-qawb/iLearn/'` (default host = QA `AP-NTC2138-QAWB`, ไม่มี `-Prod`)
+- Stamp: `\\AP-NTC2138-QAWB\wwwroot\iLearn\_user_deploy_20260721153643`, web.config ชี้ `.\_user_deploy_20260721153643\iLearn.User.dll`, previous `_user_deploy_20260721142236`
+- Health check: HTTP 200 ผ่าน attempt แรก, `AutoRolledBack=False`, เก็บ 3 stamp ล่าสุด (ลบ stale 1 อัน)
+- ไม่มี migration, ไม่แตะ iLearn.API/iLearn.Admin, ไม่ deploy PROD
+- **ค้าง:** manual smoke เคส A/B/ปกติตาม Verification section (ยังไม่ได้ทำผ่าน browser จริง)
