@@ -7,8 +7,11 @@ using iLearn.Application.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
 using iLearn.Infrastructure.Services;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace iLearn.Tests
 {
@@ -263,6 +266,136 @@ namespace iLearn.Tests
         }
 
         [Fact]
+        public async Task UpsertAsync_WhenFirstInsertHitsUniqueViolation_ReloadsAndUpdatesWinningState()
+        {
+            var repo = new InMemoryGenericRepository<ScormRuntimeState>([], Now);
+            ScormRuntimeState? winningState = null;
+            var unitOfWork = new FakeUnitOfWork(
+                saveFailures: [CreateSqlUpdateException(2601)],
+                beforeSaveFailure: saveCallCount =>
+                {
+                    if (saveCallCount == 1)
+                    {
+                        winningState = new ScormRuntimeState
+                        {
+                            Id = 42,
+                            EnrollmentId = 300,
+                            ContentItemId = 30,
+                            ScormVersion = ScormRuntimeFieldMap.Scorm12,
+                            LessonLocation = "page-from-winning-request",
+                            LessonStatus = "incomplete",
+                            CompletionStatus = "incomplete",
+                            SuccessStatus = "unknown",
+                            RawScore = 15m,
+                            CreatedAt = Now.AddMinutes(-1),
+                            LastCommittedAtUtc = Now.AddMinutes(-1)
+                        };
+                        repo.Items.Add(winningState);
+                    }
+                },
+                detachAction: entity => repo.Items.Remove((ScormRuntimeState)entity));
+            var service = new ScormRuntimeStateService(repo, unitOfWork, new FakeDateTime(Now));
+
+            var result = await service.UpsertAsync(300,
+            [
+                new ScormRuntimeContentItemCommitDto
+                {
+                    ContentItemId = 30,
+                    ScormVersion = "1.2",
+                    LessonLocation = " ",
+                    LessonStatus = "passed",
+                    RawScore = 88m,
+                    SessionTime = "00:02:30",
+                    LastCommittedAtUtc = Now
+                }
+            ]);
+
+            var updated = Assert.Single(result);
+            Assert.NotNull(winningState);
+            Assert.Same(winningState, repo.Items.Single());
+            Assert.Equal("page-from-winning-request", updated.LessonLocation);
+            Assert.Equal("passed", updated.LessonStatus);
+            Assert.Equal("completed", updated.CompletionStatus);
+            Assert.Equal("passed", updated.SuccessStatus);
+            Assert.Equal(88m, updated.RawScore);
+            Assert.Equal("00:02:30", updated.SessionTime);
+            Assert.Equal(Now, updated.LastCommittedAtUtc);
+            Assert.Equal(2, unitOfWork.SaveCallCount);
+            Assert.Equal(1, unitOfWork.DetachCallCount);
+        }
+
+        [Fact]
+        public async Task UpsertAsync_WhenSaveFailsWithNonUniqueUpdateException_RethrowsWithoutRetry()
+        {
+            var repo = new InMemoryGenericRepository<ScormRuntimeState>([], Now);
+            var failure = new DbUpdateException("Truncation or another non-unique database error.", new InvalidOperationException("not unique"));
+            var unitOfWork = new FakeUnitOfWork(
+                saveFailures: [failure],
+                detachAction: entity => repo.Items.Remove((ScormRuntimeState)entity));
+            var service = new ScormRuntimeStateService(repo, unitOfWork, new FakeDateTime(Now));
+
+            var thrown = await Assert.ThrowsAsync<DbUpdateException>(() => service.UpsertAsync(301,
+            [
+                new ScormRuntimeContentItemCommitDto
+                {
+                    ContentItemId = 31,
+                    ScormVersion = "1.2",
+                    LessonStatus = "incomplete"
+                }
+            ]));
+
+            Assert.Same(failure, thrown);
+            Assert.Equal(1, unitOfWork.SaveCallCount);
+            Assert.Equal(0, unitOfWork.DetachCallCount);
+        }
+
+        [Fact]
+        public async Task UpsertAsync_WhenRetryStillFails_RethrowsAfterSingleRetry()
+        {
+            var repo = new InMemoryGenericRepository<ScormRuntimeState>([], Now);
+            ScormRuntimeState? winningState = null;
+            var firstFailure = CreateSqlUpdateException(2601);
+            var secondFailure = CreateSqlUpdateException(2627);
+            var unitOfWork = new FakeUnitOfWork(
+                saveFailures: [firstFailure, secondFailure],
+                beforeSaveFailure: saveCallCount =>
+                {
+                    if (saveCallCount == 1)
+                    {
+                        winningState = new ScormRuntimeState
+                        {
+                            Id = 43,
+                            EnrollmentId = 302,
+                            ContentItemId = 32,
+                            ScormVersion = ScormRuntimeFieldMap.Scorm12,
+                            LessonStatus = "incomplete",
+                            CompletionStatus = "incomplete",
+                            CreatedAt = Now.AddMinutes(-1)
+                        };
+                        repo.Items.Add(winningState);
+                    }
+                },
+                detachAction: entity => repo.Items.Remove((ScormRuntimeState)entity));
+            var service = new ScormRuntimeStateService(repo, unitOfWork, new FakeDateTime(Now));
+
+            var thrown = await Assert.ThrowsAsync<DbUpdateException>(() => service.UpsertAsync(302,
+            [
+                new ScormRuntimeContentItemCommitDto
+                {
+                    ContentItemId = 32,
+                    ScormVersion = "1.2",
+                    LessonStatus = "passed",
+                    RawScore = 90m
+                }
+            ]));
+
+            Assert.Same(secondFailure, thrown);
+            Assert.NotNull(winningState);
+            Assert.Equal(2, unitOfWork.SaveCallCount);
+            Assert.Equal(1, unitOfWork.DetachCallCount);
+        }
+
+        [Fact]
         public async Task GetActiveStatesAsync_ExcludesStatesCommittedBeforeEnrollmentReset()
         {
             var resetAt = Now.AddHours(-1);
@@ -510,11 +643,34 @@ namespace iLearn.Tests
 
         private sealed class FakeUnitOfWork : IUnitOfWork
         {
+            private readonly Queue<Exception> _saveFailures;
+            private readonly Action<int>? _beforeSaveFailure;
+            private readonly Action<BaseEntity>? _detachAction;
+
+            public FakeUnitOfWork(
+                IEnumerable<Exception>? saveFailures = null,
+                Action<int>? beforeSaveFailure = null,
+                Action<BaseEntity>? detachAction = null)
+            {
+                _saveFailures = new Queue<Exception>(saveFailures ?? []);
+                _beforeSaveFailure = beforeSaveFailure;
+                _detachAction = detachAction;
+            }
+
             public int SaveCallCount { get; private set; }
+            public int DetachCallCount { get; private set; }
 
             public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
             {
                 SaveCallCount++;
+
+                if (_saveFailures.Count > 0)
+                {
+                    var failure = _saveFailures.Dequeue();
+                    _beforeSaveFailure?.Invoke(SaveCallCount);
+                    throw failure;
+                }
+
                 return Task.FromResult(0);
             }
 
@@ -525,9 +681,141 @@ namespace iLearn.Tests
                 where T : BaseEntity
                 => Task.CompletedTask;
 
+            public void Detach<T>(T entity) where T : BaseEntity
+            {
+                DetachCallCount++;
+                _detachAction?.Invoke(entity);
+            }
+
             public void Dispose()
             {
             }
+        }
+
+        private static DbUpdateException CreateSqlUpdateException(int sqlErrorNumber)
+        {
+            return new DbUpdateException("Simulated SQL Server update failure.", CreateSqlException(sqlErrorNumber));
+        }
+
+        private static SqlException CreateSqlException(int sqlErrorNumber)
+        {
+            var errorCollection = (SqlErrorCollection)Activator.CreateInstance(typeof(SqlErrorCollection), nonPublic: true)!;
+            var error = CreateSqlError(sqlErrorNumber);
+            typeof(SqlErrorCollection)
+                .GetMethod("Add", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(errorCollection, [error]);
+
+            var constructor = typeof(SqlException)
+                .GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic)
+                .First(ctor => ctor.GetParameters().Any(parameter => parameter.ParameterType == typeof(SqlErrorCollection)));
+            var arguments = constructor
+                .GetParameters()
+                .Select(parameter => CreateSqlExceptionArgument(parameter, errorCollection))
+                .ToArray();
+
+            return (SqlException)constructor.Invoke(arguments);
+        }
+
+        private static SqlError CreateSqlError(int sqlErrorNumber)
+        {
+            foreach (var constructor in typeof(SqlError)
+                .GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic)
+                .OrderByDescending(ctor => ctor.GetParameters().Length))
+            {
+                var parameters = constructor.GetParameters();
+                var arguments = new object?[parameters.Length];
+                var assignedSqlErrorNumber = false;
+
+                for (var index = 0; index < parameters.Length; index++)
+                {
+                    arguments[index] = CreateSqlErrorArgument(parameters[index], sqlErrorNumber, ref assignedSqlErrorNumber);
+                }
+
+                try
+                {
+                    return (SqlError)constructor.Invoke(arguments);
+                }
+                catch (TargetInvocationException)
+                {
+                }
+            }
+
+            throw new InvalidOperationException("Unable to create SqlError for test.");
+        }
+
+        private static object? CreateSqlErrorArgument(
+            ParameterInfo parameter,
+            int sqlErrorNumber,
+            ref bool assignedSqlErrorNumber)
+        {
+            if (parameter.ParameterType == typeof(int))
+            {
+                if (!assignedSqlErrorNumber)
+                {
+                    assignedSqlErrorNumber = true;
+                    return sqlErrorNumber;
+                }
+
+                return 0;
+            }
+
+            return CreateDefaultSqlReflectionArgument(parameter, null);
+        }
+
+        private static object? CreateSqlExceptionArgument(ParameterInfo parameter, SqlErrorCollection errorCollection)
+        {
+            return CreateDefaultSqlReflectionArgument(parameter, errorCollection);
+        }
+
+        private static object? CreateDefaultSqlReflectionArgument(ParameterInfo parameter, SqlErrorCollection? errorCollection)
+        {
+            var parameterType = parameter.ParameterType;
+            if (parameterType == typeof(SqlErrorCollection))
+            {
+                return errorCollection;
+            }
+
+            if (parameterType == typeof(string))
+            {
+                return parameter.Name switch
+                {
+                    "server" => "test-sql-server",
+                    "procedure" => "test-procedure",
+                    _ => "Simulated SQL exception"
+                };
+            }
+
+            if (parameterType == typeof(byte))
+            {
+                return (byte)0;
+            }
+
+            if (parameterType == typeof(uint))
+            {
+                return 0u;
+            }
+
+            if (parameterType == typeof(long))
+            {
+                return 0L;
+            }
+
+            if (parameterType == typeof(bool))
+            {
+                return false;
+            }
+
+            if (parameterType == typeof(Guid))
+            {
+                return Guid.NewGuid();
+            }
+
+            if (parameterType == typeof(Exception))
+            {
+                return null;
+            }
+
+            return parameterType.IsValueType ? Activator.CreateInstance(parameterType) : null;
         }
 
         private sealed class RecordingScormRuntimeStateService : IScormRuntimeStateService

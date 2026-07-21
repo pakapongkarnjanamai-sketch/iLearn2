@@ -329,6 +329,10 @@ namespace iLearn.Tests
                 where T : iLearn.Domain.Common.BaseEntity
                 => Task.CompletedTask;
 
+            public void Detach<T>(T entity) where T : iLearn.Domain.Common.BaseEntity
+            {
+            }
+
             public void Dispose()
             {
             }

@@ -394,6 +394,10 @@ namespace iLearn.Tests
             public Task AddRangeAsync<T>(IEnumerable<T> entities, CancellationToken cancellationToken = default)
                 where T : BaseEntity => Task.CompletedTask;
 
+            public void Detach<T>(T entity) where T : BaseEntity
+            {
+            }
+
             public void Dispose()
             {
             }

@@ -4,6 +4,8 @@ using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Entities;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 
 namespace iLearn.Infrastructure.Services
 {
@@ -82,49 +84,71 @@ namespace iLearn.Infrastructure.Services
                 return [];
             }
 
-            var existingStates = (await _runtimeStateRepo.GetAsync(state => state.EnrollmentId == enrollmentId))
-                .ToDictionary(state => state.ContentItemId);
-            var touchedStates = new Dictionary<int, ScormRuntimeState>();
-
-            foreach (var contentItem in contentItems)
-            {
-                if (contentItem.ContentItemId <= 0)
-                {
-                    continue;
-                }
-
-                if (!existingStates.TryGetValue(contentItem.ContentItemId, out var state))
-                {
-                    state = new ScormRuntimeState
-                    {
-                        EnrollmentId = enrollmentId,
-                        ContentItemId = contentItem.ContentItemId
-                    };
-
-                    ApplyCommit(state, contentItem);
-                    await _runtimeStateRepo.AddWithoutSaveAsync(state);
-                    existingStates[contentItem.ContentItemId] = state;
-                }
-                else
-                {
-                    ApplyCommit(state, contentItem);
-                    _runtimeStateRepo.UpdateWithoutSave(state);
-                }
-
-                touchedStates[contentItem.ContentItemId] = state;
-            }
+            var (touchedStates, addedStates) = await StageChangesAsync();
 
             if (touchedStates.Count == 0)
             {
                 return [];
             }
 
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex) when (addedStates.Count > 0 && IsUniqueViolation(ex))
+            {
+                foreach (var addedState in addedStates)
+                {
+                    _unitOfWork.Detach(addedState);
+                }
+
+                (touchedStates, _) = await StageChangesAsync();
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
 
             return touchedStates.Values
                 .Select(MapToDto)
                 .OrderBy(state => state.ContentItemId)
                 .ToList();
+
+            async Task<(Dictionary<int, ScormRuntimeState> TouchedStates, List<ScormRuntimeState> AddedStates)> StageChangesAsync()
+            {
+                var existingStates = (await _runtimeStateRepo.GetAsync(state => state.EnrollmentId == enrollmentId))
+                    .ToDictionary(state => state.ContentItemId);
+                var stagedTouchedStates = new Dictionary<int, ScormRuntimeState>();
+                var stagedAddedStates = new List<ScormRuntimeState>();
+
+                foreach (var contentItem in contentItems)
+                {
+                    if (contentItem.ContentItemId <= 0)
+                    {
+                        continue;
+                    }
+
+                    if (!existingStates.TryGetValue(contentItem.ContentItemId, out var state))
+                    {
+                        state = new ScormRuntimeState
+                        {
+                            EnrollmentId = enrollmentId,
+                            ContentItemId = contentItem.ContentItemId
+                        };
+
+                        ApplyCommit(state, contentItem);
+                        await _runtimeStateRepo.AddWithoutSaveAsync(state);
+                        existingStates[contentItem.ContentItemId] = state;
+                        stagedAddedStates.Add(state);
+                    }
+                    else
+                    {
+                        ApplyCommit(state, contentItem);
+                        _runtimeStateRepo.UpdateWithoutSave(state);
+                    }
+
+                    stagedTouchedStates[contentItem.ContentItemId] = state;
+                }
+
+                return (stagedTouchedStates, stagedAddedStates);
+            }
         }
 
         private void ApplyCommit(ScormRuntimeState state, ScormRuntimeContentItemCommitDto contentItem)
@@ -362,6 +386,22 @@ namespace iLearn.Infrastructure.Services
                 "" => null,
                 _ => "unknown"
             };
+        }
+
+        private static bool IsUniqueViolation(DbUpdateException ex)
+        {
+            var inner = ex.InnerException;
+            while (inner != null)
+            {
+                if (inner is SqlException sqlException && sqlException.Number is 2601 or 2627)
+                {
+                    return true;
+                }
+
+                inner = inner.InnerException;
+            }
+
+            return false;
         }
     }
 }

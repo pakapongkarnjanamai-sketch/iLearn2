@@ -1,7 +1,7 @@
 # PLAN-105: HOTFIX — CommitRuntime 500 จาก race ตอน insert แถวแรก (duplicate key)
 
-- **Status:** READY
-- **Assigned:** GitHub Copilot (§2 server) + Antigravity (Gemini) (§1 client)
+- **Status:** DONE → REVIEWED (code+tests ผ่าน — รอ QA deploy + manual smoke ก่อน VERIFIED)
+- **Assigned:** GitHub Copilot (§2 server + §1 client, took over §1 from Gemini by user request)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-21
 - **ความรุนแรง:** 🟠 HIGH — commit หลุดเป็นครั้งคราว (เวลาเรียน/สถานะบางส่วนหาย) + error 500 โผล่ให้ผู้เรียนเห็นใน console
@@ -113,4 +113,37 @@ Manual (QA — deploy API + learner):
 
 ## Implementer Notes
 
-_(เติมโดย implementer)_
+### GitHub Copilot (§1 client, took over from Gemini) — 2026-07-21 14:11
+
+- ปรับ `Player.cshtml` ให้ non-beacon runtime commits serialize ผ่าน `runtimeCommitQueue` จึงไม่ยิง `$.ajax` ซ้อนกันในเสี้ยววินาที
+- เส้นทาง `useBeacon: true` bypass queue และยังยิงทันทีตามเดิมสำหรับ `beforeunload`/`pagehide`/`visibilitychange hidden`
+- แยก prepare/send: snapshot payload ทันทีตอน flush ถูกเรียก แล้ว queue เฉพาะการส่ง ajax เพื่อไม่ให้ `cmiModel` ของ content item เดิมหายตอนผู้ใช้สลับบทก่อน request ได้คิวส่ง
+- เพิ่ม `runtimeCommitVersion` ต่อ content item เพื่อกัน request เก่าที่เพิ่งสำเร็จ clear `hasPendingRuntimeCommit` ทิ้ง ถ้ามี dirty ใหม่เกิดระหว่าง request ค้าง
+- ไม่แตะ PLAN-106 auto-summary, SCORM finish behavior, flush lifecycle จุดเดิม, API shape, DB schema หรือ migration
+- Verified: `dotnet build iLearn.User/iLearn.User.csproj -o artifacts\verify-user` ผ่าน; full `dotnet build iLearn.Tests -o artifacts\verify-test` + `dotnet test artifacts\verify-test\iLearn.Tests.dll` ผ่าน 217/217; ลบ temp artifacts แล้ว
+- Manual QA ยังต้องทำตาม checklist ด้านบน: เปิด Player ด้วย `?debug` และยืนยันว่าไม่เห็น CommitRuntime ajax ซ้อนกันเวลา content initialize
+
+### GitHub Copilot (§2 server) — 2026-07-21 14:05
+
+- เพิ่ม `IUnitOfWork.Detach<T>` แบบ additive และ implement ใน EF `UnitOfWork` ด้วย `EntityState.Detached`; อัปเดต fake unit-of-work ที่ compile จาก contract นี้
+- ปรับ `ScormRuntimeStateService.UpsertAsync` ให้ stage add/update แล้ว catch เฉพาะ `DbUpdateException` ที่ inner `SqlException.Number` เป็น 2601/2627 และมี entity ที่เพิ่ง add; retry หนึ่งครั้งโดย detach added entities, reload state, apply commit ใหม่, save อีกครั้ง
+- ไม่แตะ merge policy ของ PLAN-104, reset paths, index/migration, API shape หรือ client `Player.cshtml`
+- เพิ่ม regression tests 3 ตัวตาม §2: unique violation ครั้งแรกแล้ว retry สำเร็จ, non-unique `DbUpdateException` rethrow, retry แล้วยังพัง rethrow หลัง save ครั้งที่สอง
+- Verified: focused `ScormRuntimeStateServiceTests` ผ่าน 17/17; full `dotnet build iLearn.Tests -o artifacts\verify-test` + `dotnet test artifacts\verify-test\iLearn.Tests.dll` ผ่าน 217/217; ลบ `artifacts\verify-test` และ focused artifacts แล้ว
+
+## Reviewer Sign-off (Claude Code, 2026-07-21)
+
+- **§2 server (สำคัญสุด) ตรงสเปคเป๊ะ:** `IUnitOfWork.Detach<T>` additive + impl `EntityState.Detached` ✅ `UpsertAsync` แยก staging เป็น local function `StageChangesAsync()` แล้วครอบ `SaveChangesAsync` ด้วย `catch (DbUpdateException ex) when (addedStates.Count > 0 && IsUniqueViolation(ex))` → detach ตัวที่ Add ค้าง → **re-stage (query ใหม่เจอ row ของ request ที่ชนะ → ไปทาง UPDATE)** → save อีกครั้ง ✅ **retry ครั้งเดียวจริง** (ไม่มีลูป — save รอบสองพังคือ throw) ✅
+- **ไม่กลืน error อื่น:** `IsUniqueViolation` เดินไล่ inner chain หา `SqlException` 2601/2627 เท่านั้น; ถ้าไม่ใช่ `when` filter ไม่ติด ⇒ exception เดิม propagate ตามปกติ ✅ (ข้อที่กำชับหนักสุด)
+- **re-query ได้ entity ที่ tracked:** `GenericRepository.GetAsync` ไม่ใช้ `AsNoTracking` ⇒ `UpdateWithoutSave` หลัง detach ทำงานถูกต้อง ✅
+- **§1 client — ทำได้ดีกว่าที่แผนกำหนด:**
+  - แยก **prepare (snapshot payload ทันที)** ออกจาก **send (เข้าคิว)** ⇒ `captureSessionTime`/`cmiModel` ถูกจับ ณ เวลาที่ flush ถูกเรียกจริง ไม่ใช่ตอนคิวได้ส่ง และผู้ใช้สลับบทระหว่างรอคิวก็ไม่ทำข้อมูลเพี้ยน ✅
+  - `useBeacon: true` **bypass คิว** ยิงทันที ตามที่กำชับ (หน้าอาจถูกปิดก่อน) ✅
+  - `runtimeCommitQueue = queuedCommit.catch(() => null)` ⇒ commit ที่ fail **ไม่ทำให้คิวตัน** แต่ caller ยังได้ promise ที่ reject จริง (LMSFinish จับ error ได้) ✅
+  - **`runtimeCommitVersion`** (เพิ่มเอง เกินสเปค): clear `hasPendingRuntimeCommit` เฉพาะเมื่อ version ยังตรงกับตอน prepare ⇒ การแก้ที่เกิดระหว่าง request ค้าง**ไม่ถูกกลืนหาย** — เป็นการอุดช่องที่แผนไม่ได้ระบุ ✅
+- **Tests:** 3 เคสตามแผนครบ — `..._WhenFirstInsertHitsUniqueViolation_ReloadsAndUpdatesWinningState`, `..._WhenSaveFailsWithNonUniqueUpdateException_RethrowsWithoutRetry`, `..._WhenRetryStillFails_RethrowsAfterSingleRetry` ✅
+- **Verify อิสระ:** `dotnet test` **217/217**; build API+learner 0 errors; `node --check` Player 1,547 บรรทัดผ่าน
+- **Observation (TRIVIAL):** ถ้า browser ไม่มี `navigator.sendBeacon` เส้นทาง `useBeacon` จะตกไปใช้ `$.ajax` **นอกคิว** — เคสนี้ไม่มีในเบราว์เซอร์ที่รองรับจริง ไม่ต้องแก้
+- **คงค้าง:** manual QA ตาม checklist (เปิดคอร์สที่ยังไม่มี runtime state → commit แรกต้องไม่ 500; `?debug` ต้องไม่เห็น CommitRuntime ซ้อนกัน)
+
+**สรุป: ผ่านรีวิว ไม่มี finding**

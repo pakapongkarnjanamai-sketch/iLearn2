@@ -1,6 +1,7 @@
 using iLearn.Application.Interfaces;
 using iLearn.Domain.Common;
 using iLearn.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace iLearn.Infrastructure
@@ -28,6 +29,11 @@ namespace iLearn.Infrastructure
             where T : BaseEntity
         {
             await _context.Set<T>().AddRangeAsync(entities, cancellationToken);
+        }
+
+        public void Detach<T>(T entity) where T : BaseEntity
+        {
+            _context.Entry(entity).State = EntityState.Detached;
         }
 
         public void Dispose()

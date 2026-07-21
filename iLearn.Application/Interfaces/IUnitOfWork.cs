@@ -22,6 +22,9 @@ namespace iLearn.Application.Interfaces
         /// </summary>
         Task AddRangeAsync<T>(IEnumerable<T> entities, CancellationToken cancellationToken = default)
             where T : BaseEntity;
+
+        /// <summary>Detach an entity from the change tracker without saving pending changes.</summary>
+        void Detach<T>(T entity) where T : BaseEntity;
     }
 }
 

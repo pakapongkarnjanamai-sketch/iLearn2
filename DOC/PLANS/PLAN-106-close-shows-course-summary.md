@@ -1,7 +1,7 @@
 # PLAN-106: กด Close ในเนื้อหาแล้วเรียนครบ → เปิดสรุปผลของเราพร้อมปุ่มกลับหน้าหลัก
 
-- **Status:** READY
-- **Assigned:** Antigravity (Gemini)
+- **Status:** DONE → REVIEWED (code ผ่าน — **ยังไม่ผ่าน Gate 0** ต้องยืนยันบน QA ก่อน VERIFIED)
+- **Assigned:** GitHub Copilot (took over from Gemini by user request)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-21
 - **ที่มา:** ผู้ใช้ขอ "กด Close แล้วให้กลับไปหน้าหลัก" — เสนอ 2 ทาง ผู้ใช้**เลือกแบบ B** (เปิด modal สรุปผลของเราซึ่งมีปุ่มกลับอยู่แล้ว แทนการเด้งออกทันที)
@@ -112,4 +112,22 @@ Manual (QA):
 
 ## Implementer Notes
 
-_(เติมโดย implementer — โดยเฉพาะผล Gate 0)_
+### GitHub Copilot — 2026-07-21 14:13
+
+- รับงานแทน Gemini ตามคำสั่งผู้ใช้ หลัง PLAN-105 ปิดแล้ว
+- เพิ่ม `courseSummaryAutoShown`, `isCourseFullyPassed()`, และ `maybeShowCourseCompleteSummary()` ใน `Player.cshtml`
+- Hook เฉพาะ `LMSFinish` (SCORM 1.2) และ `Terminate` (SCORM 2004): สร้าง `flushSelectedContentItemRuntime({ includeSessionTime: true, ... })`, `stopSessionTimer()`, แล้ว `Promise.resolve(flush).then(maybeShowCourseCompleteSummary).catch(...)` โดยยัง `return "true"` ทันทีตามกติกา SCORM sync API
+- Helper เปิด modal ผ่าน `renderLearningResultModal()` เท่านั้น ไม่เรียก `showLearningResult()` เพื่อไม่ flush ซ้ำ, ไม่ redirect อัตโนมัติ, ไม่แตะ DOM ใน iframe, ไม่แตะ PLAN-105 runtime commit queue
+- Gate 0/manual QA ยังไม่ได้รันใน coding environment เพราะต้องใช้ learner session + SCORM package จริงบน QA; ต้องยืนยันใน `?debug` ว่าปุ่ม Close ยิง `LMSFinish`/`Terminate` จริงก่อน deploy/acceptance
+- Verified: `dotnet build iLearn.User/iLearn.User.csproj -o artifacts\verify-user` ผ่าน; ลบ `artifacts\verify-user` แล้ว
+
+## Reviewer Sign-off (Claude Code, 2026-07-21)
+
+- **ตรงสเปคทุกข้อ:** `isCourseFullyPassed()` ใช้ `clientStatus` ตัวเดียวกับ `recalcTotalProgress` (ตรรกะตรงกัน ไม่ผูก DOM) ✅ `maybeShowCourseCompleteSummary()` guard ครบ 3 ชั้น — `isReadOnly` (ทบทวนคอร์สที่จบแล้วไม่เด้ง) / `courseSummaryAutoShown` (ครั้งเดียวต่อ page) / `isCourseFullyPassed()` (คอร์สหลาย item ไม่เตะออกกลางคัน) ✅
+- **เรียก `renderLearningResultModal()` ไม่ใช่ `showLearningResult()`** ⇒ ไม่ flush ซ้ำ ตามที่กำชับ ✅
+- **hook ถูกต้อง:** `LMSFinish`/`Terminate` เก็บ promise ของ flush → `.then(maybeShowCourseCompleteSummary)` → **`return "true"` ทันที ไม่มี `await`** (SCORM API เป็น sync) ✅ modal เปิด**หลัง**บันทึกเสร็จ ⇒ ไม่มีคะแนน/เวลาหาย ✅ flush พัง → toast เตือนแล้วยังเปิดสรุปให้ดู (ตรงกับ pattern เดิมของ `showLearningResult`) ✅
+- **เข้ากับ 105:** flush ของ LMSFinish วิ่งผ่านคิวของ 105 ⇒ modal เปิดหลังคิวเคลียร์จริง ลำดับถูกต้อง ✅ ไม่แตะ session timer ของ 104 §C / flush lifecycle ของ 097 ✅
+- **Verify อิสระ:** build learner 0 errors; `node --check` ผ่าน; `dotnet test` 217/217 (ไม่กระทบ)
+- **⚠️ ยังไม่ผ่าน Gate 0 — บล็อกการ VERIFIED:** implementer จดเองว่ารันไม่ได้ใน coding environment ⇒ **ยังไม่มีใครพิสูจน์ว่าปุ่ม Close ของ package นี้เรียก `LMSFinish`/`Terminate` จริง** ถ้าไม่เรียก ฟีเจอร์นี้จะไม่ทำงานเลย (โค้ดถูกแต่ไม่มีอะไรมา trigger) — **ต้องทำ Gate 0 บน QA ด้วย `?debug` ก่อนถือว่าใช้ได้** ถ้าไม่ยิงให้แจ้ง Claude ออกแบบ trigger ทางอื่น
+
+**สรุป: โค้ดผ่านรีวิว ไม่มี finding — แต่ VERIFIED ไม่ได้จนกว่า Gate 0 จะผ่านบน QA**

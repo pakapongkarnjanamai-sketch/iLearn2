@@ -754,6 +754,8 @@
         let sessionActiveMs = 0;
         let sessionResumedAt = null;
         let sessionTimerStarted = false;
+        let runtimeCommitQueue = Promise.resolve(null);
+        let courseSummaryAutoShown = false;
 
         // ========================================
         // SCORM Data Model (Global)
@@ -844,11 +846,15 @@
             return currentData.contentItems[selectedContentItemIndex];
         }
 
-        function markSelectedContentItemDirty() {
-            const contentItem = getSelectedContentItem();
+        function markContentItemDirty(contentItem) {
             if (contentItem) {
                 contentItem.hasPendingRuntimeCommit = true;
+                contentItem.runtimeCommitVersion = (contentItem.runtimeCommitVersion || 0) + 1;
             }
+        }
+
+        function markSelectedContentItemDirty() {
+            markContentItemDirty(getSelectedContentItem());
         }
 
         function resolveContentItemScormVersion(contentItem) {
@@ -1055,6 +1061,7 @@
             contentItem.clientScore = rawScore ?? contentItemScore ?? 0;
             contentItem.clientTime = contentItem.time || runtimeState.sessionTime || contentItem?.clientTime || "00:00:00";
             contentItem.hasPendingRuntimeCommit = false;
+            contentItem.runtimeCommitVersion = contentItem.runtimeCommitVersion || 0;
         }
 
         function resetScormModel(contentItem) {
@@ -1309,8 +1316,28 @@
         }
 
         function commitRuntimeContentItems(contentItems, options = {}) {
-            if (isReadOnly || !currentData || !currentData.enrollmentId || !Array.isArray(contentItems)) {
+            const preparedCommit = prepareRuntimeCommitContentItems(contentItems, options);
+            if (!preparedCommit) {
                 return Promise.resolve(null);
+            }
+
+            if (options.useBeacon === true) {
+                return sendPreparedRuntimeCommit(preparedCommit, options);
+            }
+
+            const queuedCommit = runtimeCommitQueue.then(function () {
+                return sendPreparedRuntimeCommit(preparedCommit, options);
+            });
+            runtimeCommitQueue = queuedCommit.catch(function () {
+                return null;
+            });
+
+            return queuedCommit;
+        }
+
+        function prepareRuntimeCommitContentItems(contentItems, options = {}) {
+            if (isReadOnly || !currentData || !currentData.enrollmentId || !Array.isArray(contentItems)) {
+                return null;
             }
 
             const shouldIncludeSessionTime = options.includeSessionTime === true;
@@ -1325,14 +1352,20 @@
             });
 
             if (targetContentItems.length === 0) {
-                return Promise.resolve(null);
+                return null;
             }
 
             const payload = buildRuntimeCommitPayload(targetContentItems, options);
             if (!payload.ContentItems.length) {
-                return Promise.resolve(null);
+                return null;
             }
 
+            const commitVersions = new Map(targetContentItems.map(contentItem => [contentItem.id, contentItem.runtimeCommitVersion || 0]));
+            return { payload, targetContentItems, commitVersions };
+        }
+
+        function sendPreparedRuntimeCommit(preparedCommit, options = {}) {
+            const { payload, targetContentItems, commitVersions } = preparedCommit;
             scormLog(`💾 Runtime commit (${options.reason || "unspecified"})`, payload);
 
             if (options.useBeacon === true && navigator.sendBeacon) {
@@ -1341,7 +1374,9 @@
                 diag("beacon→CommitRuntime", { reason: options.reason, accepted, itemCount: payload.ContentItems.length });
                 if (accepted) {
                     targetContentItems.forEach(contentItem => {
-                        contentItem.hasPendingRuntimeCommit = false;
+                        if ((contentItem.runtimeCommitVersion || 0) === (commitVersions.get(contentItem.id) || 0)) {
+                            contentItem.hasPendingRuntimeCommit = false;
+                        }
                     });
                 }
 
@@ -1369,7 +1404,9 @@
                             contentItem.runtimeState = stateMap[contentItem.id];
                             contentItem.scormVersion = stateMap[contentItem.id].scormVersion || contentItem.scormVersion;
                         }
-                        contentItem.hasPendingRuntimeCommit = false;
+                        if ((contentItem.runtimeCommitVersion || 0) === (commitVersions.get(contentItem.id) || 0)) {
+                            contentItem.hasPendingRuntimeCommit = false;
+                        }
                     });
                 }
             }).fail(function(err) {
@@ -1579,7 +1616,7 @@
 
             $("#startOverlay").fadeOut(200);
             startSessionTimer();
-            contentItem.hasPendingRuntimeCommit = true;
+            markContentItemDirty(contentItem);
             contentItem.sessionTerminalStatus = null;
             const iframe = document.getElementById("scormFrame");
 
@@ -1889,6 +1926,23 @@
             diag("recalcTotalProgress", { passedCount, totalContentItems, progress: currentData.progress });
         }
 
+        function isCourseFullyPassed() {
+            if (!currentData || !Array.isArray(currentData.contentItems) || currentData.contentItems.length === 0) {
+                return false;
+            }
+
+            return currentData.contentItems.every(r => r.clientStatus === "passed" || r.clientStatus === "completed");
+        }
+
+        function maybeShowCourseCompleteSummary() {
+            if (isReadOnly || courseSummaryAutoShown || !isCourseFullyPassed()) {
+                return;
+            }
+
+            courseSummaryAutoShown = true;
+            renderLearningResultModal();
+        }
+
         // ========================================
         // Show Learning Result
         // ========================================
@@ -2005,8 +2059,15 @@
 
                 LMSFinish: function(p) {
                     scormLog("🏁 SCORM 1.2: LMSFinish");
-                    flushSelectedContentItemRuntime({ includeSessionTime: true, reason: "scorm12-finish" });
+                    const flush = flushSelectedContentItemRuntime({ includeSessionTime: true, reason: "scorm12-finish" });
                     stopSessionTimer();
+                    Promise.resolve(flush)
+                        .then(maybeShowCourseCompleteSummary)
+                        .catch(function(err) {
+                            console.error("❌ Finish sync failed:", err);
+                            showToast("ไม่สามารถซิงก์ผลล่าสุดได้ กรุณาตรวจสอบผลการเรียนอีกครั้ง", "warning");
+                            maybeShowCourseCompleteSummary();
+                        });
                     return "true";
                 },
 
@@ -2026,8 +2087,15 @@
 
                 Terminate: function(p) {
                     scormLog("🏁 SCORM 2004: Terminate");
-                    flushSelectedContentItemRuntime({ includeSessionTime: true, reason: "scorm2004-terminate" });
+                    const flush = flushSelectedContentItemRuntime({ includeSessionTime: true, reason: "scorm2004-terminate" });
                     stopSessionTimer();
+                    Promise.resolve(flush)
+                        .then(maybeShowCourseCompleteSummary)
+                        .catch(function(err) {
+                            console.error("❌ Terminate sync failed:", err);
+                            showToast("ไม่สามารถซิงก์ผลล่าสุดได้ กรุณาตรวจสอบผลการเรียนอีกครั้ง", "warning");
+                            maybeShowCourseCompleteSummary();
+                        });
                     return "true";
                 },
 
