@@ -182,27 +182,39 @@
             line-height: 1.35;
             margin-bottom: 6px;
             display: -webkit-box;
-            -webkit-line-clamp: 2;
+            -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
 
-        .course-meta-line {
+        .course-meta-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .course-meta-row {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 8px;
             min-width: 0;
         }
 
-        .course-meta-text {
-            color: #64748b;
-            font-size: 0.78rem;
+        .course-meta-label {
+            flex: 0 0 60px;
+            color: #94a3b8;
+            font-size: var(--text-xs);
+        }
+
+        .course-meta-value {
+            min-width: 0;
+            color: #1f2937;
+            font-size: 0.8rem;
             font-weight: 600;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            min-width: 0;
         }
 
         .course-status-pill {
@@ -472,7 +484,12 @@
             text-align: center;
         }
         .player-status-icon {
-            font-size: 1.2rem;
+            font-size: 1rem;
+        }
+        .contentItem-name {
+            font-size: var(--text-sm);
+            font-weight: 600;
+            color: #172033;
         }
         .summary-item-name {
             max-width: 350px;
@@ -641,11 +658,23 @@
     <div class="info-section" id="tocSection">
         <div class="course-header-panel">
             <h5 class="course-title" id="courseTitleDisplay">กำลังโหลดข้อมูล...</h5>
-            <div class="course-meta-line">
-                <span class="course-status-pill status-muted" id="courseStatusDisplay">-</span>
-                <span class="course-meta-text">
-                    <span id="categoryNameDisplay">-</span> · <span id="courseTypeNameDisplay">-</span> · <span id="learnerCodeDisplay">-</span>
-                </span>
+            <div class="course-meta-list">
+                <div class="course-meta-row">
+                    <span class="course-meta-label">ผู้เรียน</span>
+                    <span class="course-meta-value" id="learnerCodeDisplay">-</span>
+                </div>
+                <div class="course-meta-row">
+                    <span class="course-meta-label">หมวดหมู่</span>
+                    <span class="course-meta-value" id="categoryNameDisplay">-</span>
+                </div>
+                <div class="course-meta-row">
+                    <span class="course-meta-label">ประเภท</span>
+                    <span class="course-meta-value" id="courseTypeNameDisplay">-</span>
+                </div>
+                <div class="course-meta-row">
+                    <span class="course-meta-label">สถานะ</span>
+                    <span class="course-status-pill status-muted" id="courseStatusDisplay">-</span>
+                </div>
             </div>
             <div class="course-progress-row">
                 <div class="course-progress-track"><div class="course-progress-fill" id="courseProgressFill"></div></div>
@@ -1410,11 +1439,11 @@
                 const html = `
                     <div class="contentItem-item" id="res-item-${index}" onclick="selectContentItem(${index})">
                         <div class="d-flex align-items-center">
-                            <div class="me-3 fs-4 player-icon-slot">
+                            <div class="me-3 player-icon-slot">
                                 <i class="${iconClass}"></i>
                             </div>
                             <div class="flex-grow-1 overflow-hidden">
-                                <div class="fw-bold text-truncate" title="${item.name}">${item.name}</div>
+                                <div class="contentItem-name text-truncate" title="${item.name}">${item.name}</div>
                             </div>
                             <div class="ms-2 fw-bold small text-muted text-end">
                                 <div id="res-status-icon-${index}" class="player-status-icon"></div>
