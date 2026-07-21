@@ -2,6 +2,40 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-21] GitHub Copilot — PLAN-099 DONE: Reset SCORM runtime state + cumulative session-time delta
+- ทำอะไร: เพิ่ม `IScormRuntimeStateService.ClearForEnrollmentAsync` และ implementation ที่ soft-delete runtime states active ทั้งหมดของ enrollment ด้วย `DeleteWithoutSave` + save ครั้งเดียว; `LearningLogsController.ResetProgress` เรียก clear ใน main flow ก่อน invalidate cache. แก้ `UpsertLearningLogsAsync` จากบวก `session_time` cumulative ทุก commit เป็นบวก delta จาก `LearningLog.SessionTime`; เมื่อ counter ลดลงถือเป็น session ใหม่และบวกค่ารอบนั้นเต็มจำนวน. เพิ่ม regression tests ครบ: clear state/active empty, clear แล้ว upsert สร้าง state ใหม่ไร้ passed/score เก่า, reset เรียก clear, 6→8→10 รวม 10 วินาที, 10→5 ข้าม session รวม 15 วินาที
+- ไฟล์หลักที่แตะ: `iLearn.Application/Interfaces/Services/IScormRuntimeStateService.cs`, `iLearn.Infrastructure/Services/ScormRuntimeStateService.cs`, `iLearn.API/Controllers/LearningLogsController.cs`, `iLearn.Tests/ScormRuntimeStateServiceTests.cs`, `iLearn.Tests/LearningLogsRuntimeValidationTests.cs`, `iLearn.Tests/EnrollmentsPlayerInfoTests.cs`, `DOC/PLANS/PLAN-099-reset-scorm-state-lifecycle-hotfix.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): เพิ่ม service method internal `ClearForEnrollmentAsync` เท่านั้น; API response/DB schema/migration ไม่เปลี่ยน
+- Verified: `dotnet build iLearn.Tests -o artifacts\verify-test` ผ่าน 0 errors (90 warnings เดิม); `dotnet test artifacts\verify-test\iLearn.Tests.dll` ผ่าน **207/207**
+- Deploy note: ต้อง deploy **API** (Application + Infrastructure + API), ไม่มี migration; หลัง deploy ให้ Reset Progress ซ้ำหนึ่งครั้งกับ enrollment ที่เพี้ยนเพื่อ soft-delete runtime state เก่า
+
+## [2026-07-21 —] Claude Code — วินิจฉัย incident + เขียน PLAN-099 (HOTFIX): Reset ไม่ล้าง ScormRuntimeState → สถานะเก่าฟื้นคืนชีพ
+- ทำอะไร: ผู้ใช้รายงาน QA (courseId 968): progress bar ผิด, Exam ยังไม่เสร็จแต่ผ่าน, Learn ดูจบแต่ไม่ผ่าน — สงสัยว่าพังจากงาน iPad. **วินิจฉัย: ไม่ใช่ regression ของ 096/097/098** (git ยืนยัน server logic ไม่ถูกแตะ; API ไม่ได้ deploy ใหม่). Query QA DB (enrollment 18201) พบ timeline ชัด: ผู้ใช้กด **Reset Progress 08:26** → `Enrollment.ResetAt` ตั้ง + LearningLogs เก่าถูกกรอง **แต่ `ScormRuntimeState` 4 rows ของ 13 ก.ค. ไม่ถูกล้าง** (ResetProgress ไม่แตะตารางนี้) → เปิดไล่ดู item 5-10 วิ → `UpsertAsync` query existing states **โดยไม่กรอง resetAt** → เจอ row เก่า merge sticky → UpdatedAt ขยับเป็นวันนี้ → row เก่าหลุด filter กลับมา live. sticky merge (`unknown` ไม่ทับ `passed`, RawScore 0 ไม่ทับ 100) ทำให้ Exam SuccessStatus=passed เก่ารอด + Learn RawScore=100 เก่ารอด — ตรงอาการเป๊ะ. เจอบั๊กพ่วง §2: เวลาเรียนโป่ง (เล่น 6 วิ บันทึก 20) จาก `TotalSecondsPlayed += cumulative` ทุก commit ที่ 097 เพิ่ม flush ถี่ (pagehide/visibilitychange). เขียน PLAN-099 มอบ Copilot: §1 ResetProgress soft-delete ScormRuntimeState (ยืนยันว่ามี global `!IsDeleted` filter + filtered unique index รองรับ — precedent PLAN-092); §2 บวก session time แบบ delta. Remediation: กด Reset ซ้ำหลัง deploy = สะอาด ไม่ต้องแก้ DB มือ
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-099-reset-scorm-state-lifecycle-hotfix.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มีในตัวแผน (099 จะเพิ่ม `IScormRuntimeStateService.ClearForEnrollmentAsync` additive; ไม่มี migration)
+- Verified: — (แผน; หลักฐาน = query QA DB read-only 2 ตาราง + git log ยืนยันไฟล์ server ไม่ถูกแตะ + อ่าน ResetProgress/UpsertAsync/ApplyCommit/AppDbContext filter จริง)
+- **ถึง Copilot: 099 = CRITICAL แตะ iLearn.API+Infrastructure+Application ⇒ ต้อง deploy API ด้วย (096-098 เป็น learner-only)**; PLAN-098 review ของ Claude ค้างอยู่ จะทำหลังปิด incident นี้
+
+## [2026-07-21 —] Claude Code — รีวิว PLAN-098 → REVIEWED ผ่านสะอาด (runtime render พิสูจน์แล้ว)
+- ทำอะไร: ตรวจ diff header/TOC ของ Gemini (แยกจากงาน 097 ที่ปนไฟล์) — ตรงสเปคทุกจุด ไม่มี finding: markup 4 แถว label + IDs ครบ 7 + pill เป็น value แถวสถานะ (คง class hook), CSS ค่าตรง, ลบ course-meta-line/text หมด, course-title clamp 3, ฟอนต์ TOC เข้า scale (contentItem-name --text-sm, ลบ fs-4, status-icon 1rem), **renderCourseDetails คง .attr("title") ของ 097 ครบ**. Verify เกิน implementer: build 0 err + node --check + **runtime render จริง** (publish → standalone page ประกอบ CSS+theme+mock วัด DOM): ชื่อคอร์ส 15.2px > ชื่อบทเรียน 13.6px (แก้ลำดับชั้น), รหัสผู้เรียนไม่โดนตัด (เป้าหลัก v3), หมวดหมู่ยาว ellipsis เฉพาะแถว, ชื่อยาว clamp 3, pill danger แดงไม่โดน ellipsis, header ~187px (จาก ~300px)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-098-*.md` (→REVIEWED + Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว)
+- Verified: dotnet build + node syntax + runtime DOM measurement บน publish จริง
+- **สถานะ iPad readiness ครบชุด: 096/097/098 REVIEWED, 099 (hotfix) รอ implement** — ยังไม่ commit; รอ 099 เสร็จ+รีวิว แล้ว commit ทั้งชุด (แยกก้อน 094/095 config) → deploy QA (learner + **API สำหรับ 099**) → iPad smoke
+
+## [2026-07-21] Antigravity (Gemini) — PLAN-098 DONE: Player header v3 (label rows + status pill row + TOC font scaling)
+- ทำอะไร: ปรับโครงสร้าง `.course-header-panel` ใน `Player.cshtml` เป็น 4 แถว label (ผู้เรียน/หมวดหมู่/ประเภท/สถานะ) ป้องกันรหัสผู้เรียนโดนตัด, ย้าย `#courseStatusDisplay` เป็น value แถวสถานะ (คง 7 Element IDs ครบถ้วน), ปรับชื่อคอร์ส clamp 3 บรรทัด, ปรับขนาดฟอนต์บทเรียนใน TOC เป็น `var(--text-sm)` และลดขนาดไอคอนบทเรียน/สถานะเข้ากับ type scale
+- ไฟล์หลักที่แตะ: `iLearn.User/Views/MyLearning/Player.cshtml`, `DOC/PLANS/PLAN-098-player-header-v3-refinement.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (ย้ายตำแหน่ง DOM ของ `#courseStatusDisplay` ภายใน header panel เท่านั้น, IDs ทั้ง 7 และ JS functions คงเดิม)
+- Verified: `dotnet build iLearn.User -o artifacts\verify-user` ผ่าน 0 errors (74 warnings เดิม)
+
+## [2026-07-17 —] Claude Code — เขียน PLAN-098: Player header v3 (คืน label + ย้าย pill สถานะ + ฟอนต์ TOC เข้า scale) มอบ Gemini
+- ทำอะไร: ผู้ใช้เห็นผล header v1 ของ 097 บน QA จริง (คอร์ส Software back up Re.3) แล้วพบว่ากระชับเกิน — meta บรรทัดเดียวตัดจนรหัสผู้เรียนเหลือ "21…", label หายหมด, ชื่อยาว clamp 2 บรรทัด. เสนอ+ผู้ใช้เลือก v3: คืน label เป็น 4 แถว (ผู้เรียน/หมวดหมู่/ประเภท/สถานะ) โดย pill สถานะเป็นแถว label ที่ 4 (ผู้ใช้สั่งย้ายออกจากแถว progress), ชื่อคอร์ส clamp 3 บรรทัด, และปรับฟอนต์ contentItem-item เข้า type scale (ชื่อบทเรียน 1rem→--text-sm ให้เล็กกว่าชื่อคอร์ส, ไอคอน fs-4→1rem, status-icon 1.2→1rem). ขอบเขต CSS+2 template block ใน Player.cshtml เท่านั้น 0 logic, IDs 7 ตัวคงครบ. **พับเข้า commit เดียวกับ 097** (097 ยังไม่ commit — ไม่ใช่ deploy รอบใหม่)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-098-player-header-v3-refinement.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (ย้ายตำแหน่ง DOM ของ #courseStatusDisplay เท่านั้น, class hook เดิม)
+- Verified: — (แผน; ยืนยันสภาพ header/TOC ปัจจุบัน + JS ที่ผูก IDs จากไฟล์จริงหลัง 097)
+- ถึง Gemini: เจ้าเดิมของ Player.cshtml — งานต่อจาก 097 ไม่มี agent อื่นชน; **ห้ามลบ .attr("title") ของ renderCourseDetails ที่เพิ่งใส่ใน 097**
+
 ## [2026-07-17 —] Claude Code — รีวิว PLAN-097 → REVIEWED (1 observation ไม่บล็อก) — ทั้งชุด 096+097 พร้อม commit + QA
 - ทำอะไร: ตรวจ diff เต็ม 4 ไฟล์ของ Gemini — B1-B4 + C1-C5 ตรงสเปคครบ: IDs ทั้ง 7 + pill class hooks รอด, SCORM adapter สลับเฉพาะ log (ไล่ทีละ hunk ไม่มี logic เปลี่ยน), iframe ไม่ถูกย้าย DOM, ไม่ล้ำเขตไฟล์ 096. Verify อิสระ: dotnet test 203/203 (Gemini รันแค่ build), node --check script จาก 3 view (2,135 บรรทัด) ผ่าน, runtime จริง: Ping 302/440 ถูกตาม design, DOM login มีครบ inputmode/enterkeyhint ฯลฯ, console 0 error. **Observation (LOW ไม่บล็อก):** `rfs.call(elem).catch()` throw TypeError บน browser ที่มีแค่ webkitRequestFullscreen (Safari desktop เก่า — แทบไม่มีที่นี่; fullscreen ยังทำงาน) — แก้ตอนแตะไฟล์รอบหน้า
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-097-*.md` (→REVIEWED + Sign-off), `DOC/AGENT_LOG.md`

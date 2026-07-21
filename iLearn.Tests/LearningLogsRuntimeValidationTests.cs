@@ -235,7 +235,7 @@ namespace iLearn.Tests
         [Fact]
         public async Task ResetProgress_ClearsEnrollmentSummaryAndAssignmentSnapshot()
         {
-            var controller = CreateController(out _, out var enrollmentRepo, out var assignmentRepo);
+            var controller = CreateController(out _, out var enrollmentRepo, out var assignmentRepo, out var runtimeStateService);
             var enrollment = Assert.Single(enrollmentRepo.Items);
             enrollment.IsCompleted = true;
             enrollment.CompletedDate = DateTime.Now.AddDays(-1);
@@ -269,6 +269,63 @@ namespace iLearn.Tests
             Assert.False(link.SnapshotCompleted);
             Assert.Null(link.SnapshotCompletedDate);
             Assert.Equal(0, link.SnapshotProgress);
+            Assert.Equal(enrollment.Id, runtimeStateService.ClearedEnrollmentId);
+        }
+
+        [Fact]
+        public async Task CommitRuntime_OnlyAddsNewSessionTimeSincePreviousCommit()
+        {
+            var controller = CreateController(out var logRepo, out _);
+
+            foreach (var sessionTime in new[] { "00:00:06", "00:00:08", "00:00:10" })
+            {
+                var result = await controller.CommitRuntime(new ScormRuntimeCommitRequestDto
+                {
+                    EnrollmentId = 10,
+                    ContentItems =
+                    [
+                        new ScormRuntimeContentItemCommitDto
+                        {
+                            ContentItemId = 100,
+                            ScormVersion = ScormRuntimeFieldMap.Scorm12,
+                            LessonStatus = "incomplete",
+                            SessionTime = sessionTime
+                        }
+                    ]
+                });
+
+                Assert.IsType<OkObjectResult>(result);
+            }
+
+            Assert.Equal(10, Assert.Single(logRepo.Items).TotalSecondsPlayed);
+        }
+
+        [Fact]
+        public async Task CommitRuntime_AddsFullSessionTimeWhenNewSessionCounterResets()
+        {
+            var controller = CreateController(out var logRepo, out _);
+
+            foreach (var sessionTime in new[] { "00:00:10", "00:00:05" })
+            {
+                var result = await controller.CommitRuntime(new ScormRuntimeCommitRequestDto
+                {
+                    EnrollmentId = 10,
+                    ContentItems =
+                    [
+                        new ScormRuntimeContentItemCommitDto
+                        {
+                            ContentItemId = 100,
+                            ScormVersion = ScormRuntimeFieldMap.Scorm12,
+                            LessonStatus = "incomplete",
+                            SessionTime = sessionTime
+                        }
+                    ]
+                });
+
+                Assert.IsType<OkObjectResult>(result);
+            }
+
+            Assert.Equal(15, Assert.Single(logRepo.Items).TotalSecondsPlayed);
         }
 
         [Fact]
@@ -349,6 +406,15 @@ namespace iLearn.Tests
             out InMemoryGenericRepository<Enrollment> enrollmentRepo,
             out InMemoryGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo)
         {
+            return CreateController(out logRepo, out enrollmentRepo, out enrollmentAssignmentRepo, out _);
+        }
+
+        private static LearningLogsController CreateController(
+            out InMemoryGenericRepository<LearningLog> logRepo,
+            out InMemoryGenericRepository<Enrollment> enrollmentRepo,
+            out InMemoryGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
+            out FakeScormRuntimeStateService runtimeStateService)
+        {
             enrollmentRepo = new InMemoryGenericRepository<Enrollment>(
             [
                 new Enrollment
@@ -376,6 +442,7 @@ namespace iLearn.Tests
 
             logRepo = new InMemoryGenericRepository<LearningLog>([]);
             enrollmentAssignmentRepo = new InMemoryGenericRepository<EnrollmentAssignment>([]);
+            runtimeStateService = new FakeScormRuntimeStateService();
 
             var controller = new LearningLogsController(
                 logRepo,
@@ -385,7 +452,7 @@ namespace iLearn.Tests
                 new FakeCurrentUserService(),
                 new MemoryCache(new MemoryCacheOptions()),
                 new FakeLearnerProxyIdentityResolver(),
-                new FakeScormRuntimeStateService(),
+                runtimeStateService,
                 new FakeDateTime());
 
             controller.ControllerContext = new ControllerContext
@@ -434,9 +501,17 @@ namespace iLearn.Tests
 
         private sealed class FakeScormRuntimeStateService : IScormRuntimeStateService
         {
+            public int? ClearedEnrollmentId { get; private set; }
+
             public Task<IReadOnlyList<ScormRuntimeStateDto>> GetActiveStatesAsync(int enrollmentId, DateTime? resetAt = null)
             {
                 return Task.FromResult<IReadOnlyList<ScormRuntimeStateDto>>([]);
+            }
+
+            public Task<int> ClearForEnrollmentAsync(int enrollmentId, CancellationToken cancellationToken = default)
+            {
+                ClearedEnrollmentId = enrollmentId;
+                return Task.FromResult(0);
             }
 
             public Task<IReadOnlyList<ScormRuntimeStateDto>> UpsertAsync(int enrollmentId, IReadOnlyCollection<ScormRuntimeContentItemCommitDto> contentItems, CancellationToken cancellationToken = default)

@@ -497,6 +497,11 @@ namespace iLearn.Tests
                 return Task.FromResult(_states);
             }
 
+            public Task<int> ClearForEnrollmentAsync(int enrollmentId, CancellationToken cancellationToken = default)
+            {
+                return Task.FromResult(0);
+            }
+
             public Task<IReadOnlyList<ScormRuntimeStateDto>> UpsertAsync(int enrollmentId, IReadOnlyCollection<ScormRuntimeContentItemCommitDto> contentItems, CancellationToken cancellationToken = default)
             {
                 return Task.FromResult<IReadOnlyList<ScormRuntimeStateDto>>([]);

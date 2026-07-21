@@ -37,6 +37,23 @@ namespace iLearn.Infrastructure.Services
                 .ToList();
         }
 
+        public async Task<int> ClearForEnrollmentAsync(int enrollmentId, CancellationToken cancellationToken = default)
+        {
+            var states = await _runtimeStateRepo.GetAsync(state => state.EnrollmentId == enrollmentId);
+            foreach (var state in states)
+            {
+                _runtimeStateRepo.DeleteWithoutSave(state);
+            }
+
+            if (states.Count == 0)
+            {
+                return 0;
+            }
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return states.Count;
+        }
+
         public async Task<IReadOnlyList<ScormRuntimeStateDto>> UpsertAsync(
             int enrollmentId,
             IReadOnlyCollection<ScormRuntimeContentItemCommitDto> contentItems,

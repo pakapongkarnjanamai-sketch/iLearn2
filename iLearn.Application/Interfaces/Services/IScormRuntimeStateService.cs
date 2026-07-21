@@ -6,6 +6,9 @@ namespace iLearn.Application.Interfaces.Services
     {
         Task<IReadOnlyList<ScormRuntimeStateDto>> GetActiveStatesAsync(int enrollmentId, DateTime? resetAt = null);
 
+        /// <summary>Soft-deletes all runtime states for an enrollment when its progress is reset.</summary>
+        Task<int> ClearForEnrollmentAsync(int enrollmentId, CancellationToken cancellationToken = default);
+
         Task<IReadOnlyList<ScormRuntimeStateDto>> UpsertAsync(
             int enrollmentId,
             IReadOnlyCollection<ScormRuntimeContentItemCommitDto> contentItems,

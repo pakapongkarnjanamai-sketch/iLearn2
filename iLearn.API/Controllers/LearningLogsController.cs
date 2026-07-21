@@ -186,6 +186,8 @@ namespace iLearn.API.Controllers
                 await _enrollmentAssignmentRepo.UpdateAsync(link);
             }
 
+            await _scormRuntimeStateService.ClearForEnrollmentAsync(enrollment.Id);
+
             InvalidateLearningCaches();
 
             return Ok(new ApiResponse<object>
@@ -337,7 +339,11 @@ namespace iLearn.API.Controllers
 
                 if (log != null)
                 {
-                    log.TotalSecondsPlayed += sessionSeconds;
+                    int previousSessionSeconds = ParseSessionTime(log.SessionTime);
+                    int sessionSecondsDelta = sessionSeconds >= previousSessionSeconds
+                        ? sessionSeconds - previousSessionSeconds
+                        : sessionSeconds;
+                    log.TotalSecondsPlayed += sessionSecondsDelta;
 
                     if (!string.IsNullOrEmpty(update.SessionTime))
                     {
