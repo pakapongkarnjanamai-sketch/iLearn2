@@ -88,6 +88,56 @@
                 transform: translateY(-2px);
                 box-shadow: 0 6px 20px rgba(2, 125, 131, 0.3);
             }
+
+        /* Floating label input (PLAN-108 Fix 2: matches the previous dxTextBox
+           floating-label measurements exactly) */
+        .login-field {
+            position: relative;
+        }
+
+        .login-floating-input {
+            height: 50px;
+            padding-left: 9px;
+            padding-right: 9px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .login-floating-input::placeholder {
+            color: #999;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .login-floating-input:focus::placeholder,
+        .login-floating-input:not(:placeholder-shown)::placeholder {
+            opacity: 1;
+        }
+
+        .login-floating-label {
+            position: absolute;
+            left: 9px;
+            top: 17px;
+            font-size: 14px;
+            color: #999;
+            background: #fff;
+            padding: 0 4px;
+            pointer-events: none;
+            transition: top 0.15s ease, font-size 0.15s ease, color 0.15s ease;
+        }
+
+        .login-floating-input:focus + .login-floating-label,
+        .login-floating-input:not(:placeholder-shown) + .login-floating-label {
+            top: -7px;
+            font-size: 12px;
+        }
+
+        .login-floating-input:focus + .login-floating-label {
+            color: var(--brand-color);
+        }
     </style>
 }
 
@@ -101,12 +151,12 @@
             <p class="login-subtitle">ระบบการเรียนรู้ออนไลน์สำหรับพนักงาน</p>
         </div>
 
-        <div class="mb-4">
-            <label for="employee-code-input" class="form-label fw-semibold text-muted small mb-1">รหัสพนักงาน</label>
-            <input type="text" id="employee-code-input" class="form-control" style="height:50px;"
+        <div class="mb-4 login-field">
+            <input type="text" id="employee-code-input" class="form-control login-floating-input"
                    placeholder="กรอกรหัสพนักงาน"
                    inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off"
                    spellcheck="false" enterkeyhint="go" />
+            <label for="employee-code-input" class="login-floating-label">รหัสพนักงาน</label>
         </div>
 
         <div id="employee-preview" class="employee-preview" style="display:none;">

@@ -383,6 +383,8 @@ iLearn.API/wwwroot/**
 iLearn.User/wwwroot/**
 !iLearn.User/wwwroot/css/
 !iLearn.User/wwwroot/css/user-theme.css
+!iLearn.User/wwwroot/js/
+!iLearn.User/wwwroot/js/site.js
 
 # Backup / scratch files
 *.bak

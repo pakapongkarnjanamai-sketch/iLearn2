@@ -1,6 +1,6 @@
 # PLAN-108: ตัด DevExtreme ออกจาก learner (แก้อาการหน้าค้าง ~0.5 วิ บน iPad) + feedback ตอนกด
 
-- **Status:** DONE → **CHANGES REQUESTED** (§1 ผ่านสะอาด แต่ §2 ที่แก้ใหม่ยังไม่ได้ทำ + อีก 2 finding — ดู Reviewer Sign-off)
+- **Status:** FIXES APPLIED (รอรีวิวรอบ 2 — Fix 1/2/3 ตาม Reviewer ทำครบแล้ว, ค้างเปิดเบราว์เซอร์จริงเทียบ login/ช่องค้นหา/dialog + ทดสอบ iPad จริง)
 - **Assigned:** GitHub Copilot
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-21
@@ -299,3 +299,25 @@ implementer แจ้งเองใน Notes ข้อ 3. ผู้ใช้ก
 
 - เทียบหน้าตาจริงบนเบราว์เซอร์: login (ทั้ง 2 สถานะ), ช่องค้นหา, dialog ออกจากระบบ — toast ผมเทียบให้แล้วผ่าน
 - **วัดว่าอาการนิ่ง ~0.5 วิ บน iPad หายจริงไหม** (เป้าหมายของงาน)
+
+## Implementer Notes — Fix 1/2/3 (GitHub Copilot, 2026-07-21)
+
+**Fix 1 (บล็อก) — ทำ §2a/2b/2c ครบแล้ว:**
+- **2a:** `MyLearning/Index.cshtml` — การ์ด "หลักสูตรของฉัน" (`renderMyCourses`) เปลี่ยน `$("<div>")`→`$("<a>")` พร้อม `href` — คง class `carousel-card course-item` + attribute `data-status` ไว้บน element นอกสุดเดิม. การ์ด catalog grid (`renderCatalogCard`) — outer `<div class="col-... catalog-course-item">`→`<a class="col-... catalog-course-item" href=...>` (Bootstrap `.row` เป็น `display:flex` — flex item จะ blockify โดยอัตโนมัติตาม spec ไม่ต้อง override display). แถว catalog list (`renderCatalogListItem`) — outer `<div class="catalog-list-item catalog-course-item">`→`<a ...>` (`.catalog-list-item` มี `display:flex` ของตัวเองอยู่แล้ว ไม่กระทบ layout)
+- **2b:** หลักสูตรของฉัน: `<a class="btn btn-continue">`→`<span class="btn btn-continue">` ข้อความ/คลาสเดิมทุกตัว (เรียนต่อ/ทบทวน/เริ่มเรียน). catalog grid+list: เอาปุ่ม "ดูเนื้อหา" ออก เหลือไอคอน `fa-arrow-right` เดียว ใน wrapper `.catalog-arrow-action` (grid) / `.list-action` (list) — ไม่มี `<a>` ซ้อน `<a>` ที่ไหนเลย (ยืนยันด้วย `document.querySelectorAll('a a').length === 0` ใน build นี้)
+- **2c:** เพิ่ม CSS `a.course-item:active .my-course-card`, `a.catalog-course-item:active .my-course-card`, `.catalog-list-item:active` → `transform: scale(0.99)`; `:focus-visible` → `outline: 2px solid var(--brand-color)`; arrow icon `translateX(3px)` ตอน hover (affordance). เอา `.btn-continue:active` scale เดิมออกจากบล็อก C3 เพราะตอนนี้ `.btn-continue` เป็น `<span>` ไม่ใช่ target กดเองแล้ว — กัน scale ซ้อนสองชั้นดูแปลก. `.catalog-list-item { cursor:default }`→`cursor:pointer` (เป็นลิงก์จริงแล้ว)
+- **site.js:** ปรับ selector ของ nav-feedback handler จาก `.btn-continue, .btn-list-view, .player-back-link` (ที่ไม่มีอยู่แล้ว) → `.course-item, .catalog-course-item, .player-back-link` (การ์ดทั้งใบ). เพิ่ม marker class `.js-card-action-icon` บนไอคอนลูกศร/`fa-arrow-right`ของการ์ดทุกแบบ เพราะถ้าใช้ `.find("i.fas, i.far").first()` เฉย ๆ จะไปเจอไอคอน `fa-calendar-alt` ของ due-date row ก่อน (อยู่ก่อนใน DOM) — แก้โดย lookup `.js-card-action-icon` ก่อน แล้ว fallback เป็น `i.fas, i.far` ตัวแรกถ้าไม่เจอ. เพิ่ม class นี้ให้ `.player-back-link` ใน `Player.cshtml` ด้วยเพื่อความสม่ำเสมอ (มี `<i>` เดียวอยู่แล้วจึงไม่เคยชนกันจริง)
+
+**Fix 2 (กลาง) — คืน floating label ตามค่าที่ reviewer วัดมาให้ ทำตามตัวเลขเป๊ะ ไม่เดา:**
+`Home/Index.cshtml` — เป็น wrapper `.login-field { position: relative }` + `<label class="login-floating-label">` อยู่หลัง `<input>` ใน DOM (ใช้ `input:focus + label` / `input:not(:placeholder-shown) + label` เลือกสถานะ) ตรงตามค่าที่ reviewer วัดเป็นตัวเลขเป๊ะทุกค่า: label ว่าง/ไม่ focus → `top:17px; font-size:14px; color:#999`, focus/มีค่า → `top:-7px; font-size:12px` (สีเปลี่ยนเป็น `var(--brand-color)` เฉพาะตอน focus จริง, `#999` ตอนมีค่าเฉย ๆ). label มี `background:#fff; padding:0 4px` เพื่อเจาะเส้นขอบตอนลอยขึ้น (notched outline). placeholder `กรอกรหัสพนักงาน` ซ่อนอยู่ (`opacity:0`) จนกว่า focus/มีค่าจึงเผย ตรงกับพฤติกรรมของ dx floating label ที่อธิบายไว้. input คง `height:50px; padding-left:9px` ตามค่าที่เคยวัด
+
+**Fix 3 (กลาง) — `site.js` เข้า git:**
+`.gitignore` — เพิ่ม `!iLearn.User/wwwroot/js/` + `!iLearn.User/wwwroot/js/site.js` ต่อจาก `!iLearn.User/wwwroot/css/user-theme.css` เดิม ตาม precedent ของ `iLearn.Admin` ทุกประการ (ไม่แตะ `wwwroot/**` ทั้งก้อน — vendored libs ยัง ignore เหมือนเดิม). `git status` ยืนยันแล้วว่า `iLearn.User/wwwroot/js/` ขึ้นเป็น untracked (`??`) แทนที่จะถูก ignore เงียบ — commit นี้จะเอา `site.js` เข้า version control ครั้งแรก
+
+**Build:** `dotnet build iLearn.User -o artifacts\verify-user-108b` ผ่าน 0 errors (มีแค่ warning เดิมจาก Application/Domain layer) แล้วลบ artifacts
+
+**ค้างสำหรับ reviewer/QA (เหมือนเดิม):**
+1. เปิดเบราว์เซอร์จริง เทียบ login (ทั้ง 2 สถานะ ว่าง/floating), ช่องค้นหา, dialog ออกจากระบบ — ตาม Verification §A
+2. ทดสอบการ์ดกดได้ทั้งใบตาม Verification §B2 (ตัวกรองสถานะ/ค้นหา/highlight/keyboard/no nested `<a>`)
+3. **ทดสอบบน iPad จริงตาม §C ข้อ 17-19 — ยังไม่ได้วัด (เป้าหมายจริงของงาน)**
+
