@@ -321,3 +321,43 @@ implementer แจ้งเองใน Notes ข้อ 3. ผู้ใช้ก
 2. ทดสอบการ์ดกดได้ทั้งใบตาม Verification §B2 (ตัวกรองสถานะ/ค้นหา/highlight/keyboard/no nested `<a>`)
 3. **ทดสอบบน iPad จริงตาม §C ข้อ 17-19 — ยังไม่ได้วัด (เป้าหมายจริงของงาน)**
 
+
+## Reviewer Sign-off รอบ 2 (Claude Code, 2026-07-21) — **finding ทั้ง 3 ปิดครบ ✅**
+
+### Fix 1 (การ์ดกดได้) ✅
+- การ์ด "หลักสูตรของฉัน" เป็น `$("<a>")` + `href` แล้ว โดย **`carousel-card` / `course-item` / `data-status` ยังอยู่บน element นอกสุดครบ** (ตัวกรองสถานะ + `filterCatalog` ไม่พัง)
+- catalog grid → `<a class="col-... catalog-course-item">`, list → `<a class="catalog-list-item catalog-course-item">`
+- ปุ่มใน "หลักสูตรของฉัน" → `<span class="btn ... btn-continue">` ข้อความ `ทบทวน/เรียนต่อ/เริ่มเรียน` คงเดิม ✅ · catalog → `.catalog-arrow-action` + `fa-arrow-right` ตามสเปค
+- **ไม่มี nested anchor** — มี `<a href="${playerUrl}">` เพียง 2 ตัว (wrapper ของ grid กับ list) แต่ละตัวปิดถูก, ในการ์ด "หลักสูตรของฉัน" นับ `<a>` ข้างใน = 0; render จริงยืนยัน `querySelectorAll('a a').length === 0`
+- `site.js` ปรับ selector ตามโครงใหม่แล้ว (`.course-item, .catalog-course-item, .player-back-link`) + ใช้ `.js-card-action-icon` เป็น marker แทนการเดา "ไอคอนตัวแรก" — **ดีกว่าที่แผนระบุ**
+- CSS มี `a.catalog-course-item` `:hover` / `:focus-visible` / `:active` ครบตาม 2c
+
+### Fix 2 (floating label) ✅ — **พิสูจน์เทียบตัวเลขที่ผมวัดจาก DevExtreme แล้ว**
+
+render ของใหม่แล้ววัด computed style เทียบ baseline:
+
+| สถานะ | baseline (DevExtreme) | ของใหม่ | ผล |
+| --- | --- | --- | --- |
+| ว่าง ไม่ focus | label 14px `#999` left 9px **top 17px** | 14px `#999` left 9px **top 17px** | ✅ ตรง |
+| มีค่า (ลอย) | 12px **top −7px** left 9px | 12px **top −7px** left 9px | ✅ ตรง |
+| ช่อง | h50 · radius 4px · border 1px `#ddd` · input 14px `#333` pl 9px | เท่ากันทุกค่า | ✅ ตรง |
+| focus | label สี `var(--brand-color)` | CSSOM ยืนยันกฎมีอยู่ | ✅ |
+
+- notch ทำด้วย label พื้นขาว + `padding: 0 4px` ตามที่แนะนำ · `pointer-events:none` · มี `transition` ครบ
+- placeholder `opacity:0` ตอนพัก → `1` ตอน focus/มีค่า ⇒ **ตรงพฤติกรรม DevExtreme** (พักไม่โชว์ placeholder เพราะ label อยู่ในช่อง)
+- กฎลอยเป็น declaration block เดียวใช้ร่วมกันทั้ง `:focus` และ `:not(:placeholder-shown)` ⇒ ที่วัดสาขา filled ได้ −7px/12px การันตีสาขา focus เหมือนกัน (`:focus` วัดตรงไม่ได้เพราะหน้าต่าง automation ไม่ได้ focus — ไม่ใช่บั๊ก, `document.activeElement` ถูกต้อง)
+
+### Fix 3 (site.js เข้า git) ✅
+- `.gitignore` เพิ่ม `!iLearn.User/wwwroot/js/` + `!iLearn.User/wwwroot/js/site.js` (บรรทัด 386-387) ตาม precedent ของ iLearn.Admin
+- `site.js` อยู่ใน commit `78b4047` แล้ว (`git ls-files` = 1)
+- **vendored libs ยัง ignore อยู่ถูกต้อง** — ไม่มี `wwwroot/js/devextreme` หรือ `wwwroot/lib` หลุดเข้ามา
+
+### Verify อิสระ
+`node --check` ผ่านทั้ง 3 ไฟล์ (Dashboard/Login/site.js) · build learner 0 errors · render measurement ตามตาราง
+
+### คงค้างก่อน VERIFIED
+1. เทียบหน้าตาบนเบราว์เซอร์จริง: **ช่องค้นหา** และ **dialog ออกจากระบบ** (2 จุดที่ผมยังไม่ได้เทียบ — toast กับ login ผมพิสูจน์แล้ว)
+2. **วัดว่าอาการนิ่ง ~0.5 วิ บน iPad หายจริงไหม** ← เป้าหมายของงานทั้งหมด
+3. ทดสอบตาม Verification B2 บน iPad: กดการ์ดตรงไหนก็ได้, ตัวกรอง/ค้นหายังทำงาน, เลื่อนแล้วไม่เผลอเปิด
+
+**สรุป: ผ่านรีวิวรอบ 2 — พร้อม deploy QA**
