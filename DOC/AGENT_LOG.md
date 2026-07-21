@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-21 —] Claude Code — รีวิว PLAN-099 → REVIEWED + commit 098/099 + เขียน PLAN-100 (QA deploy runbook)
+- ทำอะไร: รีวิว 099 (diff + 207/207 test อิสระ) ผ่านสะอาด — soft-delete ใน main flow + delta time ตรงสเปค, tests จำลอง regression จริง. Commit 2 ก้อน: `51ff047` (098 learner header, frontend) + `f718938` (099 API+Infra+App+4 tests, backend). ยืนยัน Player.cshtml uncommitted เป็น 098 ล้วน (0 ฟีเจอร์ 097 ปน — 096/097 committed+deployed QA ไปแล้ว). เขียน PLAN-100 runbook: deploy API ก่อน User (`deploy-api.ps1`/`deploy-user.ps1` default QA Staging), verify 3 ข้อ (header / reset remediation enrollment 18201 / correctness+time), ไม่มี migration, หยุดรอผู้ใช้ก่อน PROD. **ไม่ push** (outward-facing — ผู้ใช้ทำเอง)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-099-*.md` (→REVIEWED), `DOC/PLANS/PLAN-100-qa-deploy-098-099.md` (ใหม่ READY), `DOC/AGENT_LOG.md`; commit code 098/099
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว+runbook)
+- Verified: dotnet test 207/207 อิสระ; git log ยืนยัน 2 commit
+- **ถึง Copilot: PLAN-100 พร้อมรัน — deploy API ก่อน learner; 099 คือการแก้จริง; อย่า deploy PROD จนผู้ใช้ยืนยัน QA + iPad smoke ในแชท**
+
 ## [2026-07-21] GitHub Copilot — PLAN-099 DONE: Reset SCORM runtime state + cumulative session-time delta
 - ทำอะไร: เพิ่ม `IScormRuntimeStateService.ClearForEnrollmentAsync` และ implementation ที่ soft-delete runtime states active ทั้งหมดของ enrollment ด้วย `DeleteWithoutSave` + save ครั้งเดียว; `LearningLogsController.ResetProgress` เรียก clear ใน main flow ก่อน invalidate cache. แก้ `UpsertLearningLogsAsync` จากบวก `session_time` cumulative ทุก commit เป็นบวก delta จาก `LearningLog.SessionTime`; เมื่อ counter ลดลงถือเป็น session ใหม่และบวกค่ารอบนั้นเต็มจำนวน. เพิ่ม regression tests ครบ: clear state/active empty, clear แล้ว upsert สร้าง state ใหม่ไร้ passed/score เก่า, reset เรียก clear, 6→8→10 รวม 10 วินาที, 10→5 ข้าม session รวม 15 วินาที
 - ไฟล์หลักที่แตะ: `iLearn.Application/Interfaces/Services/IScormRuntimeStateService.cs`, `iLearn.Infrastructure/Services/ScormRuntimeStateService.cs`, `iLearn.API/Controllers/LearningLogsController.cs`, `iLearn.Tests/ScormRuntimeStateServiceTests.cs`, `iLearn.Tests/LearningLogsRuntimeValidationTests.cs`, `iLearn.Tests/EnrollmentsPlayerInfoTests.cs`, `DOC/PLANS/PLAN-099-reset-scorm-state-lifecycle-hotfix.md`
