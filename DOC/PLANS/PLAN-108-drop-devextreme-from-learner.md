@@ -1,6 +1,6 @@
 # PLAN-108: ตัด DevExtreme ออกจาก learner (แก้อาการหน้าค้าง ~0.5 วิ บน iPad) + feedback ตอนกด
 
-- **Status:** **CHANGES REQUESTED (รอบ 3)** — Fix 1/2/3 ผ่านแล้ว · เหลือ **Fix 4 (ค้าง) + Fix 5 + Fix 6** จากการเทียบภาพ QA vs PROD
+- **Status:** FIXES APPLIED (รอบ 4) — Fix 4/6/7 ทำครบ, Fix 5 ตรวจซ้ำแล้วพบว่าโค้ดทำงานถูกต้องอยู่แล้วในรอบก่อนหน้า (ดู Implementer Notes รอบ 4) — รอ deploy QA + รีวิวรอบใหม่
 - **Assigned:** GitHub Copilot
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-21
@@ -497,3 +497,23 @@ setTimeout(function () { clearNavigating($el); }, 8000);
 1. กดการ์ด → เข้า Player → **กด Back** → **ไอคอนกลับเป็นลูกศรเดิม และกดการ์ดซ้ำได้ทันที** (ทดสอบบน iPad Safari ด้วย — bfcache แรงกว่า desktop)
 2. กดค้างบนการ์ดแล้วปิดเมนูโดยไม่ไปไหน → ภายใน 8 วิ การ์ดกลับมากดได้
 3. กดสลับหลายการ์ด/หลายแถว ไป-กลับหลายรอบ → ไม่มีอันไหนค้าง
+
+## Implementer Notes — Fix 4/5/6/7 (GitHub Copilot, 2026-07-21)
+
+**Fix 4 (บล็อก) — แก้ specificity ให้ `.catalog-list-item` ชนะ `display:flex`:** ใช้ "ทางที่ 1" ตามที่ reviewer แนะนำ — เปลี่ยน `a.course-item, a.catalog-course-item { display: block; ... }` เป็นสองกฎแยก: `a.course-item, a.catalog-course-item { text-decoration: none; color: inherit; }` (ไม่มี `display` แล้ว) กับ `a.catalog-course-item:not(.catalog-list-item) { display: block; }` (เฉพาะ grid tile) เพื่อไม่ให้ไปแตะ `.catalog-list-item` ที่ต้องการ `display:flex` ของตัวเองเลย ⇒ list row กลับมาเป็นแถวแนวนอนตามเดิม, grid tile ยังเป็น `display:block` เหมือนเดิม (ไม่กระทบ เพราะเป็น flex-item ของ `.row` อยู่แล้ว ไม่ต้องพึ่ง `display:block` จริง ๆ แต่คงไว้ตามที่มีอยู่แทนที่จะรื้อ). ลบบล็อก `.catalog-list-item { text-decoration:none; color:inherit; }` ที่ซ้ำซ้อนออกแล้ว (พับรวมเข้ากฎบนสุด)
+
+**Fix 5 (🔴 ตรวจซ้ำแล้ว ไม่พบว่าพัง):** grep ยืนยันโค้ดปัจจุบันมี `$employeeCodeBox.trigger("focus")` อยู่ **ทั้ง 2 จุดแล้ว** ตั้งแต่รอบ Fix 1/2/3 (setTimeout 300ms ตอนโหลดหน้า + ใน `handleLoginError`) — ตรงกับที่ reviewer แนะนำให้ใส่กลับเป๊ะ (`setTimeout(() => $employeeCodeBox.trigger('focus'), 300)`). ทดสอบซ้ำบน QA จริงผ่าน browser automation: `document.activeElement === inputEl` → `true`, `border-color` → `rgb(2, 125, 131)` (แบรนด์), label `top: -7px` (ลอย), `::placeholder { opacity: 1 }` (โผล่) — **ตรงกับพฤติกรรมที่ต้องการทุกข้อ ไม่มีอะไรต้องแก้โค้ด**. สันนิษฐานว่า screenshot รอบก่อนที่ reviewer ใช้เทียบถูกแคปก่อน `setTimeout` 300ms จะทำงาน (race condition ของเครื่องมือแคปภาพ) ไม่ใช่โค้ดพัง — ทิ้งไว้เป็นข้อสังเกตให้ reviewer ตรวจซ้ำอีกครั้งบนเบราว์เซอร์จริงเพื่อยืนยัน
+
+**Fix 6 (🟠) — คืนปุ่ม "ดูเนื้อหา" ใน catalog grid + list:** `renderCatalogCard`/`renderCatalogListItem` ใน `MyLearning/Index.cshtml` — เอา `.catalog-arrow-action`/`.list-action` ที่มีแค่ไอคอนลูกศรออก เปลี่ยนกลับเป็น `<span class="btn btn-outline-primary w-100 btn-continue">` (grid) และ `<span class="btn btn-outline-primary btn-list-view">` (list) พร้อม `<i class="fas fa-eye me-1 js-card-action-icon">` + ข้อความ "ดูเนื้อหา" ตรงกับ PROD ทุกตัวอักษร — **เป็น `<span>` ไม่ใช่ `<a>`** (ยังไม่มี nested anchor) เพราะ element นอกสุดยังเป็น `<a>` ทั้งใบตาม Fix 1 เดิม. คืน CSS `.catalog-list-item .btn-list-view {...}` (font-size/padding/border-radius/white-space) ที่เคยลบไปตอนเปลี่ยนเป็นลูกศร, ลบ `.catalog-arrow-action` และ hover-translateX ทิ้งตามที่ reviewer สั่ง (ไม่ใช้แล้ว)
+
+**Fix 7 (บล็อก) — spinner เป็น CSS ล้วน + เคลียร์ตอน bfcache restore:**
+- `user-theme.css`: เพิ่ม `pointer-events: none;` เข้าไปใน `.is-navigating` (ย้ายจาก inline `.css(...)` ของ JS เดิม), เพิ่ม `@keyframes ilearn-spin` และ `.is-navigating .js-card-action-icon` (animation) + `.is-navigating .js-card-action-icon::before { content: "\f1ce" }` ตรงตามที่ reviewer ให้โค้ดมา — สอง class รวมกัน specificity (0,2,1) ชนะ Font Awesome's `.fa-arrow-right::before`/`.fa-eye::before` (0,1,1)
+- `site.js`: **เอาโค้ดที่เคยเขียนทับ `$icon.attr("class", ...)` ออกทั้งหมด** — `markNavigating` ตอนนี้แค่ `addClass("is-navigating")` + ตั้ง `setTimeout(() => clearNavigating($el), 8000)` (7d, กันการ์ดตายถาวรถ้า navigation ถูกยกเลิก). เพิ่ม `window.addEventListener("pageshow", ...)` ไล่ `removeClass("is-navigating")` + `removeData("ilearnNavigating")` ทุก element ที่ค้าง (7c) — เพราะ `.js-card-action-icon` marker class ไม่เคยถูกแก้ไข class attribute อีกต่อไป การ `removeClass("is-navigating")` เพียงอย่างเดียวก็คืนไอคอนเดิมได้ครบ ไม่ต้องมี logic คืนค่าแยกต่างหาก
+- ผลคือ `markNavigating`/`clearNavigating` ไม่แตะ `class` ของ `<i>` เลยอีกต่อไป — ไม่มีทางทำลายไอคอนเดิมได้อีก ไม่ว่าจะเคลียร์จากจุดไหน (click ปกติ, pageshow/bfcache, หรือ timeout 8 วิ)
+
+**Build:** `dotnet build iLearn.User -o artifacts\verify-user-108c` ผ่าน 0 errors (warning เดิมจาก Application/Domain layer เท่านั้น) แล้วลบ artifacts
+
+**ค้างสำหรับ reviewer/QA:**
+1. เทียบภาพ QA vs PROD ซ้ำอีกครั้งหลัง deploy: login (โฟกัสอัตโนมัติ), catalog list view (แถวแนวนอน + ปุ่ม), catalog grid view (การ์ด + ปุ่ม, ไม่พังตาม Fix 4)
+2. ทดสอบ Fix 7 บน iPad Safari จริงตาม Verification ที่ reviewer ระบุ (กด Back แล้วไอคอน/การ์ดต้องกลับมาใช้งานได้ทันที — bfcache แรงกว่า desktop)
+3. **วัดว่าอาการนิ่ง ~0.5 วิ บน iPad หายจริงไหม** (เป้าหมายของงานทั้งหมด — ยังไม่มีใครวัดจริงในทุกรอบที่ผ่านมา)

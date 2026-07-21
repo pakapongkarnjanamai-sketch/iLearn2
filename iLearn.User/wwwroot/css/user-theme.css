@@ -268,11 +268,29 @@ a:hover {
 }
 
 /* ==========================================================================
-   NAVIGATION FEEDBACK (PLAN-108 \u00a72: instant visual feedback on tap)
+   NAVIGATION FEEDBACK (PLAN-108 §2: instant visual feedback on tap)
    ========================================================================== */
 
 .is-navigating {
     cursor: default !important;
+    pointer-events: none;
+}
+
+/* PLAN-108 Fix 7: spinner is pure CSS (::before content swap + animation) so
+   the JS never overwrites an icon's real class list. This is what makes the
+   effect trivially reversible — removing `.is-navigating` (on click, on
+   pageshow/bfcache restore, or after the failsafe timeout) always restores
+   the original icon with no cleanup bookkeeping needed. */
+@keyframes ilearn-spin {
+    to { transform: rotate(360deg); }
+}
+
+.is-navigating .js-card-action-icon {
+    animation: ilearn-spin 1s linear infinite;
+}
+
+.is-navigating .js-card-action-icon::before {
+    content: "\f1ce"; /* fa-circle-notch */
 }
 
 /* --- Navbar --- */

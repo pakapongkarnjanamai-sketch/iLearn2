@@ -452,40 +452,29 @@
             flex-shrink: 0;
         }
 
-        .catalog-list-item .list-action i {
-            color: var(--brand-color);
-            font-size: 1rem;
-            transition: transform 0.2s ease;
+        .catalog-list-item .btn-list-view {
+            font-size: var(--text-xs);
+            font-weight: 600;
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-sm);
+            white-space: nowrap;
         }
 
         /* ========== Whole-card clickable anchors (PLAN-108 §2a/2b) ========== */
         a.course-item,
         a.catalog-course-item {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* PLAN-108 Fix 4: `.catalog-list-item` must stay `display: flex` (its own
+           rule above) for the badge/title/button row layout. A bare
+           `a.catalog-course-item { display: block }` would win that fight —
+           class+class beats class+class only by source order, and
+           `.catalog-list-item` is declared first — so explicitly exclude it
+           here instead of relying on declaration order. */
+        a.catalog-course-item:not(.catalog-list-item) {
             display: block;
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .catalog-list-item {
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .catalog-arrow-action {
-            display: flex;
-            justify-content: flex-end;
-            padding-top: var(--space-2);
-        }
-
-        .catalog-arrow-action i {
-            color: var(--brand-color);
-            font-size: 1rem;
-            transition: transform 0.2s ease;
-        }
-
-        a.catalog-course-item:hover .catalog-arrow-action i,
-        .catalog-list-item:hover .list-action i {
-            transform: translateX(3px);
         }
 
         a.course-item:focus-visible,
@@ -1577,8 +1566,10 @@ else
                         <div class="course-body">
                             <h6 class="course-title" title="${course.title}">${course.title}</h6>
 
-                            <div class="progress-section catalog-arrow-action">
-                                <i class="fas fa-arrow-right js-card-action-icon"></i>
+                            <div class="progress-section">
+                                <span class="btn btn-outline-primary w-100 btn-continue">
+                                    <i class="fas fa-eye me-1 js-card-action-icon"></i> ดูเนื้อหา
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -1598,7 +1589,9 @@ else
                         <div class="list-title course-title" title="${course.title}">${course.title}</div>
                     </div>
                     <div class="list-action">
-                        <i class="fas fa-arrow-right js-card-action-icon"></i>
+                        <span class="btn btn-outline-primary btn-list-view">
+                            <i class="fas fa-eye me-1 js-card-action-icon"></i> ดูเนื้อหา
+                        </span>
                     </div>
                 </a>
             `);

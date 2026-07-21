@@ -8,30 +8,51 @@
 // device (iPad) the page can feel "stuck" while the next page's JS parses.
 // Mark the element as navigating immediately on click so the user sees the
 // system received the tap. Do NOT preventDefault — navigation must proceed
-// normally. Whole course cards are clickable <a> elements (PLAN-108 §2a), so
-// the icon to swap for a spinner must be looked up via the dedicated
-// `.js-card-action-icon` marker first — a plain "first <i> in the card"
-// lookup would incorrectly grab an unrelated icon (e.g. the due-date
-// calendar icon, which appears earlier in the DOM than the action arrow).
+// normally.
+//
+// PLAN-108 Fix 7: the spinner is applied via a CSS ::before content swap on
+// `.js-card-action-icon` (see `.is-navigating .js-card-action-icon` in
+// user-theme.css) — the JS never rewrites the icon's `class` attribute, so
+// there is nothing to "undo" to restore the original icon; removing
+// `.is-navigating` is enough. This matters because Safari/iPad aggressively
+// restores pages from bfcache on Back navigation: the DOM (including any
+// `.is-navigating` class and its `pointer-events:none`) is frozen exactly as
+// it was when the user left the page, with no normal page-load JS re-running.
+// Without clearing it on `pageshow`, a card the user tapped before leaving
+// would come back stuck in the "navigating" spinner state and unclickable.
 (function () {
     if (typeof $ === "undefined") return;
+
+    var NAV_TIMEOUT_MS = 8000;
+
+    function clearNavigating($el) {
+        $el.removeClass("is-navigating").removeData("ilearnNavigating");
+    }
 
     function markNavigating(el) {
         var $el = $(el);
         if ($el.data("ilearnNavigating")) return;
         $el.data("ilearnNavigating", true);
-        $el.addClass("is-navigating").css("pointer-events", "none");
+        $el.addClass("is-navigating");
 
-        var $icon = $el.find(".js-card-action-icon").first();
-        if (!$icon.length) {
-            $icon = $el.find("i.fas, i.far").first();
-        }
-        if ($icon.length) {
-            $icon.attr("class", "fas fa-circle-notch fa-spin js-card-action-icon");
-        }
+        // Failsafe: if navigation never happens (user cancels, link blocked,
+        // etc.) the card must not stay stuck forever.
+        setTimeout(function () {
+            clearNavigating($el);
+        }, NAV_TIMEOUT_MS);
     }
 
     $(document).on("click", ".course-item, .catalog-course-item, .player-back-link", function () {
         markNavigating(this);
     });
+
+    // `pageshow` fires both on a normal load (harmless no-op, nothing has
+    // `.is-navigating` yet) and when the page is restored from bfcache
+    // (the case that matters here).
+    window.addEventListener("pageshow", function () {
+        $(".is-navigating").each(function () {
+            clearNavigating($(this));
+        });
+    });
 })();
+
