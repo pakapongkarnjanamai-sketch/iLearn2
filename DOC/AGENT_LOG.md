@@ -2,6 +2,19 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-21 —] Claude Code — ตรวจ reset 18214 (ผ่าน) + รีวิว PLAN-107 → REVIEWED
+- ทำอะไร: **ตรวจ admin reset enrollment 18214** — สมบูรณ์ทุกข้อ: Progress=0/IsCompleted=0/ResetAt 15:29:05, **ScormRuntimeStates `IsDeleted=1` ทั้ง 2 แถว** (พิสูจน์ PLAN-101 §1 ในสนามจริง — เคสเดียวกับที่เช้านี้ค้าง `IsDeleted=0`), link snapshot AS-20260716-003 = 0/0/NULL (พิสูจน์ snapshot reset ที่ 101 เพิ่ม), active logs = 0. **ตรวจทั้งระบบ: enrollment ที่ IsCompleted=1 แต่ Progress<100 = 0 รายการ** ⇒ manual check #4 ของ PLAN-104 ผ่านแล้ว; log เกิน 4 ชม. = 0; active log ซ้ำ = ไม่มี. หมายเหตุ: `TotalTimeSpent` ของ 18214 ยังค้าง 9,261 วิ (ResetStatusAsync ไม่ล้างฟิลด์นี้) แต่ rollup จะเขียนทับเองตอน commit แรกของรอบใหม่ — ไม่ต้องแก้. **รีวิว PLAN-107 ผ่าน ไม่มี finding** — ใช้ `currentData.isReadOnly === true` ถูกตามที่กำชับ (ไม่ใช่ตัวแปร OR), render จริงวัด computed style ยืนยันเคส A ซ่อนครบ/เคส B (เรียนจบแล้ว 100%) ไม่ถูกกระทบ
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-107-*.md` (→REVIEWED + Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว)
+- Verified: query QA DB read-only 7 ชุด + standalone render วัด computed style ทั้ง 2 เคส + build learner 0 errors + node --check
+- **PLAN-104 เหลือ manual check เจาะจง 2 ข้อ** (ทำ exam ผ่าน→reload ดูว่าผลไม่หาย / เปิดแท็บทิ้ง 5-10 นาที ดูว่าเวลาไม่โป่ง) — ทำตอน 360007 เรียนรอบใหม่ได้พอดี แล้วจึง mark VERIFIED
+
+## [2026-07-21 —] GitHub Copilot — PLAN-107 DONE: ซ่อนสถานะ/progress ในโหมดดูอย่างเดียว (browse-only)
+- ทำอะไร: ใน `Player.cshtml` เพิ่ม `id="courseStatusRow"` ให้แถวสถานะในการ์ด header, เพิ่ม logic ใน `setupReadOnlyMode()` ให้ติด class `browse-only` บน `#tocSection` เฉพาะเมื่อ `currentData.isReadOnly === true` (ค่าดิบจาก API = ไม่มี enrollment) — **ไม่ใช้** ตัวแปร client-side `isReadOnly` ที่เป็น OR กับ `isCompleted` เพื่อไม่ให้กระทบเคสเรียนจบแล้ว (ต้องยังเห็นสถานะ+progress 100%). เพิ่ม CSS ซ่อน `#courseStatusRow`, `.course-progress-row`, `.item-progress-track` ภายใต้ `#tocSection.browse-only`. ไม่แตะ `setCourseStatusDisplay`/`setCourseProgressDisplay`/`recalcTotalProgress`, ไม่แตะ `#readOnlyBadge`, ไม่แตะแถวผู้เรียน/หมวดหมู่/ประเภท
+- ไฟล์หลักที่แตะ: `iLearn.User/Views/MyLearning/Player.cshtml`, `DOC/PLANS/PLAN-107-hide-status-progress-in-browse-only.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี — DOM เปลี่ยนแบบ additive เท่านั้น (id ใหม่ + class ใหม่)
+- Verified: `dotnet build iLearn.User -o artifacts\verify-user` ผ่าน 0 errors แล้วลบ artifacts. Manual QA เคส A/B/ปกติ (browse-only / เรียนจบแล้ว / กำลังเรียน) ยังต้องทำแยกบน browser จริง
+
 ## [2026-07-21 —] Claude Code — ตรวจงาน 105/106 บน QA (ยืนยันอิสระ) + เขียน PLAN-107
 - ทำอะไร: **ตรวจข้ออ้าง QA ของ Copilot อย่างอิสระ ผ่านทุกข้อ** — deploy stamps ตรง (API `_deploy_20260721142125`, User `_user_deploy_20260721142236`), health 401/200, และ DB ของ enrollment 18217 ตรงกับที่รายงานเป๊ะ (Progress=100, IsCompleted=1, item 366 `completed/100/00:00:54`, item 397 `passed/passed/100/00:03:13`). **ได้หลักฐานเสริมด้วย:** 104 §C/§D ทำงานจริง (เวลาเรียนล่าสุดสมเหตุสมผลทั้งหมด, **ไม่มี log ไหนเกิน 4 ชม. ทั้งระบบ** เทียบกับเดิมที่เคยโป่ง 9,235 วิ) และ **105 §3 (log ซ้ำ) ไม่เกิดขึ้นจริง — 0 enrollment ที่มี active log ซ้ำ**; 2 logs/item ของ 18217 เป็นคนละฝั่ง ResetAt (14:38:04) ไม่ใช่ duplicate, rollup นับถูก. **ค้าง: enrollment 18214 ยังเพี้ยน** (Progress=50 + IsCompleted=1, exam incomplete/0, 9235s) — เป็นระเบียนเดียวในระบบที่ขัดแย้ง ทำให้ manual check #4 ของ 104 ยังไม่ผ่าน. เขียน **PLAN-107**: โหมดดูอย่างเดียวไม่ต้องแสดงสถานะ+progress
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-107-hide-status-progress-in-browse-only.md` (ใหม่ READY), `DOC/AGENT_LOG.md`

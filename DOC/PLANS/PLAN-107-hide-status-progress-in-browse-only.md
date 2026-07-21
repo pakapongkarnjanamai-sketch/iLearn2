@@ -1,6 +1,6 @@
 # PLAN-107: โหมด "ดูอย่างเดียว" ไม่ต้องแสดงสถานะและ progress bar
 
-- **Status:** READY
+- **Status:** DONE → REVIEWED (code + render พิสูจน์ทั้ง 2 เคสแล้ว — รอ QA deploy + smoke บนของจริง)
 - **Assigned:** GitHub Copilot (เจ้าของ `Player.cshtml` ปัจจุบันต่อจาก 105/106)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-21
@@ -102,4 +102,29 @@ Manual (QA):
 
 ## Implementer Notes
 
-_(เติมโดย implementer)_
+- ทำตามแผนทุกข้อ: เพิ่ม `id="courseStatusRow"` ที่แถวสถานะ (markup ~677), เพิ่ม class `browse-only` บน `#tocSection` ใน `setupReadOnlyMode()` โดยเช็คจาก `currentData.isReadOnly === true` เท่านั้น (ไม่ใช่ตัวแปร OR `isReadOnly`), และเพิ่ม CSS ซ่อน `#courseStatusRow` / `.course-progress-row` / `.item-progress-track` ภายใต้ `#tocSection.browse-only`
+- ไม่ได้แก้ระยะห่าง/margin เพิ่ม — `.course-meta-list` gap เดิมดูปกติหลังซ่อนแถวสถานะ ไม่มีช่องว่างค้างผิดปกติ (ตรวจจาก markup structure)
+- ไม่แตะ `setCourseStatusDisplay` / `setCourseProgressDisplay` / `recalcTotalProgress`, ไม่แตะ `#readOnlyBadge`, ไม่แตะแถว ผู้เรียน/หมวดหมู่/ประเภท
+- Verified: `dotnet build iLearn.User -o artifacts\verify-user` ผ่าน 0 errors แล้วลบ artifacts; Manual QA บน browser ยังต้องทำแยก (เคส A/B/ปกติตาม verification steps)
+
+## Reviewer Sign-off (Claude Code, 2026-07-21)
+
+- **จุดกับดักหลักผ่าน:** ใช้ **`currentData.isReadOnly === true`** (ค่าดิบจาก API = ไม่มี enrollment) เป็นเงื่อนไขติด class **ไม่ใช่ตัวแปร OR `isReadOnly`** ⇒ เคส B (เรียนจบแล้วกลับมาทบทวน) ไม่โดนซ่อน ✅
+- markup: เพิ่ม `id="courseStatusRow"` ที่แถว **ไม่แตะ** `id="courseStatusDisplay"` / class `course-status-pill status-*` ที่ `setCourseStatusDisplay` ผูกอยู่ ✅
+- CSS: ซ่อนผ่าน class `#tocSection.browse-only` (ไม่ใช่ `.hide()`) ⇒ ไม่มีทางโดน `.show()` ที่อื่นเปิดกลับ ✅ selector ทั้ง 3 ตัวเป็น descendant ของ `#tocSection` จริง ✅
+- **ไม่ล้ำ scope:** grep ยืนยัน 0 การแก้ใน `setCourseStatusDisplay`/`setCourseProgressDisplay`/`recalcTotalProgress`/`#readOnlyBadge`; แถว ผู้เรียน/หมวดหมู่/ประเภท คงเดิม; ไม่แตะงาน 104 §C / 105 / 106 ✅
+- **Verify อิสระ — render จริงวัด computed style ทั้ง 2 เคส:**
+
+| | เคส A (browse-only) | เคส B (เรียนจบแล้ว) |
+| --- | --- | --- |
+| แถวสถานะ | `none` ✅ ซ่อน | `flex` ✅ **แสดง** (`เรียนจบแล้ว`) |
+| progress row | `none` ✅ ซ่อน | `flex` ✅ **แสดง** (`100%`) |
+| แถบใน TOC | `none` ✅ ซ่อน | `block` ✅ แสดง |
+| แถวผู้เรียน | `flex` ✅ ยังอยู่ | `flex` ✅ |
+| ความสูง header | 142px | 187px (ไม่เปลี่ยน) |
+
+  ⇒ **เคส B ไม่ถูกกระทบเลย** ซึ่งเป็น regression ที่แผนนี้กลัวที่สุด
+- build learner 0 errors; `node --check` ผ่าน
+- ระยะห่างหลังซ่อน: header เคส A สั้นลงเป็น 142px ไม่มีช่องว่างค้าง (implementer จดว่าไม่ต้องปรับ margin — ยืนยันแล้วว่าถูก)
+
+**สรุป: ผ่านรีวิว ไม่มี finding**

@@ -279,6 +279,13 @@
             transition: width 0.35s ease, background-color 0.2s ease;
         }
 
+        /* เคส A (browse-only): เปิดดูเฉย ๆ ไม่มี enrollment — ซ่อนสถานะ/progress ที่ไม่มีความหมาย */
+        #tocSection.browse-only #courseStatusRow,
+        #tocSection.browse-only .course-progress-row,
+        #tocSection.browse-only .item-progress-track {
+            display: none;
+        }
+
         .toc-header {
             padding: 8px 16px;
             background-color: #fff;
@@ -671,7 +678,7 @@
                     <span class="course-meta-label">ประเภท</span>
                     <span class="course-meta-value" id="courseTypeNameDisplay">-</span>
                 </div>
-                <div class="course-meta-row">
+                <div class="course-meta-row" id="courseStatusRow">
                     <span class="course-meta-label">สถานะ</span>
                     <span class="course-status-pill status-muted" id="courseStatusDisplay">-</span>
                 </div>
@@ -1500,6 +1507,11 @@
                 setCourseStatusDisplay("เรียนจบแล้ว", "success");
             } else {
                 setCourseStatusDisplay("ดูอย่างเดียว", "warning");
+            }
+
+            // เคส A: เปิดดูเฉย ๆ ไม่ได้ถูก assign (ไม่มี enrollment) — ไม่มีอะไรให้ติดตาม progress
+            if (currentData.isReadOnly === true) {
+                $("#tocSection").addClass("browse-only");
             }
         }
 
