@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-21 —] Claude Code — PLAN-108: เพิ่ม Fix 7 (spinner ค้าง + การ์ดกดไม่ได้จาก bfcache)
+- ทำอะไร: ผู้ใช้รายงาน spinner ค้างบน QA. ตรวจ `site.js` พบว่า **ไม่มี cleanup เลย** (ไม่มี `pageshow`/`persisted`) ⇒ กด Back แล้วเบราว์เซอร์คืนหน้าจาก **bfcache** ทำให้ `.is-navigating` + **inline `pointer-events:none`** + ไอคอน spinner + flag `data("ilearnNavigating")` ค้างทั้งหมด. **ความรุนแรงมากกว่าที่เห็น: การ์ดที่ค้างกดซ้ำไม่ได้อีกเลย** จนกว่าจะ hard refresh — บน iPad ที่กด Back เข้าออกคอร์สตลอดจะเหมือนระบบพัง. ซ้ำร้าย `$icon.attr("class", ...)` เขียนทับ class เดิมทิ้ง ⇒ คืนไอคอนเดิมไม่ได้แม้ล้าง state. เขียน Fix 7: (a) swap spinner ด้วย CSS `::before content` + keyframes เอง ไม่แตะ class (b) ย้าย `pointer-events` เข้า class เลิก inline (c) ล้างสถานะที่ `pageshow` (ต้องเป็น pageshow เพราะ bfcache ไม่ยิง DOMContentLoaded) (d) timeout 8 วิกันการ์ดตายถาวรถ้า navigation ถูกยกเลิก
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-108-*.md` (+Fix 7), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว)
+- Verified: อ่าน site.js ทั้งไฟล์ + grep ยืนยันไม่มี cleanup handler
+- **PLAN-108 ตอนนี้ค้าง 4 ข้อ: Fix 4 (list layout), 5 (login autofocus), 6 (ปุ่มดูเนื้อหา), 7 (spinner ค้าง)** — 4/5/6/7 ล้วนเป็นการแก้เล็ก แต่ 7 กระทบการใช้งานหนักสุด
+
 ## [2026-07-21 —] Claude Code — PLAN-108 รอบ 3: เทียบภาพ QA vs PROD เจอ 3 จุดต่าง
 - ทำอะไร: ผู้ใช้ส่ง screenshot QA/PROD คู่กันและขอ "หน้าตาเหมือนเดิมใน PROD". ตรวจแล้ว: **Fix 4 ยังไม่ได้ทำเลย** (โค้ดไม่เปลี่ยนตั้งแต่ commit 78b4047 — list view ยังพังจาก specificity). **Fix 5 ใหม่:** หน้า login เสีย auto-focus — grep ยืนยันว่า `focus()` **หายทั้ง 2 จุด** ตอน rewrite (ของเดิมมี `setTimeout(...focus(), 300)` ตอนเข้าหน้า + refocus ใน `handleLoginError`) ⇒ PROD ขอบสีแบรนด์/label ลอย/placeholder โผล่ แต่ QA เป็นสถานะพัก; ไม่ใช่แค่หน้าตา — auto-focus คือตัวทำให้คีย์บอร์ดตัวเลขของ 097 ขึ้นบน iPad. **Fix 6 ใหม่:** ผู้ใช้เปลี่ยนใจจาก §2b — PROD มีปุ่ม `ดูเนื้อหา` จึงต้องเอากลับมาเป็น `<span>` (ไม่ใช่ `<a>`) เพื่อให้ตรง PROD แต่ยังกดได้ทั้งแถว
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-108-*.md` (→CHANGES REQUESTED + Fix 4 ค้าง/Fix 5/Fix 6 + verification ใหม่), `DOC/AGENT_LOG.md`

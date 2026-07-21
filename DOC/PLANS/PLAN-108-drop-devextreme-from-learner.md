@@ -447,3 +447,53 @@ employeeCodeBox.focus();   // ใน handleLoginError — refocus หลัง�
 1. หน้า login (ต้องเห็นขอบสีแบรนด์ + label ลอย + placeholder เหมือน PROD)
 2. คลังหลักสูตร **list view** (แถวแนวนอน + ปุ่ม ดูเนื้อหา)
 3. คลังหลักสูตร **grid view** (ต้องไม่พังตาม Fix 4)
+
+## 🔧 Fix 7 (🔴 ใหม่ — spinner ค้าง + **การ์ดกดไม่ได้อีกเลย**)
+
+**อาการ:** ผู้ใช้กดการ์ด → ไปหน้า Player → **กด Back กลับมา** → spinner ยังหมุนค้าง (เห็นในภาพทั้งการ์ด `TEST` และแถว `PLAN-079-TEST-01`)
+
+**ความรุนแรงจริงมากกว่าที่เห็น:** `markNavigating` ใส่ **`pointer-events: none`** ไว้ด้วย ⇒ การ์ดที่ค้าง **กดซ้ำไม่ได้อีกเลย** ผู้เรียนเข้าคอร์สนั้นไม่ได้จนกว่าจะ hard refresh — บน iPad ที่ผู้ใช้กด Back เข้าออกคอร์สตลอด จะดูเหมือนระบบพัง
+
+**สาเหตุ: ไม่มี cleanup เลย + การ swap ไอคอนเป็นแบบทำลายของเดิม**
+
+1. `site.js` ไม่มี handler `pageshow`/`persisted` ใด ๆ (grep ยืนยัน = ไม่มี)
+2. กด Back → เบราว์เซอร์คืนหน้าจาก **bfcache** (Safari/iPad ใช้หนักมาก) → DOM + JS state ถูกแช่แข็งไว้ทั้งก้อน ⇒ `.is-navigating`, inline `pointer-events:none`, ไอคอน spinner และ flag `$el.data("ilearnNavigating")` **อยู่ครบเหมือนตอนกด**
+3. `$icon.attr("class", "fas fa-circle-notch fa-spin js-card-action-icon")` **เขียนทับ class เดิมทิ้ง** (`fas fa-arrow-right ms-1 small ...`) ⇒ ต่อให้ล้าง state ก็คืนไอคอนเดิมไม่ได้
+4. `data("ilearnNavigating")` ที่ค้าง ทำให้ guard `if (...) return;` บล็อกการทำงานรอบหน้าอีกชั้น
+
+> หมายเหตุ: ตอน back **แบบโหลดใหม่จริง** ไม่ค้าง เพราะการ์ดถูก render ใหม่จาก AJAX — ปัญหาเกิดเฉพาะ bfcache
+
+### วิธีแก้
+
+**7a. เปลี่ยน spinner ให้เป็น CSS ล้วน (ไม่ทำลาย class เดิม)**
+```css
+@keyframes ilearn-spin { to { transform: rotate(360deg); } }
+.is-navigating .js-card-action-icon::before { content: "\f1ce"; }   /* fa-circle-notch */
+.is-navigating .js-card-action-icon { animation: ilearn-spin 1s linear infinite; }
+```
+- specificity `(0,2,0)` ชนะ `.fa-arrow-right::before` `(0,1,0)` ✅ · ลบ class ออก = ไอคอนเดิมกลับมาเอง
+- JS **เลิกยุ่งกับ `$icon.attr("class", ...)` ทั้งหมด**
+
+**7b. ย้าย `pointer-events` เข้า CSS class (เลิกใช้ inline style)**
+```css
+.is-navigating { cursor: default !important; pointer-events: none; }
+```
+⇒ ล้างสถานะเหลือแค่ `removeClass` ไม่มีคราบ inline style
+
+**7c. ล้างสถานะตอนหน้าเปิด/ถูกคืนจาก bfcache**
+```js
+window.addEventListener("pageshow", function () {
+    $(".is-navigating").removeClass("is-navigating").removeData("ilearnNavigating");
+});
+```
+- ผูกกับ `pageshow` (ไม่ใช่ `DOMContentLoaded`) เพราะ **bfcache restore ยิงเฉพาะ `pageshow`** · ยิงตอนโหลดปกติด้วยก็ไม่มีผลเสีย
+
+**7d. timeout กันตาย** — ถ้า navigation ถูกยกเลิก (กดค้างแล้วปิดเมนู, ลิงก์ถูกบล็อก) การ์ดต้องไม่ตายถาวร
+```js
+setTimeout(function () { clearNavigating($el); }, 8000);
+```
+
+### Verification เพิ่ม
+1. กดการ์ด → เข้า Player → **กด Back** → **ไอคอนกลับเป็นลูกศรเดิม และกดการ์ดซ้ำได้ทันที** (ทดสอบบน iPad Safari ด้วย — bfcache แรงกว่า desktop)
+2. กดค้างบนการ์ดแล้วปิดเมนูโดยไม่ไปไหน → ภายใน 8 วิ การ์ดกลับมากดได้
+3. กดสลับหลายการ์ด/หลายแถว ไป-กลับหลายรอบ → ไม่มีอันไหนค้าง
