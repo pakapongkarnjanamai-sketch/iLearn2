@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-21 —] Claude Code — เขียน PLAN-106: กด Close แล้วเรียนครบ → เปิด modal สรุปผล (ผู้ใช้เลือกแบบ B)
+- ทำอะไร: ผู้ใช้ขอ "กด Close ให้กลับหน้าหลัก". ตรวจแล้วปุ่ม Close อยู่**ในตัว SCORM content** (แก้ตรง ๆ ไม่ได้) แต่ package เรียก `LMSFinish`/`Terminate` ที่ adapter เรารับอยู่ → hook ตรงนั้นได้. เสนอ 2 ทาง ผู้ใช้เลือก **B** = เปิด modal สรุปผลของเรา (มีอยู่แล้ว `renderLearningResultModal` + ปุ่ม `goBackToMyLearning`) แทนการเด้งออกอัตโนมัติ. แผนกำหนด: เปิดเฉพาะเมื่อ **ทุก item ผ่านครบ** (คอร์สหลาย item ห้ามเตะผู้เรียนออกก่อนทำ item ถัดไป) + **ไม่ใช่ read-only** (เข้ามาทบทวนไม่ต้องเด้ง) + **หลัง flush สำเร็จ** (กันคะแนนหาย) + guard เปิดครั้งเดียวต่อ page session; ห้าม `await` ใน LMSFinish (SCORM API ต้อง return sync) และห้ามเรียก `showLearningResult()` ตรง ๆ (จะ flush ซ้ำ)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-106-close-shows-course-summary.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (frontend only, ไม่มี migration)
+- Verified: — (แผน; อ่าน LMSFinish/Terminate/showLearningResult/renderLearningResultModal/isReadOnly จริงจาก Player.cshtml)
+- **ถึง Gemini: มี Gate 0 บังคับ — ยืนยันด้วย `?debug` ก่อนว่ากด Close แล้ว `LMSFinish`/`Terminate` ยิงจริง ถ้าไม่ยิงให้หยุดแล้วแจ้ง Claude อย่าเดา**; **ทำหลัง PLAN-105 §1 เพราะแตะ `Player.cshtml` ไฟล์เดียวกัน อย่าทำพร้อมกัน**
+
 ## [2026-07-21 —] Claude Code — วินิจฉัย CommitRuntime 500 = race ตอน insert แถวแรก + เขียน PLAN-105
 - ทำอะไร: ผู้ใช้ reproduce 500 ได้หลัง deploy 101-104 (13:43) พร้อม stack เต็ม. **Root cause: race condition** — `lms.js` ของ content เรียก `commit` ซ้อนกันหลายชั้นตอน initialize → `commitRuntimeContentItems` ยิง `$.ajax` โดยไม่รอตัวก่อนจบ → 2 requests เข้า `UpsertAsync` พร้อมกัน → ทั้งคู่ query ไม่เจอ row (commit แรกของ item) → INSERT ทั้งคู่ → ตัวที่สองชน unique index `IX_ScormRuntimeStates_EnrollmentId_ContentItemId` (filtered `[IsDeleted]=0`) → `DbUpdateException` → 500. **เกิดเฉพาะ commit แรกของแต่ละ item** (พอมี row แล้วทั้งคู่ไป UPDATE ไม่ชน) จึง intermittent. DB ยืนยัน: item 366 ของ enrollment 18217 บันทึกสำเร็จ (ตัวชนะ) และ**ไม่มี duplicate ค้าง** เพราะตัวแพ้ถูก reject — ซึ่งเป็นเหตุผลที่ตอนไล่หา duplicate ตอนแรกไม่เจอ. **ไม่ใช่ regression ของ 096-104** (upsert ไม่เคย concurrency-safe) แต่ 097 เพิ่มจุด flush ทำให้โอกาสชนสูงขึ้น
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-105-commit-runtime-race-500.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
