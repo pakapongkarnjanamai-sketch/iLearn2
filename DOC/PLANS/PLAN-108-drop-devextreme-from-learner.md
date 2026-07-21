@@ -361,3 +361,34 @@ render ของใหม่แล้ววัด computed style เทียบ
 3. ทดสอบตาม Verification B2 บน iPad: กดการ์ดตรงไหนก็ได้, ตัวกรอง/ค้นหายังทำงาน, เลื่อนแล้วไม่เผลอเปิด
 
 **สรุป: ผ่านรีวิวรอบ 2 — พร้อม deploy QA**
+
+## 🔧 Fix 4 (🔴 พบหลัง sign-off รอบ 2 — จาก screenshot ที่ implementer แนบ)
+
+**อาการ:** แถวใน "คลังหลักสูตร" **list view พังเป็นแนวตั้ง** — แถบโค้ดคอร์ส (`123`, `Assy_Z001`) ยืดเต็มความกว้าง แล้วชื่อคอร์สกับลูกศรตกลงมาข้างล่าง (ของเดิมเป็นแถวแนวนอนกระชับ: `[โค้ด] ชื่อคอร์ส ........ [ปุ่ม]`)
+
+**สาเหตุ: CSS specificity ชนกัน** — element คือ `<a class="catalog-list-item catalog-course-item">`
+
+| กฎ | บรรทัด | specificity | ผล |
+| --- | --- | --- | --- |
+| `.catalog-list-item { display: flex }` | 406 | (0,1,0) | แพ้ |
+| `a.catalog-course-item { display: block }` | 462-467 | **(0,1,1)** | **ชนะ** |
+
+⇒ `display:block` ทับ `display:flex` ⇒ flex row หายไป · `.list-code-badge` ที่มี `flex-shrink:0` กลายเป็น block เต็มความกว้าง
+
+**แก้:** อย่าให้ `display:block` แตะ list item — เลือกทางใดทางหนึ่ง
+```css
+/* ทางที่ 1: ยกเว้น list item */
+a.course-item,
+a.catalog-course-item:not(.catalog-list-item) { display: block; }
+a.course-item, a.catalog-course-item { text-decoration: none; color: inherit; }
+
+/* ทางที่ 2: ยก specificity ของ list ให้ชนะ (ต้องอยู่หลังกฎ block ในไฟล์) */
+a.catalog-list-item { display: flex; }
+```
+- **ตรวจหลังแก้:** list view กลับเป็นแถวแนวนอน `[โค้ด] ชื่อ ... [ลูกศร]` เหมือนเดิม และ **grid view ไม่พังตาม**
+- บรรทัด 469-472 มี `.catalog-list-item { text-decoration:none; color:inherit }` ซ้ำกับกฎรวมด้านบน — เก็บกวาดได้
+
+**บทเรียน:** finding นี้มองไม่เห็นจากการอ่านโค้ดหรือ render แยกส่วน — **เห็นได้จาก screenshot หน้าจริงเท่านั้น** ยืนยันว่า verification §A ที่บังคับเทียบภาพมีค่าจริง
+
+### สถานะ Fix 1-3 (ยืนยันแล้ว ไม่ต้องแก้ซ้ำ)
+Fix 1 ✅ · Fix 2 ✅ (screenshot login ยืนยันซ้ำ: label ลอยคร่อมขอบแบบเจาะช่อง สีแบรนด์ placeholder โผล่ — ตรงของเดิม) · Fix 3 ✅

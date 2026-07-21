@@ -2,6 +2,14 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-21 —] Claude Code — PLAN-108: พบ Fix 4 หลัง sign-off (list view พังจาก CSS specificity)
+- ทำอะไร: หลังผม sign-off รอบ 2 ไปแล้ว implementer แนบ screenshot มา **เห็นว่าแถวใน list view ของคลังหลักสูตรพัง** — แถบโค้ดยืดเต็มความกว้าง ชื่อ+ลูกศรตกลงมาแนวตั้ง. **สาเหตุ: specificity ชนกัน** — `<a class="catalog-list-item catalog-course-item">` โดน `a.catalog-course-item { display:block }` (0,1,1) ทับ `.catalog-list-item { display:flex }` (0,1,0) ⇒ flex row หาย. ระบุวิธีแก้ 2 ทาง (ยกเว้น list ออกจากกฎ block หรือยก specificity ของ list) + ให้ตรวจว่า grid ไม่พังตาม. **Fix 1-3 ยืนยันแล้วไม่ต้องแก้ซ้ำ** — screenshot login ยังยืนยัน Fix 2 ซ้ำอีกชั้น (label ลอยคร่อมขอบ สีแบรนด์ placeholder โผล่ ตรงของเดิม)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-108-*.md` (→CHANGES REQUESTED + Fix 4), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว)
+- Verified: อ่าน CSS ยืนยัน specificity + screenshot หน้าจริง
+- **บทเรียน: finding นี้มองไม่เห็นจากอ่านโค้ดหรือ render แยกส่วน เห็นจาก screenshot หน้าจริงเท่านั้น** — verification §A ที่บังคับเทียบภาพมีค่าจริง ผม sign-off เร็วไปโดยยังไม่มีภาพหน้าเต็ม
+- หมายเหตุ: มีไฟล์ `plan108-*.png` ค้างใน repo root (ยังไม่ commit) — ควรย้ายออกหรือลบ ไม่ควรเก็บใน root
+
 ## [2026-07-21 —] Claude Code — รีวิว PLAN-108 รอบ 2 → ผ่าน finding ครบทั้ง 3
 - ทำอะไร: **Fix 1** การ์ดเป็น `<a>` แล้ว class/attr ครบบน element นอกสุด (กรอง/ค้นหาไม่พัง), ปุ่ม→`span`, catalog→ลูกศร, **ไม่มี nested anchor** (render ยืนยัน `a a` = 0), `site.js` ปรับ selector + ใช้ `.js-card-action-icon` เป็น marker (ดีกว่าสเปค). **Fix 2** floating label — ผม render ของใหม่แล้ววัดเทียบ baseline ที่วัดจาก DevExtreme ตัวจริงไว้: พัก 14px/#999/top 17px ✅ ลอย 12px/top −7px ✅ ช่อง h50/radius4/border #ddd/input 14px #333 pl9 ✅ focus สีแบรนด์ (CSSOM ยืนยัน) ✅ placeholder ซ่อน/แสดงตรงพฤติกรรม DX ✅. **Fix 3** `.gitignore` เพิ่มกติกา `!` + `site.js` เข้า commit `78b4047` แล้ว โดย vendored libs ยัง ignore ถูกต้อง
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-108-*.md` (→REVIEWED รอบ 2 + Sign-off), `DOC/AGENT_LOG.md`
