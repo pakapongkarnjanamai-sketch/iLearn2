@@ -12,7 +12,6 @@
     <link href="~/favicon.svg" rel="icon" type="image/svg+xml" asp-append-version="true" />
 
     <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" asp-append-version="true" />
-    <link href="~/css/devextreme/dx.light.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" asp-append-version="true" />
 
     <style>
@@ -24,8 +23,6 @@
 
     <script src="~/js/devextreme/jquery.min.js" asp-append-version="true"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
-    <script src="~/js/devextreme/dx.all.js" asp-append-version="true"></script>
-    <script src="~/src/devextreme-license.js" asp-append-version="true"></script>
 
     <script src="~/js/site.js" asp-append-version="true"></script>
 
@@ -37,6 +34,7 @@
 </head>
 
 <body class="d-flex flex-column min-vh-100">
+    <div id="appToastStack" aria-live="polite" aria-atomic="true"></div>
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-custom">
             <div class="container-fluid">
@@ -99,7 +97,7 @@
 
         /* --- Notifications & Feedback ---------------------------------------- */
 
-        // showToast: DevExpress.ui.notify Stack (top center, down-push)
+        // showToast: native stacked toast (top center, down-push) — PLAN-108 replacement for DevExpress.ui.notify
         // type: 'success' | 'error' | 'warning' | 'info'
         function showToast(message, type, duration) {
             type = type || 'info';
@@ -111,24 +109,21 @@
                 info:    'fa-circle-info'
             };
             var icon = icons[type] || icons.info;
-            DevExpress.ui.notify(
-                {
-                    type: type,
-                    height: 45,
-                    width: 'auto',
-                    minWidth: 220,
-                    displayTime: duration,
-                    animation: {
-                        show: { type: 'fade', duration: 400, from: 0, to: 1 },
-                        hide: { type: 'fade', duration: 40, to: 0 }
-                    },
-                    contentTemplate: function(element) {
-                        $(element).addClass('dx-toast-content-custom')
-                            .html('<i class="fas ' + icon + ' me-2"></i><span>' + message + '</span>');
-                    }
-                },
-                { position: 'top center', direction: 'down-push' }
-            );
+
+            var $toast = $('<div class="app-toast app-toast-' + type + '"><i class="fas ' + icon + ' me-2"></i><span></span></div>');
+            $toast.find('span').text(message);
+
+            // down-push: newest toast enters at the top, existing toasts get pushed down
+            $('#appToastStack').prepend($toast);
+
+            requestAnimationFrame(function () {
+                $toast.addClass('show');
+            });
+
+            setTimeout(function () {
+                $toast.removeClass('show').addClass('hide');
+                setTimeout(function () { $toast.remove(); }, 60);
+            }, duration);
         }
 
         function handleLearnerSessionExpired(result) {

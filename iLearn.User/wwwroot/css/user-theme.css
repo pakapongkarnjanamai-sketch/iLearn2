@@ -207,290 +207,72 @@ a:hover {
 }
 
 /* ==========================================================================
-   DEVEXTREME OVERRIDES (ทับค่าสีเดิมของ DevExtreme)
+   TOAST (PLAN-108: native replacement for DevExpress.ui.notify)
+   Values mirror the previous dx.light.css .dx-toast-content rule so the
+   visual result (position/stack/colors/timing) stays the same.
    ========================================================================== */
 
-.dx-button-mode-contained.dx-button-default {
-    background-color: var(--brand-color) !important;
-    border-color: var(--brand-color) !important;
-    color: #fff !important;
+#appToastStack {
+    position: fixed;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: center;
+    z-index: 9500;
+    pointer-events: none;
 }
 
-.dx-button-mode-contained.dx-button-default.dx-state-hover,
-.dx-button-mode-contained.dx-button-default.dx-state-active {
-    background-color: var(--brand-dark) !important;
-    border-color: var(--brand-dark) !important;
-}
-
-.dx-button-mode-contained.dx-button-default.dx-state-focused {
-    background-color: var(--brand-color) !important;
-    border-color: var(--brand-color) !important;
-}
-
-/* Outlined Button */
-.dx-button-mode-outlined.dx-button-default {
-    color: var(--brand-color) !important;
-    border-color: var(--brand-color) !important;
-}
-
-.dx-button-mode-outlined.dx-button-default.dx-state-hover {
-    background-color: var(--brand-light) !important;
-}
-
-/* Text Button */
-.dx-button-mode-text.dx-button-default {
-    color: var(--brand-color) !important;
-}
-
-.dx-button-mode-text.dx-button-default.dx-state-hover {
-    background-color: var(--brand-light) !important;
-}
-
-.dx-texteditor.dx-state-focused,
-.dx-texteditor.dx-state-active {
-    border-color: var(--brand-color) !important;
-}
-
-.dx-texteditor.dx-state-focused .dx-texteditor-label,
-.dx-texteditor.dx-state-active .dx-texteditor-label {
-    color: var(--brand-color) !important;
-}
-
-.dx-texteditor.dx-state-hover {
-    border-color: var(--brand-color) !important;
-}
-
-/* SelectBox, TagBox, Lookup */
-.dx-selectbox.dx-state-focused,
-.dx-tagbox.dx-state-focused,
-.dx-lookup.dx-state-focused {
-    border-color: var(--brand-color) !important;
-}
-
-.dx-list-item.dx-state-focused,
-.dx-list-item.dx-state-hover {
-    background-color: var(--brand-light) !important;
-}
-
-.dx-list-item-selected {
-    background-color: var(--brand-color) !important;
-    color: #fff !important;
-}
-
-/* DateBox, Calendar */
-.dx-datebox.dx-state-focused {
-    border-color: var(--brand-color) !important;
-}
-
-.dx-calendar-cell.dx-calendar-selected-date {
-    background-color: var(--brand-color) !important;
-    color: #fff !important;
-}
-
-.dx-calendar-cell.dx-calendar-today {
-    border-color: var(--brand-color) !important;
-}
-
-.dx-calendar-cell.dx-state-hover {
-    background-color: var(--brand-light) !important;
-}
-
-.dx-checkbox-checked .dx-checkbox-icon {
-    background-color: var(--brand-color) !important;
-    border-color: var(--brand-color) !important;
-    color: #fff !important;
-}
-
-.dx-checkbox.dx-state-hover .dx-checkbox-icon {
-    border-color: var(--brand-color) !important;
-}
-
-.dx-radiobutton-icon-checked .dx-radiobutton-icon-dot {
-    background-color: var(--brand-color) !important;
-}
-
-.dx-radiobutton-icon-checked {
-    border-color: var(--brand-color) !important;
-}
-
-.dx-radiobutton.dx-state-hover .dx-radiobutton-icon {
-    border-color: var(--brand-color) !important;
-}
-
-.dx-tab.dx-tab-selected {
-    color: var(--brand-color) !important;
+.app-toast {
+    display: flex;
+    align-items: center;
+    color: #fff;
+    font-size: 14px;
     font-weight: 600;
+    line-height: 32px;
+    padding: 10px;
+    border-radius: 6px;
+    min-width: 220px;
+    width: auto;
+    max-width: 90vw;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: auto;
 }
 
-.dx-tab.dx-tab-selected::after {
-    background-color: var(--brand-color) !important;
-    border-bottom: 2px solid var(--brand-color) !important;
+.app-toast.show {
+    opacity: 1;
 }
 
-.dx-tab.dx-state-hover {
-    background-color: var(--brand-light) !important;
+.app-toast.hide {
+    transition: opacity 0.04s ease;
+    opacity: 0;
 }
 
-.dx-loadindicator-segment {
-    background-color: var(--brand-color) !important;
+.app-toast-success {
+    background-color: var(--brand-color);
 }
 
-.dx-loadpanel-content .dx-loadindicator-segment {
-    background-color: var(--brand-color) !important;
+.app-toast-error {
+    background-color: #d9534f;
 }
 
-.dx-link {
-    color: var(--brand-color) !important;
+.app-toast-warning {
+    background-color: #f0ad4e;
 }
 
-.dx-link:hover {
-    color: var(--brand-dark) !important;
+.app-toast-info {
+    background-color: #337ab7;
 }
 
-.dx-switch-on-value .dx-switch-handle::before {
-    background-color: var(--brand-color) !important;
-}
+/* ==========================================================================
+   NAVIGATION FEEDBACK (PLAN-108 \u00a72: instant visual feedback on tap)
+   ========================================================================== */
 
-.dx-switch-on-value .dx-switch-container {
-    background-color: var(--brand-light) !important;
-    border-color: var(--brand-color) !important;
-}
-
-.dx-progressbar-range,
-.dx-slider-range.dx-slider-range-visible,
-.dx-slider-handle {
-    background-color: var(--brand-color) !important;
-    border-color: var(--brand-color) !important;
-}
-
-/* Accordion */
-.dx-accordion-item.dx-state-focused .dx-accordion-item-title {
-    background-color: var(--brand-light) !important;
-}
-
-.dx-accordion-item-opened > .dx-accordion-item-title {
-    color: var(--brand-color) !important;
-}
-
-/* TreeView */
-.dx-treeview-item.dx-state-selected > .dx-treeview-item-content {
-    background-color: var(--brand-color) !important;
-    color: #fff !important;
-}
-
-.dx-treeview-item.dx-state-hover > .dx-treeview-item-content {
-    background-color: var(--brand-light) !important;
-}
-
-/* Popup & Toast */
-.dx-popup-title {
-    background-color: var(--brand-color) !important;
-    color: #fff !important;
-}
-
-.dx-toast-success {
-    background-color: var(--brand-color) !important;
-}
-
-/* Menu */
-.dx-menu-item.dx-state-focused,
-.dx-menu-item.dx-state-hover {
-    background-color: var(--brand-light) !important;
-}
-
-.dx-menu-item-selected {
-    color: var(--brand-color) !important;
-}
-
-/* Context Menu */
-.dx-context-menu .dx-menu-item-selected {
-    background-color: var(--brand-color) !important;
-    color: #fff !important;
-}
-
-/* Filter Builder */
-.dx-filterbuilder .dx-filterbuilder-action-icon {
-    color: var(--brand-color) !important;
-}
-
-/* Scheduler */
-.dx-scheduler-appointment {
-    background-color: var(--brand-color) !important;
-}
-
-.dx-scheduler-date-table-cell.dx-state-focused {
-    background-color: var(--brand-light) !important;
-}
-
-/* Chart */
-.dx-chart-series {
-    fill: var(--brand-color) !important;
-    stroke: var(--brand-color) !important;
-}
-
-/* File Uploader */
-.dx-fileuploader-upload-button {
-    background-color: var(--brand-color) !important;
-    border-color: var(--brand-color) !important;
-}
-
-/* Validation */
-.dx-invalid.dx-texteditor.dx-state-focused {
-    border-color: var(--danger-color) !important;
-}
-
-.dx-valid.dx-texteditor.dx-state-focused {
-    border-color: var(--brand-color) !important;
-}
-
-/* Scrollbar */
-.dx-scrollable-scroll {
-    background-color: rgba(2, 125, 131, 0.3) !important;
-}
-
-.dx-scrollable-scroll:hover {
-    background-color: rgba(2, 125, 131, 0.5) !important;
-}
-
-/* DataGrid */
-.dx-datagrid-headers .dx-header-row > td {
-    border-bottom: 2px solid var(--brand-color) !important;
-    color: var(--brand-color) !important;
-    font-weight: 600;
-    background-color: #f8f9fa;
-}
-
-.dx-datagrid-rowsview .dx-selection.dx-row:not(.dx-row-focused) > td {
-    background-color: var(--brand-light) !important;
-}
-
-.dx-datagrid-rowsview .dx-row-focused > td {
-    background-color: var(--brand-color) !important;
-    color: #fff !important;
-}
-
-.dx-datagrid-rowsview .dx-row.dx-data-row.dx-state-hover:not(.dx-selection):not(.dx-row-focused) > td {
-    background-color: var(--brand-lighter) !important;
-}
-
-.dx-datagrid-edit-form {
-    border-color: var(--brand-color) !important;
-}
-
-/* Pager */
-.dx-pager .dx-page-sizes .dx-selection,
-.dx-pager .dx-pages .dx-selection {
-    background-color: var(--brand-color) !important;
-    border-color: var(--brand-color) !important;
-    color: #fff !important;
-}
-
-.dx-pager .dx-page:not(.dx-selection):hover {
-    background-color: var(--brand-light) !important;
-}
-
-.dx-pager .dx-page-size:not(.dx-selection):hover {
-    background-color: var(--brand-light) !important;
+.is-navigating {
+    cursor: default !important;
 }
 
 /* --- Navbar --- */

@@ -101,13 +101,19 @@
             <p class="login-subtitle">ระบบการเรียนรู้ออนไลน์สำหรับพนักงาน</p>
         </div>
 
-        <div id="employee-code-box" class="mb-4"></div>
+        <div class="mb-4">
+            <label for="employee-code-input" class="form-label fw-semibold text-muted small mb-1">รหัสพนักงาน</label>
+            <input type="text" id="employee-code-input" class="form-control" style="height:50px;"
+                   placeholder="กรอกรหัสพนักงาน"
+                   inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off"
+                   spellcheck="false" enterkeyhint="go" />
+        </div>
 
         <div id="employee-preview" class="employee-preview" style="display:none;">
             <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
         </div>
 
-        <div id="login-button"></div>
+        <button type="button" id="login-button" class="btn btn-login w-100">เข้าสู่ระบบ</button>
     </div>
 </div>
 
@@ -116,52 +122,25 @@
         $(function () {
             let isProcessing = false;
 
-            const employeeCodeBox = $("#employee-code-box").dxTextBox({
-                placeholder: "กรอกรหัสพนักงาน",
-                label: "รหัสพนักงาน",
-                labelMode: "floating",
-                mode: "text",
-                height: 50,
-                stylingMode: "outlined",
-                inputAttr: {
-                    inputmode: "numeric",
-                    autocomplete: "off",
-                    autocorrect: "off",
-                    autocapitalize: "off",
-                    spellcheck: "false",
-                    enterkeyhint: "go"
-                },
-                onEnterKey: function(e) {
-                    e.event.preventDefault();
-                    e.event.stopPropagation();
-                    performLogin();
-                }
-            }).dxTextBox("instance");
+            const $employeeCodeBox = $("#employee-code-input");
+            const $loginButton = $("#login-button");
 
-            const loginButton = $("#login-button").dxButton({
-                text: "เข้าสู่ระบบ",
-                type: "default",
-                width: "100%",
-                height: 50,
-                elementAttr: { class: "btn-login" },
-                onClick: function(e) {
-                    e.event.preventDefault();
-                    performLogin();
-                }
-            }).dxButton("instance");
-
-            $(document).off("keyup.login").on("keyup.login", "#employee-code-box input", function(e) {
-                if ((e.which === 13 || e.keyCode === 13) && !isProcessing) {
+            $employeeCodeBox.on("keydown", function (e) {
+                if (e.key === "Enter" && !isProcessing) {
                     e.preventDefault();
-                    e.stopPropagation();
                     performLogin();
                 }
+            });
+
+            $loginButton.on("click", function (e) {
+                e.preventDefault();
+                performLogin();
             });
 
             function performLogin() {
                 if (isProcessing) return;
 
-                const employeeCode = employeeCodeBox.option("value");
+                const employeeCode = $employeeCodeBox.val();
 
                 if (!employeeCode || employeeCode.trim() === "") {
                     showToast("กรุณากรอกรหัสพนักงาน", "error");
@@ -169,10 +148,9 @@
                 }
 
                 isProcessing = true;
-                loginButton.option("disabled", true);
-                loginButton.option("text", "กำลังตรวจสอบ...");
+                $loginButton.prop("disabled", true).text("กำลังตรวจสอบ...");
 
-                $("#employee-code-box").hide();
+                $("#employee-code-input").closest(".mb-4").hide();
                 $("#employee-preview").show().html(`
                     <div class="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
                     <span class="text-muted">กำลังยืนยันตัวตน: <strong>${employeeCode}</strong></span>
@@ -213,14 +191,13 @@
             function handleLoginError(msg) {
                 showToast(msg, "error");
                 $("#employee-preview").hide();
-                $("#employee-code-box").show();
-                loginButton.option("disabled", false);
-                loginButton.option("text", "เข้าสู่ระบบ");
-                employeeCodeBox.focus();
+                $("#employee-code-input").closest(".mb-4").show();
+                $loginButton.prop("disabled", false).text("เข้าสู่ระบบ");
+                $employeeCodeBox.trigger("focus");
             }
 
             setTimeout(function() {
-                employeeCodeBox.focus();
+                $employeeCodeBox.trigger("focus");
             }, 300);
         });
     </script>

@@ -560,6 +560,39 @@
             flex: 0 0 auto;
         }
 
+        /* ========== Catalog Search Box (PLAN-108: native replacement for dxTextBox) ========== */
+        .app-search-box {
+            position: relative;
+            width: 300px;
+            max-width: 100%;
+        }
+
+        .app-search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 0.8rem;
+            pointer-events: none;
+        }
+
+        .app-search-input {
+            width: 100%;
+            height: 34px;
+            padding: 0 10px 0 32px;
+            border: 1px solid #d9d9d9;
+            border-radius: var(--radius-sm);
+            font-size: var(--text-sm);
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .app-search-input:focus {
+            border-color: var(--brand-color);
+            box-shadow: 0 0 0 0.2rem rgba(2, 125, 131, 0.25);
+        }
+
         /* Profile Stats */
         .stat-box {
             background: white;
@@ -907,7 +940,10 @@ else
                 </div>
                 <div class="catalog-toolbar">
                     <div class="catalog-actions">
-                        <div id="searchBoxContainer"></div>
+                        <div class="app-search-box" id="searchBoxContainer">
+                            <i class="fas fa-search app-search-icon"></i>
+                            <input type="search" id="catalogSearchInput" class="app-search-input" placeholder="ค้นหาหลักสูตร..." autocomplete="off" />
+                        </div>
                         <div class="catalog-view-toggle">
                             <button type="button" class="toggle-btn active" id="btnListView" onclick="setCatalogView('list')" title="มุมมองรายการ">
                                 <i class="fas fa-list"></i>
@@ -938,6 +974,23 @@ else
             </div>
         </div>
 
+    </div>
+
+    <!-- Logout confirmation modal (PLAN-108: native replacement for DevExpress.ui.dialog.custom) -->
+    <div class="modal fade" id="logoutConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 340px;">
+            <div class="modal-content">
+                <div class="modal-body text-center py-4">
+                    <i class="fas fa-sign-out-alt logout-dialog-icon"></i>
+                    <h5 class="logout-dialog-title">ออกจากระบบ</h5>
+                    <p class="logout-dialog-text mb-0">คุณต้องการออกจากระบบใช่หรือไม่?</p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center pb-4 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-danger" id="btnConfirmLogout"><i class="fas fa-sign-out-alt me-1"></i> ออกจากระบบ</button>
+                </div>
+            </div>
+        </div>
     </div>
 }
 
@@ -1022,41 +1075,17 @@ else
             loadAllCourses();
         });
         function initLogout() {
+            const logoutUrl = '@Url.Action("Logout", "Home")';
+            const logoutModalEl = document.getElementById('logoutConfirmModal');
+            const logoutModal = new bootstrap.Modal(logoutModalEl);
+
             $('#btnLogout').on('click', function (e) {
                 e.preventDefault();
-                const logoutUrl = '@Url.Action("Logout", "Home")';
+                logoutModal.show();
+            });
 
-                const dialog = DevExpress.ui.dialog.custom({
-                    title: '',
-                    messageHtml: `
-                        <div class="text-center py-2">
-                            <i class="fas fa-sign-out-alt logout-dialog-icon"></i>
-                            <h5 class="logout-dialog-title">ออกจากระบบ</h5>
-                            <p class="logout-dialog-text">คุณต้องการออกจากระบบใช่หรือไม่?</p>
-                        </div>`,
-                    buttons: [
-                        {
-                            text: 'ยกเลิก',
-                            stylingMode: 'outlined',
-                            onClick: function () { return false; }
-                        },
-                        {
-                            text: 'ออกจากระบบ',
-                            type: 'danger',
-                            stylingMode: 'contained',
-                            icon: 'fas fa-sign-out-alt',
-                            onClick: function () {
-                                window.location.href = logoutUrl;
-                                return true;
-                            }
-                        }
-                    ],
-                    dragEnabled: false,
-                    showCloseButton: false,
-                    width: 340
-                });
-
-                dialog.show();
+            $('#btnConfirmLogout').on('click', function () {
+                window.location.href = logoutUrl;
             });
         }
 
@@ -1064,17 +1093,12 @@ else
         let searchDebounceTimer = null;
 
         function initSearchBox() {
-            $("#searchBoxContainer").dxTextBox({
-                placeholder: "ค้นหาหลักสูตร...",
-                mode: "search",
-                width: 300,
-                valueChangeEvent: "keyup",
-                onValueChanged: function(e) {
-                    clearTimeout(searchDebounceTimer);
-                    searchDebounceTimer = setTimeout(function() {
-                        filterCatalog(e.value);
-                    }, 250);
-                }
+            $("#catalogSearchInput").on("input", function () {
+                const value = $(this).val();
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(function() {
+                    filterCatalog(value);
+                }, 250);
             });
         }
 
