@@ -2,6 +2,14 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-21 —] Claude Code — วินิจฉัย CommitRuntime 500 = race ตอน insert แถวแรก + เขียน PLAN-105
+- ทำอะไร: ผู้ใช้ reproduce 500 ได้หลัง deploy 101-104 (13:43) พร้อม stack เต็ม. **Root cause: race condition** — `lms.js` ของ content เรียก `commit` ซ้อนกันหลายชั้นตอน initialize → `commitRuntimeContentItems` ยิง `$.ajax` โดยไม่รอตัวก่อนจบ → 2 requests เข้า `UpsertAsync` พร้อมกัน → ทั้งคู่ query ไม่เจอ row (commit แรกของ item) → INSERT ทั้งคู่ → ตัวที่สองชน unique index `IX_ScormRuntimeStates_EnrollmentId_ContentItemId` (filtered `[IsDeleted]=0`) → `DbUpdateException` → 500. **เกิดเฉพาะ commit แรกของแต่ละ item** (พอมี row แล้วทั้งคู่ไป UPDATE ไม่ชน) จึง intermittent. DB ยืนยัน: item 366 ของ enrollment 18217 บันทึกสำเร็จ (ตัวชนะ) และ**ไม่มี duplicate ค้าง** เพราะตัวแพ้ถูก reject — ซึ่งเป็นเหตุผลที่ตอนไล่หา duplicate ตอนแรกไม่เจอ. **ไม่ใช่ regression ของ 096-104** (upsert ไม่เคย concurrency-safe) แต่ 097 เพิ่มจุด flush ทำให้โอกาสชนสูงขึ้น
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-105-commit-runtime-race-500.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มีในตัวแผน (105 จะเพิ่ม `IUnitOfWork.Detach<T>` additive; ไม่มี migration)
+- Verified: — (แผน; หลักฐาน = stack trace ฝั่ง client + response body 500 + query QA DB + ตรวจ index/schema/IUnitOfWork จริง)
+- **ถึง Copilot: §2 (server retry) สำคัญกว่า §1 — ต้อง rethrow ถ้าไม่ใช่ unique violation ห้ามกลืน error อื่น**; **ถึง Gemini: §1 ห้ามให้เส้นทาง `useBeacon` เข้าคิว (หน้าอาจถูกปิดก่อน)**
+- หมายเหตุ: `LearningLogs` ไม่มี unique index โดยตั้งใจ (หลาย log ต่อ item ข้าม reset boundary) — **ห้ามเพิ่ม index แก้ race ที่ตารางนี้**
+
 ## [2026-07-21 13:39] GitHub Copilot — QA deploy + commit prep: PLAN-101/102/103/104 hotfix bundle
 - ทำอะไร: deploy QA รอบ hotfix หลัง full validation ผ่าน. Deploy **API ก่อน** สำหรับ PLAN-101/104 backend (`ClearForEnrollmentsAsync` reset paths, placeholder/terminal merge guard, rollup completion fix, session-time cap) แล้ว deploy **Learner/User** สำหรับ PLAN-102/103/104 client (`?debug` diagnostics, same-origin launch rewrite/assertion, active session timer). ไม่มี migration และไม่มี PROD deploy.
 - QA live stamps: API `\\AP-NTC2138-QAWB\wwwroot\iLearn\Service\_deploy_20260721133451`, `web.config` → `.\_deploy_20260721133451\iLearn.API.dll`, previous `20260721121253`; User `\\AP-NTC2138-QAWB\wwwroot\iLearn\_user_deploy_20260721133726`, `web.config` → `.\_user_deploy_20260721133726\iLearn.User.dll`, previous `20260721121441`. Both health checks passed attempt 1 and `AutoRolledBack=False`.
