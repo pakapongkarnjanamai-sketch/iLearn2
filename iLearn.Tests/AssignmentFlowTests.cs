@@ -235,6 +235,7 @@ namespace iLearn.Tests
                 assignmentRepo,
                 new FakeAssignmentDashboardService(),
                 versionRepo,
+                new FakeScormRuntimeStateService(),
                 new FakeDateTime(Now),
                 unitOfWork);
 
@@ -274,6 +275,19 @@ namespace iLearn.Tests
 
             public Task<List<LookupCourseDto>> GetLookupCoursesAsync() =>
                 Task.FromResult(new List<LookupCourseDto>());
+        }
+
+        private sealed class FakeScormRuntimeStateService : IScormRuntimeStateService
+        {
+            public Task<IReadOnlyList<ScormRuntimeStateDto>> GetActiveStatesAsync(int enrollmentId, DateTime? resetAt = null) =>
+                Task.FromResult<IReadOnlyList<ScormRuntimeStateDto>>([]);
+
+            public Task<int> ClearForEnrollmentAsync(int enrollmentId, CancellationToken cancellationToken = default) => Task.FromResult(0);
+
+            public Task<int> ClearForEnrollmentsAsync(IReadOnlyCollection<int> enrollmentIds, bool saveChanges = true, CancellationToken cancellationToken = default) => Task.FromResult(0);
+
+            public Task<IReadOnlyList<ScormRuntimeStateDto>> UpsertAsync(int enrollmentId, IReadOnlyCollection<ScormRuntimeContentItemCommitDto> contentItems, CancellationToken cancellationToken = default) =>
+                Task.FromResult<IReadOnlyList<ScormRuntimeStateDto>>([]);
         }
 
         private sealed class FakeCurrentUserService : ICurrentUserService

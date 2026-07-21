@@ -19,6 +19,7 @@ namespace iLearn.Application.Services
         private readonly IAssignmentBatchService _assignmentBatchService;
         private readonly ICourseAssignmentService _courseAssignmentService;
         private readonly IGenericRepository<LearnerGroupMember> _learnerGroupMemberRepo;
+        private readonly IScormRuntimeStateService _scormRuntimeStateService;
         private readonly IDateTime _dateTime;
         private readonly IUnitOfWork _unitOfWork;
 
@@ -31,6 +32,7 @@ namespace iLearn.Application.Services
             IAssignmentBatchService assignmentBatchService,
             ICourseAssignmentService courseAssignmentService,
             IGenericRepository<LearnerGroupMember> learnerGroupMemberRepo,
+            IScormRuntimeStateService scormRuntimeStateService,
             IDateTime dateTime,
             IUnitOfWork unitOfWork)
         {
@@ -42,6 +44,7 @@ namespace iLearn.Application.Services
             _assignmentBatchService = assignmentBatchService;
             _courseAssignmentService = courseAssignmentService;
             _learnerGroupMemberRepo = learnerGroupMemberRepo;
+            _scormRuntimeStateService = scormRuntimeStateService;
             _dateTime = dateTime;
             _unitOfWork = unitOfWork;
         }
@@ -289,6 +292,10 @@ namespace iLearn.Application.Services
                     resetCount++;
                 }
 
+                await _scormRuntimeStateService.ClearForEnrollmentsAsync(
+                    enrollmentIdsToReset,
+                    saveChanges: false,
+                    cancellationToken: cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
             }

@@ -11,6 +11,8 @@ namespace iLearn.User.Extensions
             services.AddMemoryCache();
             services.Configure<LearnerProxyAuthOptions>(
                 configuration.GetSection(LearnerProxyAuthOptions.SectionName));
+            services.Configure<FileSettings>(
+                configuration.GetSection(nameof(FileSettings)));
 
             var apiBaseUrl = configuration["ApiSettings:BaseUrl"]
                 ?? throw new InvalidOperationException("ApiSettings:BaseUrl is not configured.");

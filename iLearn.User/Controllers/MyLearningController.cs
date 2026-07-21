@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using System.Text.Json.Nodes;
 
 namespace iLearn.User.Controllers
 {
@@ -14,13 +15,16 @@ namespace iLearn.User.Controllers
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly LearnerProxyAuthOptions _learnerProxyAuthOptions;
+        private readonly FileSettings _fileSettings;
 
         public MyLearningController(
             IHttpClientFactory httpClientFactory,
-            IOptions<LearnerProxyAuthOptions> learnerProxyAuthOptions)
+            IOptions<LearnerProxyAuthOptions> learnerProxyAuthOptions,
+            IOptions<FileSettings> fileSettingsOptions)
         {
             _httpClientFactory = httpClientFactory;
             _learnerProxyAuthOptions = learnerProxyAuthOptions.Value;
+            _fileSettings = fileSettingsOptions.Value;
         }
 
         public IActionResult Index()
@@ -121,7 +125,7 @@ namespace iLearn.User.Controllers
                     HttpMethod.Get,
                     $"Enrollments/player-info/{courseId}",
                     learnerCode);
-                return await CreateProxyResultAsync(response);
+                return await CreateProxyResultAsync(response, rewriteLaunchUrls: true);
             }
             catch (InvalidOperationException ex)
             {
@@ -318,7 +322,7 @@ namespace iLearn.User.Controllers
             return await client.SendAsync(request);
         }
 
-        private static async Task<IActionResult> CreateProxyResultAsync(HttpResponseMessage response)
+        private async Task<IActionResult> CreateProxyResultAsync(HttpResponseMessage response, bool rewriteLaunchUrls = false)
         {
             var content = await response.Content.ReadAsStringAsync();
             var mediaType = response.Content.Headers.ContentType?.MediaType ?? "application/json";
@@ -335,12 +339,57 @@ namespace iLearn.User.Controllers
                 };
             }
 
+            if (rewriteLaunchUrls && response.IsSuccessStatusCode && mediaType.Contains("json"))
+            {
+                content = RewriteLaunchUrlsToRootRelative(content, _fileSettings.HostUrl);
+            }
+
             return new ContentResult
             {
                 StatusCode = (int)response.StatusCode,
                 Content = content,
                 ContentType = mediaType
             };
+        }
+
+        private static string RewriteLaunchUrlsToRootRelative(string jsonContent, string configuredHostUrl)
+        {
+            if (string.IsNullOrWhiteSpace(jsonContent) || string.IsNullOrWhiteSpace(configuredHostUrl))
+                return jsonContent;
+
+            try
+            {
+                var node = JsonNode.Parse(jsonContent);
+                if (node is JsonObject obj && obj["data"] is JsonObject dataObj && dataObj["contentItems"] is JsonArray contentItems)
+                {
+                    Uri? configuredHostUri = null;
+                    if (Uri.TryCreate(configuredHostUrl, UriKind.Absolute, out var parsedHostUri))
+                    {
+                        configuredHostUri = parsedHostUri;
+                    }
+
+                    foreach (var item in contentItems)
+                    {
+                        if (item is JsonObject itemObj && itemObj["launchUrl"]?.GetValue<string>() is string launchUrlStr)
+                        {
+                            if (Uri.TryCreate(launchUrlStr, UriKind.Absolute, out var launchUri))
+                            {
+                                if (configuredHostUri != null && launchUri.Host.Equals(configuredHostUri.Host, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    itemObj["launchUrl"] = launchUri.PathAndQuery + launchUri.Fragment;
+                                }
+                            }
+                        }
+                    }
+                    return node.ToJsonString();
+                }
+            }
+            catch
+            {
+                // Fallback to original content on any JSON parse/manipulation error
+            }
+
+            return jsonContent;
         }
     }
 }

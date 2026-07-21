@@ -16,6 +16,8 @@ namespace iLearn.Application.Services
     public class EnrollmentService : IEnrollmentService
     {
         private readonly IGenericRepository<Enrollment> _enrollmentRepo;
+        private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
+        private readonly IScormRuntimeStateService _scormRuntimeStateService;
         private readonly ICourseAssignmentService _courseAssignmentService;
         private readonly IAssignmentDashboardService _assignmentDashboardService;
         private readonly ICurrentUserService _currentUser;
@@ -27,6 +29,8 @@ namespace iLearn.Application.Services
 
         public EnrollmentService(
             IGenericRepository<Enrollment> enrollmentRepo,
+            IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
+            IScormRuntimeStateService scormRuntimeStateService,
             ICourseAssignmentService courseAssignmentService,
             IAssignmentDashboardService assignmentDashboardService,
             ICurrentUserService currentUser,
@@ -37,6 +41,8 @@ namespace iLearn.Application.Services
             IUnitOfWork unitOfWork)
         {
             _enrollmentRepo = enrollmentRepo;
+            _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
+            _scormRuntimeStateService = scormRuntimeStateService;
             _courseAssignmentService = courseAssignmentService;
             _assignmentDashboardService = assignmentDashboardService;
             _currentUser = currentUser;
@@ -60,6 +66,17 @@ namespace iLearn.Application.Services
             enrollment.ResetAt = _dateTime.Now;
 
             await _enrollmentRepo.UpdateAsync(enrollment);
+
+            var assignmentLinks = await _enrollmentAssignmentRepo.GetAsync(link => link.EnrollmentId == enrollment.Id);
+            foreach (var link in assignmentLinks)
+            {
+                link.SnapshotCompleted = false;
+                link.SnapshotCompletedDate = null;
+                link.SnapshotProgress = 0;
+                await _enrollmentAssignmentRepo.UpdateAsync(link);
+            }
+
+            await _scormRuntimeStateService.ClearForEnrollmentAsync(enrollment.Id);
             return enrollment.ToDto();
         }
 

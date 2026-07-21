@@ -19,6 +19,7 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<Assignment> _assignmentRepo;
         private readonly IAssignmentDashboardService _assignmentDashboardService;
         private readonly IGenericRepository<CourseVersion> _versionRepo;
+        private readonly IScormRuntimeStateService _scormRuntimeStateService;
         private readonly IDateTime _dateTime;
         private readonly IUnitOfWork _unitOfWork;
 
@@ -29,6 +30,7 @@ namespace iLearn.Application.Services
             IGenericRepository<Assignment> assignmentRepo,
             IAssignmentDashboardService assignmentDashboardService,
             IGenericRepository<CourseVersion> versionRepo,
+            IScormRuntimeStateService scormRuntimeStateService,
             IDateTime dateTime,
             IUnitOfWork unitOfWork)
         {
@@ -38,6 +40,7 @@ namespace iLearn.Application.Services
             _assignmentRepo = assignmentRepo;
             _assignmentDashboardService = assignmentDashboardService;
             _versionRepo = versionRepo;
+            _scormRuntimeStateService = scormRuntimeStateService;
             _dateTime = dateTime;
             _unitOfWork = unitOfWork;
         }
@@ -48,15 +51,17 @@ namespace iLearn.Application.Services
             var activeCourses = await _courseRepo.GetActiveCoursesAsync();
             var generalCourses = activeCourses.Where(c => c.CourseType != null && c.CourseType.Name == "General");
             var activeVersions = await GetActiveVersionMapAsync(generalCourses.Select(c => c.Id));
+            var resetEnrollmentIds = new HashSet<int>();
 
             foreach (var course in generalCourses)
             {
                 if (!activeVersions.TryGetValue(course.Id, out var activeVersion))
                     continue;
 
-                await CreateOrUpdateEnrollment(employeeId, course, activeVersion);
+                await CreateOrUpdateEnrollment(employeeId, course, activeVersion, resetEnrollmentIds: resetEnrollmentIds);
             }
 
+            await _scormRuntimeStateService.ClearForEnrollmentsAsync(resetEnrollmentIds, saveChanges: false);
             await _unitOfWork.SaveChangesAsync();
         }
 
@@ -76,11 +81,14 @@ namespace iLearn.Application.Services
             var activeVersion = await GetActiveVersionAsync(course.Id);
             if (activeVersion == null) return;
 
+            var resetEnrollmentIds = new HashSet<int>();
+
             foreach (var empCode in employeeCodes)
             {
-                await CreateOrUpdateEnrollment(empCode, course, activeVersion, assignmentRuleId, startDate, dueDate, forceReset);
+                await CreateOrUpdateEnrollment(empCode, course, activeVersion, assignmentRuleId, startDate, dueDate, forceReset, resetEnrollmentIds: resetEnrollmentIds);
             }
 
+            await _scormRuntimeStateService.ClearForEnrollmentsAsync(resetEnrollmentIds, saveChanges: false);
             await _unitOfWork.SaveChangesAsync();
         }
 
@@ -105,6 +113,7 @@ namespace iLearn.Application.Services
                 .Distinct()
                 .ToList();
             var existingLinks = await GetExistingLinkMapAsync(existingEnrollmentIds);
+            var resetEnrollmentIds = new HashSet<int>();
 
             foreach (var assignmentRule in assignmentRuleIdsByCourseId)
             {
@@ -132,12 +141,14 @@ namespace iLearn.Application.Services
                         dueDate,
                         forceReset,
                         existingEnrollment,
-                        enrollmentLinks);
+                        enrollmentLinks,
+                        resetEnrollmentIds);
 
                     existingEnrollments[enrollmentKey] = updatedEnrollment;
                 }
             }
 
+            await _scormRuntimeStateService.ClearForEnrollmentsAsync(resetEnrollmentIds, saveChanges: false);
             await _unitOfWork.SaveChangesAsync();
         }
 
@@ -150,7 +161,8 @@ namespace iLearn.Application.Services
             DateTime? dueDate = null,
             bool forceReset = false,
             Enrollment? existingEnrollment = null,
-            List<EnrollmentAssignment>? existingLinks = null)
+            List<EnrollmentAssignment>? existingLinks = null,
+            ISet<int>? resetEnrollmentIds = null)
         {
             var existing = existingEnrollment;
             existingLinks ??= [];
@@ -179,6 +191,11 @@ namespace iLearn.Application.Services
             }
             else if (forceReset || existing.EnrolledCourseVersion != activeVersion.Id)
             {
+                if (existing.Id > 0)
+                {
+                    resetEnrollmentIds?.Add(existing.Id);
+                }
+
                 if (existing.IsCompleted)
                 {
                     if (existingLinks.Count == 0 && existing.Id > 0)

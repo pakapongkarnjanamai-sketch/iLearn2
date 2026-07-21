@@ -502,6 +502,11 @@ namespace iLearn.Tests
                 return Task.FromResult(0);
             }
 
+            public Task<int> ClearForEnrollmentsAsync(IReadOnlyCollection<int> enrollmentIds, bool saveChanges = true, CancellationToken cancellationToken = default)
+            {
+                return Task.FromResult(0);
+            }
+
             public Task<IReadOnlyList<ScormRuntimeStateDto>> UpsertAsync(int enrollmentId, IReadOnlyCollection<ScormRuntimeContentItemCommitDto> contentItems, CancellationToken cancellationToken = default)
             {
                 return Task.FromResult<IReadOnlyList<ScormRuntimeStateDto>>([]);
@@ -655,7 +660,8 @@ namespace iLearn.Tests
         private sealed class NullNotificationService : INotificationService
         {
             public Task NotifyAsync(string recipientUserId, string type, string level, string title, string? message = null, string? linkPath = null, string? entityType = null, int? entityId = null) => Task.CompletedTask;
-            public Task<Application.DTOs.NotificationListDto> GetForUserAsync(string userId, bool unreadOnly, int take, int skip = 0) => Task.FromResult(new Application.DTOs.NotificationListDto());
+            public Task<Application.DTOs.NotificationListDto> GetForUserAsync(string userId, bool unreadOnly, int take) => Task.FromResult(new Application.DTOs.NotificationListDto());
+            public Task<Application.DTOs.NotificationListDto> GetForUserAsync(string userId, bool unreadOnly, int take, int skip) => Task.FromResult(new Application.DTOs.NotificationListDto());
             public Task<int> GetUnreadCountAsync(string userId) => Task.FromResult(0);
             public Task<int> MarkReadAsync(string userId, int notificationId) => Task.FromResult(0);
             public Task<int> MarkAllReadAsync(string userId) => Task.FromResult(0);

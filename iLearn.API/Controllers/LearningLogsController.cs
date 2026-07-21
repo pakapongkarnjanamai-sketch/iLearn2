@@ -10,6 +10,7 @@ using iLearn.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace iLearn.API.Controllers
 {
@@ -26,6 +27,10 @@ namespace iLearn.API.Controllers
         private readonly ILearnerProxyIdentityResolver _learnerProxyIdentityResolver;
         private readonly IScormRuntimeStateService _scormRuntimeStateService;
         private readonly IDateTime _dateTime;
+        private readonly ILogger<LearningLogsController> _logger;
+
+        private const int MaxSessionSecondsDeltaPerCommit = 14400;
+
         public LearningLogsController(
             IGenericRepository<LearningLog> logRepo,
             IGenericRepository<Enrollment> enrollmentRepo,
@@ -35,7 +40,8 @@ namespace iLearn.API.Controllers
             IMemoryCache cache,
             ILearnerProxyIdentityResolver learnerProxyIdentityResolver,
             IScormRuntimeStateService scormRuntimeStateService,
-            IDateTime dateTime)
+            IDateTime dateTime,
+            ILogger<LearningLogsController> logger)
         {
             _logRepo = logRepo;
             _enrollmentRepo = enrollmentRepo;
@@ -46,6 +52,7 @@ namespace iLearn.API.Controllers
             _learnerProxyIdentityResolver = learnerProxyIdentityResolver;
             _scormRuntimeStateService = scormRuntimeStateService;
             _dateTime = dateTime;
+            _logger = logger;
         }
 
         [AllowAnonymous]
@@ -343,11 +350,32 @@ namespace iLearn.API.Controllers
                     int sessionSecondsDelta = sessionSeconds >= previousSessionSeconds
                         ? sessionSeconds - previousSessionSeconds
                         : sessionSeconds;
-                    log.TotalSecondsPlayed += sessionSecondsDelta;
+                    var shouldApplySessionSecondsDelta = sessionSecondsDelta <= MaxSessionSecondsDeltaPerCommit;
+                    if (shouldApplySessionSecondsDelta)
+                    {
+                        log.TotalSecondsPlayed += sessionSecondsDelta;
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "Ignored suspicious SCORM session time delta {SessionSecondsDelta}s for enrollment {EnrollmentId}, content item {ContentItemId}. Previous session time: {PreviousSessionTime}; incoming session time: {IncomingSessionTime}.",
+                            sessionSecondsDelta,
+                            enrollmentId,
+                            update.ContentItemId,
+                            log.SessionTime,
+                            update.SessionTime);
+                    }
 
                     if (!string.IsNullOrEmpty(update.SessionTime))
                     {
                         log.SessionTime = update.SessionTime;
+                    }
+
+                    var shouldPreserveTerminalOutcome = HasTerminalProgress(log.Status) && IsPlaceholderProgress(newStatus);
+                    if (shouldPreserveTerminalOutcome)
+                    {
+                        newStatus = log.Status;
+                        isInputPassed = IsCompletionStatus(newStatus);
                     }
 
                     log.Status = newStatus;
@@ -355,7 +383,10 @@ namespace iLearn.API.Controllers
 
                     if (update.Score.HasValue)
                     {
-                        log.Score = update.Score;
+                        if (!shouldPreserveTerminalOutcome)
+                        {
+                            log.Score = update.Score;
+                        }
                     }
 
                     if (incrementAttemptCount)
@@ -377,10 +408,21 @@ namespace iLearn.API.Controllers
                         Progress = isInputPassed ? 100 : (update.Progress ?? 0),
                         Score = update.Score,
                         SessionTime = update.SessionTime,
-                        TotalSecondsPlayed = sessionSeconds,
+                        TotalSecondsPlayed = sessionSeconds <= MaxSessionSecondsDeltaPerCommit ? sessionSeconds : 0,
                         AttemptCount = 1,
                         CreatedAt = _dateTime.Now
                     };
+
+                    if (sessionSeconds > MaxSessionSecondsDeltaPerCommit)
+                    {
+                        _logger.LogWarning(
+                            "Ignored suspicious initial SCORM session time {SessionSeconds}s for enrollment {EnrollmentId}, content item {ContentItemId}. Incoming session time: {IncomingSessionTime}.",
+                            sessionSeconds,
+                            enrollmentId,
+                            update.ContentItemId,
+                            update.SessionTime);
+                    }
+
                     await _logRepo.AddAsync(newLog);
                 }
             }
@@ -410,6 +452,8 @@ namespace iLearn.API.Controllers
             }
             else
             {
+                enrollment.IsCompleted = false;
+                enrollment.CompletedDate = null;
                 enrollment.Progress = allContentItemIds.Count > 0
                     ? ((double)passedCount / allContentItemIds.Count) * 100
                     : 0;
@@ -480,6 +524,41 @@ namespace iLearn.API.Controllers
                 "" => null,
                 _ => "unknown"
             };
+        }
+
+        private static bool HasTerminalProgress(string? status)
+        {
+            return NormalizeStatus(status) switch
+            {
+                "passed" => true,
+                "completed" => true,
+                "failed" => true,
+                "browsed" => true,
+                _ => false
+            };
+        }
+
+        private static bool IsCompletionStatus(string? status)
+        {
+            return NormalizeStatus(status) is "passed" or "completed" or "browsed";
+        }
+
+        private static bool IsPlaceholderProgress(string? status)
+        {
+            return NormalizeStatus(status) switch
+            {
+                "incomplete" => true,
+                "not attempted" => true,
+                "unknown" => true,
+                _ => false
+            };
+        }
+
+        private static string? NormalizeStatus(string? status)
+        {
+            return string.IsNullOrWhiteSpace(status)
+                ? null
+                : status.Trim().ToLowerInvariant();
         }
 
         private sealed record ContentItemProgressUpdate(

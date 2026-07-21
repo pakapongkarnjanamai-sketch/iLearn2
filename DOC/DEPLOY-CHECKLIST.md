@@ -74,7 +74,7 @@ These values are required for verification and rollback.
 - Test the exact page or workflow changed in this deploy.
 - Test at least one export or write action if the release touched those areas.
 - Check browser console and server logs if anything looks stale or broken.
-- For SCORM, sign in through the public learner URL and launch one assigned item. Confirm the iframe loads from `<public-origin>/Courses/...` and the entry document returns 200.
+- For SCORM, sign in through the public learner URL and launch one assigned item. Confirm the iframe loads from `<public-origin>/Courses/...` and the entry document returns 200. Open Player through canonical public URL and verify iframe origin matches page origin, complete 1 assigned item, and confirm progress is persisted.
 
 Typical production roots:
 

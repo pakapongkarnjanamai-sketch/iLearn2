@@ -714,9 +714,36 @@
         const commitRuntimeUrl = '@Url.Action("CommitRuntime", "MyLearning")';
         const pingUrl = '@Url.Action("Ping", "MyLearning")';
 
-        // C4: Gate SCORM adapter logging — add ?scormDebug to URL to enable
-        const SCORM_DEBUG = new URLSearchParams(window.location.search).has('scormDebug');
+        // C4: Gate SCORM adapter logging — add ?scormDebug to URL to enable; ?debug enables both + diag
+        const diagParams = new URLSearchParams(window.location.search);
+        const LEARNER_DEBUG = diagParams.has('debug');
+        const SCORM_DEBUG = diagParams.has('scormDebug') || LEARNER_DEBUG;
         function scormLog(...args) { if (SCORM_DEBUG) console.log(...args); }
+
+        window.__ilearnDiag = [];
+        function safeTruncate(v, maxLen = 2000) {
+            if (v === null || v === undefined) return '';
+            let str = typeof v === 'string' ? v : (typeof v === 'object' ? JSON.stringify(v) : String(v));
+            if (str.length > maxLen) {
+                return str.substring(0, maxLen) + `... [truncated ${str.length - maxLen} chars]`;
+            }
+            return str;
+        }
+        function diag(event, data) {
+            if (!LEARNER_DEBUG) return;
+            const entry = { t: new Date().toISOString(), event, data };
+            window.__ilearnDiag.push(entry);
+            console.log(`[DIAG] ${event}`, data ?? '');
+        }
+
+        function copyDiagnosticsLog() {
+            const text = JSON.stringify(window.__ilearnDiag || [], null, 2);
+            navigator.clipboard.writeText(text).then(function() {
+                showToast(`คัดลอก log แล้ว (${(window.__ilearnDiag || []).length} รายการ)`, "success");
+            }).catch(function(err) {
+                showToast("ไม่สามารถคัดลอก log ได้", "error");
+            });
+        }
 
         // ========================================
         // State Management
@@ -724,7 +751,9 @@
         let currentData = null;
         let selectedContentItemIndex = -1;
         let isReadOnly = false;
-        let sessionStartTime = null;
+        let sessionActiveMs = 0;
+        let sessionResumedAt = null;
+        let sessionTimerStarted = false;
 
         // ========================================
         // SCORM Data Model (Global)
@@ -740,20 +769,41 @@
             !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
 
         $(function() {
+            if (LEARNER_DEBUG) {
+                $(document).ajaxSend(function (e, xhr, settings) {
+                    diag("ajax→", { method: settings.type, url: settings.url, body: safeTruncate(settings.data) });
+                });
+                $(document).ajaxComplete(function (e, xhr, settings) {
+                    diag("ajax←", { url: settings.url, status: xhr.status, resp: safeTruncate(xhr.responseText) });
+                });
+
+                $('body').append(`
+                    <button id="btnCopyDiag" class="btn btn-dark btn-sm shadow-sm" onclick="copyDiagnosticsLog()"
+                            style="position: fixed; bottom: 16px; left: 16px; z-index: 1000; font-family: 'Sarabun', sans-serif;">
+                        <i class="fas fa-copy me-1"></i> คัดลอก diagnostics
+                    </button>
+                `);
+            }
+
             console.log("🚀 Application Starting...");
             initScormAdapter();
             loadCourseData();
 
             // --- B1: Lifecycle flush ---
             window.addEventListener("beforeunload", function (e) {
+                pauseSessionTimer();
                 flushSelectedContentItemRuntime({ includeSessionTime: true, useBeacon: true, reason: "beforeunload" });
             });
             window.addEventListener("pagehide", function () {
+                pauseSessionTimer();
                 flushSelectedContentItemRuntime({ includeSessionTime: true, useBeacon: true, reason: "pagehide" });
             });
             document.addEventListener("visibilitychange", function () {
                 if (document.visibilityState === "hidden") {
+                    pauseSessionTimer();
                     flushSelectedContentItemRuntime({ includeSessionTime: true, useBeacon: true, reason: "visibility-hidden" });
+                } else if (document.visibilityState === "visible") {
+                    resumeSessionTimer();
                 }
             });
 
@@ -1271,7 +1321,7 @@
 
                 return options.force === true ||
                     contentItem.hasPendingRuntimeCommit === true ||
-                    (shouldIncludeSessionTime && sessionStartTime !== null);
+                    (shouldIncludeSessionTime && isSessionTimerActive());
             });
 
             if (targetContentItems.length === 0) {
@@ -1288,6 +1338,7 @@
             if (options.useBeacon === true && navigator.sendBeacon) {
                 const body = new Blob([JSON.stringify(payload)], { type: 'application/json' });
                 const accepted = navigator.sendBeacon(commitRuntimeUrl, body);
+                diag("beacon→CommitRuntime", { reason: options.reason, accepted, itemCount: payload.ContentItems.length });
                 if (accepted) {
                     targetContentItems.forEach(contentItem => {
                         contentItem.hasPendingRuntimeCommit = false;
@@ -1488,7 +1539,7 @@
 
             // แสดง Start Overlay
             $("#startOverlay").fadeIn(200);
-            sessionStartTime = null;
+            resetSessionTimer();
 
             // รีเซ็ต SCORM Model ทันทีเมื่อเลือกบทใหม่
             resetScormModel(contentItem);
@@ -1508,6 +1559,17 @@
                 return;
             }
 
+            try {
+                const resolved = new URL(contentItem.launchUrl, window.location.href);
+                if (resolved.origin !== window.location.origin) {
+                    console.error("SCORM cross-origin launch:", resolved.origin, "≠", window.location.origin);
+                    showToast("เนื้อหาอยู่คนละโดเมนกับระบบ — ผลการเรียนจะไม่ถูกบันทึก กรุณาแจ้งผู้ดูแลระบบ", "error", 10000);
+                }
+            } catch (e) {
+                console.warn("Unable to resolve launchUrl origin:", e);
+            }
+
+            diag("startCourse", { launchUrl: contentItem.launchUrl, contentItemId: contentItem.id });
             scormLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             scormLog(`🚀 Starting ContentItem [${selectedContentItemIndex}]: ${contentItem.name}`);
             scormLog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -1516,7 +1578,7 @@
             resetScormModel(contentItem);
 
             $("#startOverlay").fadeOut(200);
-            sessionStartTime = new Date();
+            startSessionTimer();
             contentItem.hasPendingRuntimeCommit = true;
             contentItem.sessionTerminalStatus = null;
             const iframe = document.getElementById("scormFrame");
@@ -1673,6 +1735,8 @@
             if (needsRecalc) {
                 recalcTotalProgress();
             }
+
+            diag("updateContentItemData", { key, value, clientStatus: contentItem.clientStatus, clientProgress: contentItem.clientProgress, clientScore: contentItem.clientScore });
         }
 
         function getIncompleteContentItemProgress(contentItem) {
@@ -1692,11 +1756,48 @@
         // ========================================
         // Capture Session Time
         // ========================================
+        function startSessionTimer() {
+            sessionActiveMs = 0;
+            sessionResumedAt = Date.now();
+            sessionTimerStarted = true;
+        }
+
+        function pauseSessionTimer() {
+            if (sessionResumedAt !== null) {
+                sessionActiveMs += Math.max(0, Date.now() - sessionResumedAt);
+                sessionResumedAt = null;
+            }
+        }
+
+        function resumeSessionTimer() {
+            if (sessionTimerStarted && sessionResumedAt === null) {
+                sessionResumedAt = Date.now();
+            }
+        }
+
+        function stopSessionTimer() {
+            pauseSessionTimer();
+            sessionTimerStarted = false;
+        }
+
+        function resetSessionTimer() {
+            sessionActiveMs = 0;
+            sessionResumedAt = null;
+            sessionTimerStarted = false;
+        }
+
+        function isSessionTimerActive() {
+            return sessionTimerStarted;
+        }
+
+        function getActiveSessionMs() {
+            return sessionActiveMs + (sessionResumedAt !== null ? Math.max(0, Date.now() - sessionResumedAt) : 0);
+        }
+
         function captureSessionTime(contentItem) {
             if (contentItem.isCompleted) return; // Already saved on DB
-            if (sessionStartTime) {
-                const now = new Date();
-                const diffSec = Math.round((now - sessionStartTime) / 1000);
+            if (sessionTimerStarted) {
+                const diffSec = Math.round(getActiveSessionMs() / 1000);
                 const date = new Date(0);
                 date.setSeconds(diffSec);
                 const timeString = date.toISOString().substr(11, 8);
@@ -1784,6 +1885,8 @@
                     setCourseStatusDisplay("ดูอย่างเดียว", "warning");
                 }
             }
+
+            diag("recalcTotalProgress", { passedCount, totalContentItems, progress: currentData.progress });
         }
 
         // ========================================
@@ -1903,7 +2006,7 @@
                 LMSFinish: function(p) {
                     scormLog("🏁 SCORM 1.2: LMSFinish");
                     flushSelectedContentItemRuntime({ includeSessionTime: true, reason: "scorm12-finish" });
-                    sessionStartTime = null;
+                    stopSessionTimer();
                     return "true";
                 },
 
@@ -1924,7 +2027,7 @@
                 Terminate: function(p) {
                     scormLog("🏁 SCORM 2004: Terminate");
                     flushSelectedContentItemRuntime({ includeSessionTime: true, reason: "scorm2004-terminate" });
-                    sessionStartTime = null;
+                    stopSessionTimer();
                     return "true";
                 },
 

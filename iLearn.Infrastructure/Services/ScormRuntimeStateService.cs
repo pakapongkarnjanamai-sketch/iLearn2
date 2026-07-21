@@ -39,7 +39,21 @@ namespace iLearn.Infrastructure.Services
 
         public async Task<int> ClearForEnrollmentAsync(int enrollmentId, CancellationToken cancellationToken = default)
         {
-            var states = await _runtimeStateRepo.GetAsync(state => state.EnrollmentId == enrollmentId);
+            return await ClearForEnrollmentsAsync([enrollmentId], saveChanges: true, cancellationToken);
+        }
+
+        public async Task<int> ClearForEnrollmentsAsync(
+            IReadOnlyCollection<int> enrollmentIds,
+            bool saveChanges = true,
+            CancellationToken cancellationToken = default)
+        {
+            if (enrollmentIds.Count == 0)
+            {
+                return 0;
+            }
+
+            var distinctEnrollmentIds = enrollmentIds.Distinct().ToList();
+            var states = await _runtimeStateRepo.GetAsync(state => distinctEnrollmentIds.Contains(state.EnrollmentId));
             foreach (var state in states)
             {
                 _runtimeStateRepo.DeleteWithoutSave(state);
@@ -50,7 +64,11 @@ namespace iLearn.Infrastructure.Services
                 return 0;
             }
 
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            if (saveChanges)
+            {
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+
             return states.Count;
         }
 
@@ -119,8 +137,7 @@ namespace iLearn.Infrastructure.Services
             var normalizedSuccessStatus = IsScorm12(normalizedVersion)
                 ? NormalizeScorm12SuccessStatus(contentItem.LessonStatus)
                 : ScormRuntimeFieldMap.NormalizeSuccessStatus(contentItem.LessonStatus, contentItem.SuccessStatus);
-            var isPlaceholderProgressCommit = IsPlaceholderProgressCommit(
-                contentItem,
+            var isPlaceholderOutcome = LooksLikePlaceholderOutcome(
                 normalizedLessonStatus,
                 normalizedCompletionStatus,
                 normalizedSuccessStatus);
@@ -128,8 +145,8 @@ namespace iLearn.Infrastructure.Services
             state.ScormVersion = PreferIncoming(normalizedVersion, state.ScormVersion) ?? string.Empty;
             state.LessonLocation = PreferIncoming(contentItem.LessonLocation, state.LessonLocation);
             state.SuspendData = PreferIncoming(contentItem.SuspendData, state.SuspendData);
-            state.LessonStatus = PreferStatus(normalizedLessonStatus, state.LessonStatus, isPlaceholderProgressCommit);
-            state.CompletionStatus = PreferStatus(normalizedCompletionStatus, state.CompletionStatus, isPlaceholderProgressCommit);
+            state.LessonStatus = PreferStatus(normalizedLessonStatus, state.LessonStatus);
+            state.CompletionStatus = PreferStatus(normalizedCompletionStatus, state.CompletionStatus);
             state.SuccessStatus = PreferSuccessStatus(normalizedSuccessStatus, state.SuccessStatus);
             state.SessionTime = PreferDuration(contentItem.SessionTime, state.SessionTime);
             state.TotalTime = PreferDuration(contentItem.TotalTime, state.TotalTime);
@@ -141,18 +158,12 @@ namespace iLearn.Infrastructure.Services
             state.RawScore = PreferRawScore(
                 contentItem.RawScore,
                 state.RawScore,
-                state.LessonStatus,
-                state.CompletionStatus,
-                state.SuccessStatus,
-                isPlaceholderProgressCommit);
+                isPlaceholderOutcome);
 
             state.ScaledScore = PreferRawScore(
                 contentItem.ScaledScore,
                 state.ScaledScore,
-                state.LessonStatus,
-                state.CompletionStatus,
-                state.SuccessStatus,
-                isPlaceholderProgressCommit);
+                isPlaceholderOutcome);
         }
 
         private static ScormRuntimeStateDto MapToDto(ScormRuntimeState state)
@@ -185,7 +196,7 @@ namespace iLearn.Infrastructure.Services
                 : incoming.Trim();
         }
 
-        private static string? PreferStatus(string? incoming, string? existing, bool isPlaceholderProgressCommit)
+        private static string? PreferStatus(string? incoming, string? existing)
         {
             var normalizedIncoming = PreferIncoming(incoming, null);
             if (normalizedIncoming == null)
@@ -193,7 +204,7 @@ namespace iLearn.Infrastructure.Services
                 return existing;
             }
 
-            return isPlaceholderProgressCommit && HasTerminalProgress(existing) && IsPlaceholderProgress(normalizedIncoming)
+            return HasTerminalProgress(existing) && IsPlaceholderProgress(normalizedIncoming)
                 ? existing
                 : normalizedIncoming;
         }
@@ -242,10 +253,7 @@ namespace iLearn.Infrastructure.Services
         private static decimal? PreferRawScore(
             decimal? incoming,
             decimal? existing,
-            string? lessonStatus,
-            string? completionStatus,
-            string? successStatus,
-            bool isPlaceholderProgressCommit)
+            bool isPlaceholderOutcome)
         {
             if (!incoming.HasValue)
             {
@@ -255,7 +263,7 @@ namespace iLearn.Infrastructure.Services
             return existing.HasValue &&
                    existing.Value > 0 &&
                    incoming.Value == 0m &&
-                   (isPlaceholderProgressCommit || LooksLikePlaceholderOutcome(lessonStatus, completionStatus, successStatus))
+                   isPlaceholderOutcome
                 ? existing
                 : incoming.Value;
         }
@@ -303,20 +311,6 @@ namespace iLearn.Infrastructure.Services
             return IsPlaceholderProgress(lessonStatus) &&
                    IsPlaceholderProgress(completionStatus) &&
                    (string.IsNullOrWhiteSpace(successStatus) || IsUnknownSuccess(successStatus));
-        }
-
-        private static bool IsPlaceholderProgressCommit(
-            ScormRuntimeContentItemCommitDto contentItem,
-            string? lessonStatus,
-            string? completionStatus,
-            string? successStatus)
-        {
-            return LooksLikePlaceholderOutcome(lessonStatus, completionStatus, successStatus) &&
-                   (!contentItem.RawScore.HasValue || contentItem.RawScore.Value == 0m) &&
-                   string.IsNullOrWhiteSpace(contentItem.LessonLocation) &&
-                   string.IsNullOrWhiteSpace(contentItem.SuspendData) &&
-                   (string.IsNullOrWhiteSpace(contentItem.SessionTime) || IsZeroLikeDuration(contentItem.SessionTime)) &&
-                   (string.IsNullOrWhiteSpace(contentItem.TotalTime) || IsZeroLikeDuration(contentItem.TotalTime));
         }
 
         private static bool HasResumeContext(string? lessonLocation, string? suspendData)

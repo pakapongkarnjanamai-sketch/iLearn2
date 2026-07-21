@@ -28,6 +28,7 @@ namespace iLearn.Application.Services
         private readonly IScormService _scormService;
         private readonly IAdminActivityService _adminActivityService;
         private readonly ICurrentUserService _currentUser;
+        private readonly IScormRuntimeStateService _scormRuntimeStateService;
         private readonly IDateTime _dateTime;
         private readonly IUnitOfWork _unitOfWork;
 
@@ -43,6 +44,7 @@ namespace iLearn.Application.Services
             IScormService scormService,
             IAdminActivityService adminActivityService,
             ICurrentUserService currentUser,
+            IScormRuntimeStateService scormRuntimeStateService,
             IDateTime dateTime,
             IUnitOfWork unitOfWork)
         {
@@ -57,6 +59,7 @@ namespace iLearn.Application.Services
             _scormService = scormService;
             _adminActivityService = adminActivityService;
             _currentUser = currentUser;
+            _scormRuntimeStateService = scormRuntimeStateService;
             _dateTime = dateTime;
             _unitOfWork = unitOfWork;
         }
@@ -435,6 +438,9 @@ namespace iLearn.Application.Services
                 _enrollmentRepository.UpdateWithoutSave(enrollment);
             }
 
+            await _scormRuntimeStateService.ClearForEnrollmentsAsync(
+                targetEnrollments.Select(enrollment => enrollment.Id).ToList(),
+                saveChanges: false);
             await _unitOfWork.SaveChangesAsync();
         }
 

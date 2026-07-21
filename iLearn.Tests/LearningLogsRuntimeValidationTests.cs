@@ -329,6 +329,150 @@ namespace iLearn.Tests
         }
 
         [Fact]
+        public async Task CommitRuntime_DoesNotDowngradePassedLogWhenIncomingCommitIsPlaceholder()
+        {
+            var controller = CreateController(out var logRepo, out var enrollmentRepo);
+            logRepo.Items.Add(new LearningLog
+            {
+                Id = 1,
+                EnrollmentId = 10,
+                LearnerCode = "490222",
+                CourseVersionId = 20,
+                ContentItemId = 100,
+                Status = "passed",
+                Progress = 100,
+                Score = 100,
+                SessionTime = "00:00:10",
+                TotalSecondsPlayed = 10,
+                CreatedAt = new DateTime(2026, 4, 28, 11, 55, 0, DateTimeKind.Local)
+            });
+
+            var result = await controller.CommitRuntime(new ScormRuntimeCommitRequestDto
+            {
+                EnrollmentId = 10,
+                ContentItems =
+                [
+                    new ScormRuntimeContentItemCommitDto
+                    {
+                        ContentItemId = 100,
+                        ScormVersion = ScormRuntimeFieldMap.Scorm12,
+                        LessonStatus = "incomplete",
+                        RawScore = 0,
+                        SessionTime = "00:00:20"
+                    }
+                ]
+            });
+
+            Assert.IsType<OkObjectResult>(result);
+            var log = Assert.Single(logRepo.Items);
+            Assert.Equal("passed", log.Status);
+            Assert.Equal(100, log.Progress);
+            Assert.Equal(100, log.Score);
+            Assert.Equal("00:00:20", log.SessionTime);
+            Assert.Equal(20, log.TotalSecondsPlayed);
+
+            var enrollment = Assert.Single(enrollmentRepo.Items);
+            Assert.False(enrollment.IsCompleted);
+            Assert.Null(enrollment.CompletedDate);
+            Assert.Equal(50, enrollment.Progress);
+        }
+
+        [Fact]
+        public async Task CommitRuntime_ClearsCompletedFlagWhenRollupFallsBelowCompleteAndRestoresWhenCompleteAgain()
+        {
+            var controller = CreateController(out var logRepo, out var enrollmentRepo);
+            var enrollment = Assert.Single(enrollmentRepo.Items);
+            enrollment.IsCompleted = true;
+            enrollment.CompletedDate = new DateTime(2026, 4, 28, 11, 58, 0, DateTimeKind.Local);
+            enrollment.Progress = 100;
+
+            logRepo.Items.Add(new LearningLog
+            {
+                Id = 1,
+                EnrollmentId = 10,
+                LearnerCode = "490222",
+                CourseVersionId = 20,
+                ContentItemId = 100,
+                Status = "passed",
+                Progress = 100,
+                Score = 100,
+                CreatedAt = new DateTime(2026, 4, 28, 11, 55, 0, DateTimeKind.Local)
+            });
+
+            var partialResult = await controller.CommitRuntime(new ScormRuntimeCommitRequestDto
+            {
+                EnrollmentId = 10,
+                ContentItems =
+                [
+                    new ScormRuntimeContentItemCommitDto
+                    {
+                        ContentItemId = 101,
+                        ScormVersion = ScormRuntimeFieldMap.Scorm12,
+                        LessonStatus = "incomplete",
+                        RawScore = 0,
+                        SessionTime = "00:00:05"
+                    }
+                ]
+            });
+
+            Assert.IsType<OkObjectResult>(partialResult);
+            Assert.False(enrollment.IsCompleted);
+            Assert.Null(enrollment.CompletedDate);
+            Assert.Equal(50, enrollment.Progress);
+
+            var completeResult = await controller.CommitRuntime(new ScormRuntimeCommitRequestDto
+            {
+                EnrollmentId = 10,
+                ContentItems =
+                [
+                    new ScormRuntimeContentItemCommitDto
+                    {
+                        ContentItemId = 101,
+                        ScormVersion = ScormRuntimeFieldMap.Scorm12,
+                        LessonStatus = "passed",
+                        RawScore = 100,
+                        SessionTime = "00:00:10"
+                    }
+                ]
+            });
+
+            Assert.IsType<OkObjectResult>(completeResult);
+            Assert.True(enrollment.IsCompleted);
+            Assert.Equal(100, enrollment.Progress);
+            Assert.Equal(new DateTime(2026, 4, 28, 12, 0, 0, DateTimeKind.Local), enrollment.CompletedDate);
+        }
+
+        [Fact]
+        public async Task CommitRuntime_IgnoresSessionTimeDeltaOverFourHours()
+        {
+            var controller = CreateController(out var logRepo, out _);
+
+            foreach (var sessionTime in new[] { "00:00:10", "05:00:10" })
+            {
+                var result = await controller.CommitRuntime(new ScormRuntimeCommitRequestDto
+                {
+                    EnrollmentId = 10,
+                    ContentItems =
+                    [
+                        new ScormRuntimeContentItemCommitDto
+                        {
+                            ContentItemId = 100,
+                            ScormVersion = ScormRuntimeFieldMap.Scorm12,
+                            LessonStatus = "incomplete",
+                            SessionTime = sessionTime
+                        }
+                    ]
+                });
+
+                Assert.IsType<OkObjectResult>(result);
+            }
+
+            var log = Assert.Single(logRepo.Items);
+            Assert.Equal("05:00:10", log.SessionTime);
+            Assert.Equal(10, log.TotalSecondsPlayed);
+        }
+
+        [Fact]
         public void LearnerProxyIdentityResolver_AcceptsValidSignedHeaders()
         {
             const string sharedSecret = "runtime-secret";
@@ -453,7 +597,8 @@ namespace iLearn.Tests
                 new MemoryCache(new MemoryCacheOptions()),
                 new FakeLearnerProxyIdentityResolver(),
                 runtimeStateService,
-                new FakeDateTime());
+                new FakeDateTime(),
+                NullLogger<LearningLogsController>.Instance);
 
             controller.ControllerContext = new ControllerContext
             {
@@ -511,6 +656,11 @@ namespace iLearn.Tests
             public Task<int> ClearForEnrollmentAsync(int enrollmentId, CancellationToken cancellationToken = default)
             {
                 ClearedEnrollmentId = enrollmentId;
+                return Task.FromResult(0);
+            }
+
+            public Task<int> ClearForEnrollmentsAsync(IReadOnlyCollection<int> enrollmentIds, bool saveChanges = true, CancellationToken cancellationToken = default)
+            {
                 return Task.FromResult(0);
             }
 

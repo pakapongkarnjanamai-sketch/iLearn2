@@ -943,6 +943,35 @@ else
 
 @section Scripts {
     <script>
+        // PLAN-102: Learner diagnostic mode flag & buffer
+        const diagParams = new URLSearchParams(window.location.search);
+        const LEARNER_DEBUG = diagParams.has('debug');
+
+        window.__ilearnDiag = [];
+        function safeTruncate(v, maxLen = 2000) {
+            if (v === null || v === undefined) return '';
+            let str = typeof v === 'string' ? v : (typeof v === 'object' ? JSON.stringify(v) : String(v));
+            if (str.length > maxLen) {
+                return str.substring(0, maxLen) + `... [truncated ${str.length - maxLen} chars]`;
+            }
+            return str;
+        }
+        function diag(event, data) {
+            if (!LEARNER_DEBUG) return;
+            const entry = { t: new Date().toISOString(), event, data };
+            window.__ilearnDiag.push(entry);
+            console.log(`[DIAG] ${event}`, data ?? '');
+        }
+
+        function copyDiagnosticsLog() {
+            const text = JSON.stringify(window.__ilearnDiag || [], null, 2);
+            navigator.clipboard.writeText(text).then(function() {
+                showToast(`คัดลอก log แล้ว (${(window.__ilearnDiag || []).length} รายการ)`, "success");
+            }).catch(function(err) {
+                showToast("ไม่สามารถคัดลอก log ได้", "error");
+            });
+        }
+
         const learnerCode = '@empCode';
         const myCoursesUrl = '@Url.Action("GetMyCourses", "MyLearning")';
         const courseCatalogUrl = '@Url.Action("GetCourseCatalog", "MyLearning")';
@@ -971,6 +1000,22 @@ else
         }
 
         $(function() {
+            if (LEARNER_DEBUG) {
+                $(document).ajaxSend(function (e, xhr, settings) {
+                    diag("ajax→", { method: settings.type, url: settings.url, body: safeTruncate(settings.data) });
+                });
+                $(document).ajaxComplete(function (e, xhr, settings) {
+                    diag("ajax←", { url: settings.url, status: xhr.status, resp: safeTruncate(xhr.responseText) });
+                });
+
+                $('body').append(`
+                    <button id="btnCopyDiag" class="btn btn-dark btn-sm shadow-sm" onclick="copyDiagnosticsLog()"
+                            style="position: fixed; bottom: 16px; left: 16px; z-index: 1000; font-family: 'Sarabun', sans-serif;">
+                        <i class="fas fa-copy me-1"></i> คัดลอก diagnostics
+                    </button>
+                `);
+            }
+
             initSearchBox();
             initLogout();
             loadMyCourses();

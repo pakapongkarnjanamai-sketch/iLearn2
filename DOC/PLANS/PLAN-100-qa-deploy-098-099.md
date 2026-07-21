@@ -1,6 +1,6 @@
 # PLAN-100: QA deploy runbook — PLAN-098 (learner header) + PLAN-099 (SCORM reset hotfix)
 
-- **Status:** READY
+- **Status:** DONE (QA deploy complete; manual learner/iPad smoke pending)
 - **Assigned:** GitHub Copilot
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-21
@@ -55,4 +55,9 @@ web.config switch กลับ stamp เดิม (ตาม DEPLOY-CHECKLIST §
 
 ## Implementer Notes
 
-_(เติมโดย implementer หลัง deploy)_
+- Gate 0 passed: `ee6102e` (PLAN-100 docs) at HEAD, then `f718938` (099 API) and `51ff047` (098 learner); working tree was clean.
+- Local validation passed: Debug builds for Tests/API/User succeeded; test assembly from `artifacts\validate\iLearn.Tests\bin\iLearn.Tests\debug\iLearn.Tests.dll` passed **207/207**. (The SDK emitted this layout rather than the example `bin\Debug\net9.0` path in the runbook.)
+- API deployed first: `DeployPath=\\AP-NTC2138-QAWB\wwwroot\iLearn\Service\_deploy_20260721092410`; `WebConfigArguments=.\_deploy_20260721092410\iLearn.API.dll`; previous API stamp `20260717131321`; health check returned expected HTTP 401 on attempt 1/5; `AutoRolledBack=False`.
+- User deployed second: `DeployPath=\\AP-NTC2138-QAWB\wwwroot\iLearn\_user_deploy_20260721092529`; `WebConfigArguments=.\_user_deploy_20260721092529\iLearn.User.dll`; previous User stamp `20260717164531`; health check returned HTTP 200 on attempt 1/5; `AutoRolledBack=False`.
+- Read-back confirmed both active `web.config` files reference the new stamps with `ASPNETCORE_ENVIRONMENT=Staging`; both active DLLs exist. Independent checks: API session endpoint = 401, learner root = 200.
+- Remaining QA gate: reset enrollment 18201/course 968 and perform player/iPad smoke for header, clean runtime state, completion behavior, and non-inflated time. No PROD deploy was performed.

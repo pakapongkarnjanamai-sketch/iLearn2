@@ -3,6 +3,7 @@ using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
+using iLearn.Application.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
 using iLearn.Infrastructure.Services;
@@ -164,7 +165,7 @@ namespace iLearn.Tests
         }
 
         [Fact]
-        public async Task UpsertAsync_AllowsMeaningfulIncompleteCommitToOverrideTerminalState()
+        public async Task UpsertAsync_PreservesTerminalStateWhenIncomingPlaceholderCarriesSessionTime()
         {
             var existingState = new ScormRuntimeState
             {
@@ -174,8 +175,9 @@ namespace iLearn.Tests
                 ScormVersion = ScormRuntimeFieldMap.Scorm12,
                 LessonStatus = "completed",
                 CompletionStatus = "completed",
-                SuccessStatus = "unknown",
+            SuccessStatus = "passed",
                 RawScore = 100m,
+            SessionTime = "00:01:20",
                 CreatedAt = Now.AddMinutes(-10),
                 UpdatedAt = Now.AddMinutes(-5),
                 LastCommittedAtUtc = Now.AddMinutes(-5)
@@ -193,11 +195,10 @@ namespace iLearn.Tests
                     ScormVersion = "1.2",
                     SuspendData = "N4IgDiBcCMA0IFsoCZ4DcoG0AMBdAvkA",
                     LessonStatus = "incomplete",
-                    CompletionStatus = "completed",
+                    CompletionStatus = "incomplete",
                     SuccessStatus = "unknown",
-                    RawScore = 20m,
-                    SessionTime = "00:00:00",
-                    TotalTime = "00:00:00",
+                    RawScore = 0m,
+                    SessionTime = "02:33:55",
                     Exit = "suspend",
                     LastCommittedAtUtc = Now
                 }
@@ -205,13 +206,59 @@ namespace iLearn.Tests
 
             var updated = Assert.Single(result);
 
-            Assert.Equal("incomplete", updated.LessonStatus);
-            Assert.Equal("incomplete", updated.CompletionStatus);
-            Assert.Equal("unknown", updated.SuccessStatus);
+            Assert.Equal("completed", updated.LessonStatus);
+            Assert.Equal("completed", updated.CompletionStatus);
+            Assert.Equal("passed", updated.SuccessStatus);
             Assert.Equal("N4IgDiBcCMA0IFsoCZ4DcoG0AMBdAvkA", updated.SuspendData);
-            Assert.Equal(20m, updated.RawScore);
+            Assert.Equal(100m, updated.RawScore);
+            Assert.Equal("02:33:55", updated.SessionTime);
             Assert.Equal("suspend", updated.Exit);
             Assert.Equal(Now, updated.LastCommittedAtUtc);
+            Assert.Equal(1, unitOfWork.SaveCallCount);
+        }
+
+        [Fact]
+        public async Task UpsertAsync_AllowsTerminalStatusAndZeroScoreToOverridePreviousTerminalState()
+        {
+            var existingState = new ScormRuntimeState
+            {
+                Id = 1,
+                EnrollmentId = 11193,
+                ContentItemId = 1090,
+                ScormVersion = ScormRuntimeFieldMap.Scorm12,
+                LessonStatus = "passed",
+                CompletionStatus = "completed",
+                SuccessStatus = "passed",
+                RawScore = 100m,
+                CreatedAt = Now.AddMinutes(-10),
+                UpdatedAt = Now.AddMinutes(-5),
+                LastCommittedAtUtc = Now.AddMinutes(-5)
+            };
+
+            var repo = new InMemoryGenericRepository<ScormRuntimeState>([existingState], Now);
+            var unitOfWork = new FakeUnitOfWork();
+            var service = new ScormRuntimeStateService(repo, unitOfWork, new FakeDateTime(Now));
+
+            var result = await service.UpsertAsync(11193,
+            [
+                new ScormRuntimeContentItemCommitDto
+                {
+                    ContentItemId = 1090,
+                    ScormVersion = "1.2",
+                    LessonStatus = "failed",
+                    RawScore = 0m,
+                    SessionTime = "00:02:00",
+                    LastCommittedAtUtc = Now
+                }
+            ]);
+
+            var updated = Assert.Single(result);
+
+            Assert.Equal("failed", updated.LessonStatus);
+            Assert.Equal("completed", updated.CompletionStatus);
+            Assert.Equal("failed", updated.SuccessStatus);
+            Assert.Equal(0m, updated.RawScore);
+            Assert.Equal("00:02:00", updated.SessionTime);
             Assert.Equal(1, unitOfWork.SaveCallCount);
         }
 
@@ -324,6 +371,91 @@ namespace iLearn.Tests
         }
 
         [Fact]
+        public async Task ClearForEnrollmentsAsync_SoftDeletesRequestedStatesWithoutSavingWhenCallerOwnsCommit()
+        {
+            var states = new[]
+            {
+                new ScormRuntimeState { Id = 1, EnrollmentId = 123, ContentItemId = 10, CreatedAt = Now },
+                new ScormRuntimeState { Id = 2, EnrollmentId = 124, ContentItemId = 11, CreatedAt = Now },
+                new ScormRuntimeState { Id = 3, EnrollmentId = 125, ContentItemId = 12, CreatedAt = Now }
+            };
+            var repo = new InMemoryGenericRepository<ScormRuntimeState>(states, Now);
+            var unitOfWork = new FakeUnitOfWork();
+            var service = new ScormRuntimeStateService(repo, unitOfWork, new FakeDateTime(Now));
+
+            var clearedCount = await service.ClearForEnrollmentsAsync([123, 124], saveChanges: false);
+
+            Assert.Equal(2, clearedCount);
+            Assert.All(repo.Items.Where(state => state.EnrollmentId is 123 or 124), state => Assert.True(state.IsDeleted));
+            Assert.False(repo.Items.Single(state => state.EnrollmentId == 125).IsDeleted);
+            Assert.Equal(0, unitOfWork.SaveCallCount);
+        }
+
+        [Fact]
+        public async Task ClearForEnrollmentsAsync_SavesOnceWhenRequested()
+        {
+            var repo = new InMemoryGenericRepository<ScormRuntimeState>(
+            [
+                new ScormRuntimeState { Id = 1, EnrollmentId = 123, ContentItemId = 10, CreatedAt = Now }
+            ], Now);
+            var unitOfWork = new FakeUnitOfWork();
+            var service = new ScormRuntimeStateService(repo, unitOfWork, new FakeDateTime(Now));
+
+            var clearedCount = await service.ClearForEnrollmentsAsync([123]);
+
+            Assert.Equal(1, clearedCount);
+            Assert.Equal(1, unitOfWork.SaveCallCount);
+        }
+
+        [Fact]
+        public async Task ResetStatusAsync_ClearsRuntimeStateAndAssignmentSnapshots()
+        {
+            var enrollment = new Enrollment
+            {
+                Id = 123,
+                IsCompleted = true,
+                CompletedDate = Now.AddDays(-1),
+                Progress = 100,
+                ResetAt = Now.AddDays(-2)
+            };
+            var enrollmentRepo = new InMemoryGenericRepository<Enrollment>([enrollment], Now);
+            var assignmentLink = new EnrollmentAssignment
+            {
+                Id = 1,
+                EnrollmentId = enrollment.Id,
+                SnapshotCompleted = true,
+                SnapshotCompletedDate = Now.AddDays(-1),
+                SnapshotProgress = 100
+            };
+            var assignmentRepo = new InMemoryGenericRepository<EnrollmentAssignment>([assignmentLink], Now);
+            var runtimeStateService = new RecordingScormRuntimeStateService();
+            var service = new EnrollmentService(
+                enrollmentRepo,
+                assignmentRepo,
+                runtimeStateService,
+                null!,
+                null!,
+                null!,
+                null!,
+                null!,
+                null!,
+                new FakeDateTime(Now),
+                new FakeUnitOfWork());
+
+            var result = await service.ResetStatusAsync(enrollment.Id);
+
+            Assert.NotNull(result);
+            Assert.False(enrollment.IsCompleted);
+            Assert.Null(enrollment.CompletedDate);
+            Assert.Equal(0, enrollment.Progress);
+            Assert.Equal(Now, enrollment.ResetAt);
+            Assert.False(assignmentLink.SnapshotCompleted);
+            Assert.Null(assignmentLink.SnapshotCompletedDate);
+            Assert.Equal(0, assignmentLink.SnapshotProgress);
+            Assert.Equal(enrollment.Id, runtimeStateService.ClearedEnrollmentId);
+        }
+
+        [Fact]
         public async Task ClearForEnrollmentAsync_AllowsNextCommitToCreateCleanRuntimeState()
         {
             var previousState = new ScormRuntimeState
@@ -396,6 +528,26 @@ namespace iLearn.Tests
             public void Dispose()
             {
             }
+        }
+
+        private sealed class RecordingScormRuntimeStateService : IScormRuntimeStateService
+        {
+            public int? ClearedEnrollmentId { get; private set; }
+
+            public Task<IReadOnlyList<ScormRuntimeStateDto>> GetActiveStatesAsync(int enrollmentId, DateTime? resetAt = null) =>
+                Task.FromResult<IReadOnlyList<ScormRuntimeStateDto>>([]);
+
+            public Task<int> ClearForEnrollmentAsync(int enrollmentId, CancellationToken cancellationToken = default)
+            {
+                ClearedEnrollmentId = enrollmentId;
+                return Task.FromResult(0);
+            }
+
+            public Task<int> ClearForEnrollmentsAsync(IReadOnlyCollection<int> enrollmentIds, bool saveChanges = true, CancellationToken cancellationToken = default) =>
+                Task.FromResult(0);
+
+            public Task<IReadOnlyList<ScormRuntimeStateDto>> UpsertAsync(int enrollmentId, IReadOnlyCollection<ScormRuntimeContentItemCommitDto> contentItems, CancellationToken cancellationToken = default) =>
+                Task.FromResult<IReadOnlyList<ScormRuntimeStateDto>>([]);
         }
 
         private sealed class InMemoryGenericRepository<T> : IGenericRepository<T> where T : BaseEntity

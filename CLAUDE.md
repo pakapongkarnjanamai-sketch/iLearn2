@@ -70,6 +70,7 @@ Remove-Item -Recurse -Force artifacts\verify-test
 ## หมายเหตุเฉพาะทาง
 
 - `FileStorage.Data` เก็บ SCORM ZIP ทั้งก้อนเป็น `byte[]` ใน DB — **ห้าม Include/โหลด entity นี้ใน query รายการเด็ดขาด** ใช้ `ContentItem.CachedFileLength` แทน
+- SCORM iframe ต้อง same-origin กับหน้า Player — `FileSettings:HostUrl` ที่ไม่ตรงกับ host ที่ผู้ใช้เปิด = content เรียก `window.parent.API` ไม่ได้ → **ล้มเงียบ ผู้เรียนทำจนจบแต่ไม่บันทึก** (อาการที่เห็น: console `Lms initialization failed`, commit ส่ง `incomplete/rawScore 0`) — precedent PLAN-094/103
 - Controller ส่วนใหญ่คืน anonymous object (`Ok(new {...})`) — OpenAPI ใช้ generate type ไม่ได้ ต้องลอก shape ด้วยมือ
 - ห้ามลบ `src/lib/es-toolkit-compat/*` และ `useSyncExternalStoreWithSelectorShim.ts` — ถูกใช้ผ่าน vite alias สำหรับ recharts
 - Antigravity เก็บบันทึก session ไว้ที่ `C:\Users\n4734\.gemini\antigravity\brain\<guid>\` (เรียงตาม LastWriteTime) — Claude Code อ่านได้ถ้าต้องการ context เพิ่ม
