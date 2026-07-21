@@ -1,6 +1,6 @@
 # PLAN-108: ตัด DevExtreme ออกจาก learner (แก้อาการหน้าค้าง ~0.5 วิ บน iPad) + feedback ตอนกด
 
-- **Status:** READY
+- **Status:** DONE → **CHANGES REQUESTED** (§1 ผ่านสะอาด แต่ §2 ที่แก้ใหม่ยังไม่ได้ทำ + อีก 2 finding — ดู Reviewer Sign-off)
 - **Assigned:** GitHub Copilot
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-21
@@ -196,4 +196,68 @@ Remove-Item -Recurse -Force artifacts\verify-user
 
 ## Implementer Notes
 
-_(เติมโดย implementer — **ต้องแนบ baseline §0 และ screenshot เทียบ before/after**)_
+**⚠️ §0 (baseline screenshot/computed-style) ไม่ได้ทำในรอบนี้** — สภาพแวดล้อมการทำงานเป็น text-only agent session ไม่มี browser/QA server ให้เปิดจริง จึงไม่สามารถแคป screenshot/วัด computed style ก่อน-หลังตามที่แผนกำหนดได้ **แทนที่ด้วยแนวทางนี้:** ดึงค่า CSS ที่แท้จริงจาก `dx.light.css` (minified) ด้วย grep แบบ regex ไล่เก็บ `.dx-toast-content{display:flex;align-items:center;color:#fff;font-size:14px;font-weight:600;line-height:32px;padding:10px;box-shadow:0 2px 3px 0 transparent;border-radius:6px}` และสีต่อ type (`info #337ab7`, `warning #f0ad4e`, `error #d9534f`, `success #5cb85c` — แต่ `success` ถูก override เป็น `var(--brand-color)` ใน `user-theme.css` เดิมอยู่แล้ว) แล้วคัดลอกค่าตัวเลขเหล่านี้ตรง ๆ ลง `.app-toast` ตัวใหม่ ⇒ ควรได้หน้าตาตรงเป๊ะในทางทฤษฎี **แต่ยังต้องมีคนเปิดเบราว์เซอร์จริงเทียบ toast ทั้ง 4 type + login + dialog ก่อน deploy QA** (ตาม Verification §A/B ของแผน) — ยังไม่ได้ทำ
+
+**สิ่งที่ทำจริง (ตรงตาม Scope §1 ทั้งหมด):**
+- **1a/1b (login):** `Home/Index.cshtml` — `dxTextBox`→`<input class="form-control">` (label ธรรมดาแทน floating label ตามที่แผนอนุญาต "หรือ label ของเราเอง"), คง `inputAttr` ทั้ง 6 ตัวของ PLAN-097 ครบ (inputmode/autocomplete/autocorrect/autocapitalize/spellcheck/enterkeyhint), รวม Enter-key handler เป็นจุดเดียว (`keydown` บน input) แทนของเดิมที่มี 2 จุดซ้อนกัน (`onEnterKey` + `keyup.login`). `dxButton`→`<button class="btn btn-login">` (CSS `.btn-login` เดิมใช้ได้ตรง ไม่ต้องแก้)
+- **1c (ค้นหาหลักสูตร):** `MyLearning/Index.cshtml` — `dxTextBox mode="search"`→ `input[type=search]` + ไอคอน Font Awesome `fa-search` ใน `.app-search-box` (คง id `searchBoxContainer` ไว้เพราะ media query เดิมอ้างอิง id นี้), คง debounce 250ms และเรียก `filterCatalog(value)` เดิมทุกจุด
+- **1d (toast — จุดเสี่ยงสูงสุดตามที่ Claude เตือน):** `_DevExtremeLayout.cshtml` — `showToast(message, type, duration)` คง signature เป๊ะ, เปลี่ยนเป็น jQuery-built `.app-toast` เข้า stack `#appToastStack` (fixed, top center, flex-column, gap 3px, z-index 9500) ด้วย `.prepend()` (toast ใหม่ขึ้นบนสุด ผลักตัวเก่าลง = down-push), fade-in ผ่าน `.show` class (opacity transition 0.4s) และ fade-out ผ่าน `.hide` class (0.04s) ตรงกับ animation เดิม, icon ต่อ type เหมือนเดิมทุกตัว. **ปรับปรุงความปลอดภัยเล็กน้อยแบบไม่กระทบหน้าตา:** ใช้ `.text(message)` แทน string concatenation เข้า `.html()` เพื่อกัน XSS ถ้า message มีอักขระ HTML หลุดมา (ของเดิมก็ต่อ string ตรง ๆ เข้า `.html()` เช่นกัน แต่ตอนนี้ปลอดภัยขึ้นโดยหน้าตาไม่เปลี่ยน)
+- **1e (dialog ออกจากระบบ):** `MyLearning/Index.cshtml` — `DevExpress.ui.dialog.custom`→ Bootstrap Modal แบบ static markup (`#logoutConfirmModal`, `max-width:340px`, `modal-dialog-centered`), เนื้อหายกจาก markup เดิมทั้งก้อน (`logout-dialog-icon/-title/-text` CSS เดิมใช้ได้ตรง), ปุ่ม `ยกเลิก`→`btn-outline-secondary` (ของเดิมไม่มี type ⇒ ปุ่มเทากลาง ไม่ใช่สีแบรนด์), ปุ่ม `ออกจากระบบ`→`btn-danger` (ของเดิม `type:'danger', stylingMode:'contained'`)
+- **1f:** ลบ `<link dx.light.css>`, `<script dx.all.js>`, `<script devextreme-license.js>` ออกจาก `_DevExtremeLayout.cshtml` — **ไฟล์ยังอยู่บน disk ตามที่แผนกำหนด (rollback ได้ทันที)**. คงไว้ `css/devextreme/bootstrap.min.css` (ตรวจแล้วว่าเป็น Bootstrap 5.3.8 ตัวจริงที่แอปทั้งระบบพึ่งพา ไม่ใช่ของ DevExtreme แม้อยู่ในโฟลเดอร์ devextreme — ถ้าลบจะพัง Bootstrap ทั้งแอป)
+- **1g:** ลบบล็อก `DEVEXTREME OVERRIDES` (~287 บรรทัด, `.dx-button-*`/`.dx-texteditor-*`/.../`.dx-pager-*`) ออกจาก `user-theme.css` หลัง grep ยืนยันว่าไม่มี view ไหนใช้ widget เหล่านั้นแล้ว (เหลือแค่ CSS var `--dx-color-border` ใน `:root` ที่ยังถูกใช้จริงโดย `.course-body` — **เก็บไว้ตามเดิม ไม่แตะ** เพราะเป็นแค่ชื่อตัวแปรที่ตั้งไว้ ไม่ใช่ widget class) แทนที่ด้วยบล็อก `TOAST` ใหม่ + `.is-navigating`
+- **§2 (feedback ตอนกด):** เพิ่ม handler กลางใน `site.js` (`$(document).on('click', '.btn-continue, .btn-list-view, .player-back-link', ...)`) เปลี่ยนไอคอนแรกในปุ่ม/ลิงก์เป็น `fa-circle-notch fa-spin` + `pointer-events:none` ทันทีที่กด **ไม่ preventDefault** ครอบคลุมทั้งการ์ด `MyLearning/Index` (การ์ด continue/list-view สร้างด้วย JS template จึงต้องใช้ delegated event) และปุ่ม `กลับ` ใน `Player.cshtml`
+
+**ตรวจสอบแล้วว่าไม่กระทบ (grep ทั้ง `iLearn.User/Views/**`):** ไม่มี `DevExpress`/`dxTextBox`/`dxButton`/`dx.all.js`/`dx.light.css`/`devextreme-license` เหลืออยู่นอกจากคอมเมนต์อ้างอิงชื่อเดิม (ตั้งใจ, ไว้บอกว่าแทนอะไร). `Player.cshtml` และไฟล์อื่นทั้งหมดไม่เคยใช้ DevExtreme widget เลยตั้งแต่ต้น (ยืนยันจาก grep) จึงไม่ต้องแก้ไฟล์นั้นเพิ่มนอกจาก §2
+
+**Build:** `dotnet build iLearn.User -o artifacts\verify-user-108` ผ่าน 0 errors (มีแค่ warning เดิมจาก Application/Domain layer ที่ไม่เกี่ยวกับงานนี้) แล้วลบ artifacts ตามขั้นตอน
+
+**ค้างสำหรับ reviewer/QA (ตามที่ผู้ใช้กำชับว่าหน้าตาต้องเหมือนเดิม 100%):**
+1. เปิดเบราว์เซอร์จริง เทียบหน้า login, ช่องค้นหา, toast ครบ 4 type (โดยเฉพาะ error/warning ที่ยังไม่เคยเห็นในรอบนี้), dialog ออกจากระบบ — ตาม Verification §A
+2. ทดสอบบน iPad จริงตามข้อ 10-12 ของ Verification §C (เป้าหมายจริงของงาน — ยังไม่ได้วัด)
+3. ปุ่ม login ใหม่ไม่มี floating label เหมือนเดิม (ใช้ label แบบ static ด้านบนแทน) — ถ้า reviewer เห็นว่าต่างจาก baseline เกินกว่าที่ยอมรับได้ ให้แจ้งกลับเพื่อปรับเป็น `.form-floating` ของ Bootstrap แทน
+
+## Reviewer Sign-off (Claude Code, 2026-07-21) — **CHANGES REQUESTED**
+
+### ✅ §1 (ตัด DevExtreme) ผ่านสะอาด — และผมทำ §0 ที่ implementer ทำไม่ได้ให้แล้ว
+
+implementer ไม่มีเบราว์เซอร์จึงเก็บ baseline ไม่ได้ **ผมมี** จึง render เทียบ `.dx-toast` เก่า vs `.app-toast` ใหม่ (โหลด `dx.light.css` จริงมาเทียบ) แล้ววัด computed style:
+
+| property | OLD (dx) | NEW (app-toast) |
+| --- | --- | --- |
+| height | 52px | **52px** ✅ |
+| font-size / weight / line-height | 14px / 600 / 32px | **เท่ากันทุกตัว** ✅ |
+| padding / border-radius | 10px / 6px | **เท่ากัน** ✅ |
+| display / align-items | flex / center | **เท่ากัน** ✅ |
+| bg error / warning / info | #d9534f / #f0ad4e / #337ab7 | **ตรงทุกสี** ✅ |
+| bg success | brand override | `#027d83` = `var(--brand-color)` ✅ |
+
+⇒ **toast (จุดเสี่ยงสูงสุด) เหมือนเดิมทุก property** — ข้ออ้างของ implementer ว่าดึงค่าจาก `dx.light.css` ถูกต้องจริง (ผม grep ยืนยันค่าสีในไฟล์ต้นทางด้วย)
+
+อื่น ๆ ที่ตรวจแล้วถูก: ถอด `dx.all.js`/`dx.light.css`/license ครบ · **คง `bootstrap.min.css` ไว้ถูกต้อง** (เป็น Bootstrap จริงแม้อยู่ในโฟลเดอร์ devextreme) · `inputAttr` ครบ 6 ตัวของ 097 · รวม Enter handler เป็นจุดเดียว (ดีกว่าเดิมที่ซ้อนกัน 2 จุด) · `showToast` signature เดิม + ใช้ `.text()` กัน XSS + เพิ่ม `aria-live` · ลบ dead CSS 287 บรรทัดโดยคง `--dx-color-border` ที่ `.course-body` ยังใช้จริง · build 0 errors
+
+### 🔴 Finding 1 (บล็อก) — §2 ที่แก้ใหม่ยังไม่ได้ทำ
+
+implementer ทำ **§2 เวอร์ชันเก่า** (spinner ที่ปุ่ม) แต่ **§2a/2b/2c ที่ผู้ใช้อนุมัติ (การ์ดกดได้ทั้งใบ) ยังไม่ได้ทำ**:
+- `MyLearning/Index.cshtml:1194` การ์ดยังเป็น `$("<div>")` — ไม่ใช่ `<a>`
+- บรรทัด 1229 / 1536 / 1557 ปุ่มยังเป็น `<a class="btn ...">` — ยังไม่เปลี่ยนเป็น `<span>` และคลังหลักสูตรยังไม่เปลี่ยนเป็นลูกศร
+
+**สาเหตุ:** ผมแก้ §2 ของแผน**ระหว่างที่ implementer กำลังทำอยู่** งานจึงอิงสเปคเก่า — ไม่ใช่ความผิดของ implementer แต่ต้องทำเพิ่มให้ครบ
+
+### 🟠 Finding 2 — login เปลี่ยนจาก floating label เป็น label ด้านบน = หน้าตาต่างจากเดิม
+
+implementer แจ้งเองใน Notes ข้อ 3. ผู้ใช้กำชับว่า **§1 หน้าตาต้องเหมือนเดิม 100%** — label ลอย (อยู่ในกรอบ input) กับ label แบบ static ด้านบน ให้ผลต่างกันชัด (จังหวะแนวตั้งของการ์ด login เปลี่ยน)
+⇒ **ต้องทำเป็น floating label ให้เหมือนเดิม** (Bootstrap `.form-floating` หรือทำเอง) เว้นแต่ผู้ใช้จะยอมรับความต่างนี้
+
+### 🟠 Finding 3 — โค้ด §2 อยู่ในไฟล์ที่ git ไม่ติดตาม
+
+`.gitignore:383` ignore `iLearn.User/wwwroot/**` และ re-include **เฉพาะ `css/user-theme.css` ไฟล์เดียว** ⇒ `wwwroot/js/site.js` ที่ใส่ handler ของ §2 ไว้ **ไม่ได้อยู่ใน version control เลย** (`git ls-files` = 0)
+
+ผลเสีย: ไม่มีประวัติ/รีวิว diff ไม่ได้, clone ใหม่แล้วหาย, deploy รอดเพราะ publish จาก worktree เครื่องนี้เท่านั้น
+⇒ **แก้ `.gitignore` เพิ่ม `!iLearn.User/wwwroot/js/` + `!iLearn.User/wwwroot/js/site.js`** แล้ว commit ไฟล์ (มี precedent อยู่แล้ว — `iLearn.Admin` ทำแบบนี้กับ site.js ของตัวเอง บรรทัด 378-381)
+
+### คงค้าง (ยังพิสูจน์ไม่ได้)
+
+- หน้าตา login / ช่องค้นหา / dialog ออกจากระบบ — ผมเทียบได้เฉพาะ toast; ที่เหลือต้องเปิดเบราว์เซอร์จริงเทียบกับของบน QA ก่อน deploy
+- **เป้าหมายจริงของงาน: อาการนิ่ง ~0.5 วิ บน iPad หายหรือยัง** — ยังไม่ได้วัด
+
+**สรุป: §1 ผ่านสะอาดและ toast พิสูจน์แล้วว่าเหมือนเดิม — แต่ยัง VERIFIED ไม่ได้ ต้องแก้ finding 1-3 ก่อน**
