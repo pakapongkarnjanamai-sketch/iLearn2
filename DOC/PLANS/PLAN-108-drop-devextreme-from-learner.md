@@ -261,3 +261,41 @@ implementer แจ้งเองใน Notes ข้อ 3. ผู้ใช้ก
 - **เป้าหมายจริงของงาน: อาการนิ่ง ~0.5 วิ บน iPad หายหรือยัง** — ยังไม่ได้วัด
 
 **สรุป: §1 ผ่านสะอาดและ toast พิสูจน์แล้วว่าเหมือนเดิม — แต่ยัง VERIFIED ไม่ได้ ต้องแก้ finding 1-3 ก่อน**
+
+## 🔧 Fixes Required (Claude Code, 2026-07-21) — ทำ 3 ข้อนี้แล้วส่งรีวิวใหม่
+
+### Fix 1 (🔴) — ทำ §2a/2b/2c ให้ครบ (การ์ดกดได้ทั้งใบ)
+
+ทำตามสเปคใน **§2 ของแผนนี้** ที่แก้ไว้แล้ว (2a/2b/2c) — ตอนนี้ยังเป็นของเดิม:
+- `MyLearning/Index.cshtml:1194` การ์ด "หลักสูตรของฉัน" ยังเป็น `$("<div>")` → ต้องเป็น `$("<a>")` + `href`
+- การ์ด catalog (grid) และแถว list ก็เช่นกัน
+- ปุ่มข้างใน: หลักสูตรของฉัน `<a>`→`<span>` (ข้อความเดิม) · catalog เอาปุ่มออกเหลือลูกศร
+- **อย่าลืม:** `course-item`/`catalog-course-item`/`carousel-card`/`data-status` ต้องอยู่บน element นอกสุด, ห้ามเหลือ `<a>` ซ้อน `<a>`
+- handler ใน `site.js` (`.btn-continue, .btn-list-view`) ต้องปรับ selector ให้ตรงกับโครงใหม่ (ปุ่มกลายเป็น span/หายไป) — ควรจับที่ตัวการ์ดแทน
+
+### Fix 2 (🟠) — คืน floating label ให้เหมือนเดิม (**ผู้ใช้ตัดสินแล้ว: เอาแบบเดิม**)
+
+ผมรัน DevExtreme ตัวจริงแล้ววัดค่าให้ — **ทำตามตัวเลขนี้ได้เลย ไม่ต้องเดา**
+
+**พฤติกรรม:** เป็น floating label จริง ไม่ใช่ label ด้านบน — และหน้า login `focus()` อัตโนมัติหลัง 300ms ผู้ใช้จึงเห็นสถานะ "ลอย" ทันทีที่เข้าหน้า
+
+| สถานะ | label | placeholder |
+| --- | --- | --- |
+| **ว่าง + ไม่ focus** | อยู่**ในช่อง** `font-size:14px` `color:#999` `left:9px` (กึ่งกลางแนวตั้ง, top offset 17px จากขอบบนของช่องสูง 50px) | **ซ่อน** |
+| **focus หรือมีค่า** | **ลอยขึ้นคร่อมเส้นขอบบน** `font-size:12px` `left:9px` **`top offset -7px`** (ครึ่งบนอยู่เหนือขอบ) · สีตอน focus = `var(--brand-color)` · สีตอนมีค่าแต่ไม่ focus = `#999` | **แสดง** `กรอกรหัสพนักงาน` 14px `#999` |
+
+**ค่าอื่นของช่อง:** `height:50px` · `border-radius:4px` · `border:1px solid #ddd` · พื้นหลังขาว · input `font-size:14px` `color:#333` `padding-left:9px` · ตอน focus ขอบเปลี่ยนเป็น `var(--brand-color)`
+
+**วิธีทำ (แนะนำ):** wrapper `position:relative` + `<label>` `position:absolute; left:9px` แล้วเลื่อน/ย่อด้วย `:focus-within` และ `:not(:placeholder-shown)`; ให้ label มีพื้นหลังขาว + `padding:0 4px` เพื่อ "เจาะ" เส้นขอบตอนลอย (เลียนแบบ notched outline ของ dx ที่ใช้ `dx-label-before/after`) และใส่ `transition` ให้ขยับนุ่มเหมือนเดิม
+
+### Fix 3 (🟠) — เอา `site.js` เข้า version control
+
+`.gitignore:383` ignore `iLearn.User/wwwroot/**` และ re-include แค่ `css/user-theme.css` ⇒ โค้ด §2 หลุดจาก git
+- เพิ่มกติกาต่อจากบรรทัด 384-385: `!iLearn.User/wwwroot/js/` และ `!iLearn.User/wwwroot/js/site.js`
+- แล้ว `git add` ไฟล์นั้น (ทำตาม precedent ของ `iLearn.Admin` บรรทัด 378-381)
+- **ห้าม un-ignore ทั้ง `wwwroot/`** — vendored libs (devextreme/bootstrap/font-awesome) ต้องยัง ignore อยู่
+
+### หลัง 3 ข้อนี้ ยังต้องทำก่อน VERIFIED
+
+- เทียบหน้าตาจริงบนเบราว์เซอร์: login (ทั้ง 2 สถานะ), ช่องค้นหา, dialog ออกจากระบบ — toast ผมเทียบให้แล้วผ่าน
+- **วัดว่าอาการนิ่ง ~0.5 วิ บน iPad หายจริงไหม** (เป้าหมายของงาน)
