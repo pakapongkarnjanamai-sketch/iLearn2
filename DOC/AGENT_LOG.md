@@ -2,6 +2,14 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-21 —] Claude Code — วินิจฉัยอาการหน้าค้าง ~0.5 วิ บน iPad + เขียน PLAN-108 (ตัด DevExtreme)
+- ทำอะไร: ผู้ใช้ทดสอบ iPad แล้วทุกอย่างดี ยกเว้นกด `ดูเนื้อหา`/`เริ่มเรียน` แล้วหน้านิ่ง ~0.5 วิ. **วินิจฉัย: ไม่ใช่โค้ดตอนกด** — ปุ่มเป็น `<a href>` ธรรมดาไม่มี handler ⇒ เป็นต้นทุน parse/execute ของหน้าที่โหลดใหม่. grep พบว่า **ทั้ง learner app ใช้ DevExtreme แค่ 4 อย่าง** (dxTextBox×3, dxButton×2, notify×2, dialog.custom×1) แต่โหลด `dx.all.js` **5.1 MB** + `dx.light.css` 676 KB ทุกหน้า — brotli ของ 096 ลดแค่ขนาดส่ง **ไม่ลดเวลา parse** ซึ่งบน CPU iPad = ~300-600ms ตรงกับอาการ. เขียน PLAN-108: §0 เก็บ baseline หน้าตาก่อน (บังคับ — เพราะ `.dx-toast-content-custom` ไม่มี CSS ของเราเลย หน้าตา toast มาจาก dx.light.css ล้วน), §1 แทนที่ 4 จุดด้วย Bootstrap/vanilla ที่โหลดอยู่แล้ว + ตัด asset + ลบ dead CSS 287 บรรทัด, §2 feedback ตอนกดปุ่มนำทาง. เป้า: JS ต่อหน้า **5.3MB → ~170KB**
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-108-drop-devextreme-from-learner.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มีในตัวแผน (108 จะเอา `DevExpress` namespace ออก แต่ **`showToast` ต้องคง signature เดิม**)
+- Verified: — (แผน; grep การใช้ DevExtreme ทั้ง Views/, du ขนาด asset, อ่านโค้ดทั้ง 4 จุด + CSS ที่เกี่ยวข้อง)
+- **🔒 ข้อจำกัดจากผู้ใช้: หน้าตา UI ต้องเหมือนเดิม 100%** ⇒ แผนบังคับเก็บ baseline (screenshot + computed style) ก่อนแตะโค้ด และ verification ต้องแนบ before/after เทียบ
+- **ถึง Copilot: จุดเสี่ยงสูงสุดคือ §1d (toast)** — ถ้าพัง error ทั้งระบบจะเงียบ (session หมดอายุ/login ผิด ผู้ใช้ไม่เห็นอะไร); `.btn-login` และ `.logout-dialog-*` มี CSS ของเราอยู่แล้วจึงง่าย; **ห้ามลบไฟล์ dx.all.js ออกจากโฟลเดอร์** เพื่อให้ rollback ได้ทันทีด้วยการคืน `<script>` ใน layout
+
 ## [2026-07-21 15:36] GitHub Copilot — QA deploy: PLAN-107 (ซ่อนสถานะ/progress ในโหมดดูอย่างเดียว)
 - ทำอะไร: deploy `iLearn.User` ขึ้น QA ด้วย `tools\deploy-user.ps1 -HealthCheckUrl 'https://ap-ntc2138-qawb/iLearn/'` (host default = QA, ไม่มี `-Prod`) หลัง PLAN-107 ผ่านรีวิวจาก Claude Code แล้ว ไม่มี migration ไม่แตะ iLearn.API/iLearn.Admin ไม่ deploy PROD
 - QA live stamp: `\\AP-NTC2138-QAWB\wwwroot\iLearn\_user_deploy_20260721153643`, web.config → `.\_user_deploy_20260721153643\iLearn.User.dll`, previous `_user_deploy_20260721142236`. Health check HTTP 200 attempt แรก, `AutoRolledBack=False`, เก็บ 3 stamp ล่าสุด (ลบ stale 1)
