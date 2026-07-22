@@ -1,6 +1,6 @@
 # PLAN-111: Category มี running no (SortOrder) ต่อ Division — admin แก้ได้ + ตัดเลขหน้าชื่อ
 
-- **Status:** REVIEWED
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot (§1/§2 backend) + Antigravity Gemini (§3 React) — **contract §2 FREEZE**
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -132,6 +132,16 @@ Manual (QA):
   - Successfully ran `dotnet ef database update` locally against the QA DB to apply the hand-written `AddSortOrderToCategory` migration.
   - Verified React project builds and lints with 0 errors (`npm run lint` & `npm run build` passed).
   - Verified backend project builds and all 222 xUnit tests pass cleanly.
+
+## PROD Deploy (GitHub Copilot, 2026-07-22)
+
+ทำตามคำยืนยันผู้ใช้ (deploy รวมกับ PLAN-110 เพราะอยู่ HEAD เดียวกัน):
+
+- Backup `Categories` บน PROD → `dbo.Categories_Backup_20260722` (41 แถว) ก่อนรัน migration
+- `dotnet ef database update --connection <PROD>` → apply `20260722030000_AddSortOrderToCategory` — verify: 41/41 แถว backfill ถูกต้อง, 0 แถวเหลือ prefix เลขนำหน้าชื่อ, SortOrder เรียงถูกต่อ division
+- Deploy API PROD (`tools/deploy-api-prod.ps1`) — stamp `_deploy_20260722101547`, health check HTTP 401 attempt 1/5, `AutoRolledBack=False`
+- ไม่ได้ smoke หน้า admin Categories grid โดยตรงรอบนี้ (ต้อง Windows-auth login ผ่าน browser) — ยืนยันทางอ้อมด้วย DB query โดยตรง (ข้อมูลถูกต้อง) + health check ไม่ 500
+- **คงค้าง:** manual smoke ข้อ 4-6 ใน Verification (เปิด admin React จริง, แก้ sortOrder แล้ว refresh, learner sidebar เรียงตามลำดับใหม่) ยังไม่ได้ทำบน PROD รอผู้ใช้เปิดใช้จริง
 
 ## Reviewer Sign-off (Claude Code, 2026-07-22)
 

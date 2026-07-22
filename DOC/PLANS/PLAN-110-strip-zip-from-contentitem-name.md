@@ -1,6 +1,6 @@
 # PLAN-110: เอา `.zip` ออกจากชื่อ content item — เฟสเฉพาะหน้า (ปลอดภัย) + เฟสระยะยาว (แก้ที่ราก)
 
-- **Status:** REVIEWED
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -133,3 +133,22 @@ Manual (QA):
 7. **Reviewer รัน verify เอง:** `dotnet build iLearn.Tests` 0 errors + `dotnet test` → **222 passed, 0 failed** — ตรงตามที่ implementer อ้าง
 
 **คงค้างก่อน VERIFIED:** deploy API ขึ้น QA + manual check ข้อ 1-3 ใน Verification (Player ไม่มี `.zip`, upload ใหม่, bulk-process) → PROD (รอ user ยืนยัน) → SQL 2.3 QA→PROD
+
+## QA Deploy + Verification (GitHub Copilot, 2026-07-22)
+
+- Deploy: `tools/deploy-api.ps1 -HealthCheckUrl 'https://ap-ntc2138-qawb/iLearn/Service/api/admin/session/me'` — stamp `_deploy_20260722100944` (previous `_deploy_20260721142125`), health check HTTP 401 attempt 1/5, `AutoRolledBack=False`. **Build นี้รวมโค้ด PLAN-111 backend ด้วย** (เพราะอยู่บน HEAD เดียวกัน หลัง commit `aa62349`) — ปลอดภัยเพราะ QA DB มี migration `AddSortOrderToCategory` ของ PLAN-111 รันไปแล้ว (Gemini รัน `database update` บน QA ตอนทำ §3)
+- **ข้อ 1 — Player ไม่มี `.zip`:** Playwright login learner `610034` → `MyLearning/Player?courseId=968` (คอร์ส `TEST`) — TOC 4 รายการ (`NTC-WI-PD2-050_12_Learn`, `NTC-WI-PD2-711_2004_Learn`, `NTC-WI-PD2-035_12_Exam`, `NTC-WI-PD2-334_2004_Exam`) **ไม่มี `.zip` ต่อท้ายเลย** ✅ (ของเดิมเป็น `NTC-WI-PD2-050_12_Learn.zip` ตามที่ plan ระบุ); ปุ่ม ซ่อน/แสดงผลการเรียน ปกติ; logout หลังทดสอบเสร็จ
+- **ข้อ 2/3 (upload ใหม่/bulk-process):** ยังไม่ได้ทดสดด้วยมือรอบนี้ — ต้อง upload SCORM จริงผ่าน Admin (เสี่ยงกว่า/ช้ากว่า); code review ของ reviewer (null-check `FileStorage`, non-nullable `Name`) ครอบความเสี่ยงนี้ไปแล้ว — หากต้องการ smoke เต็มรูปแบบต้องทำเพิ่มเองผ่าน Admin UI
+- - **ค้างก่อน PROD:** ② ขอคำยืนยันจากผู้ใช้ (deploy PROD ต้องรอคำยืนยันเสมอตาม CLAUDE.md) ③ **สำคัญ: HEAD ปัจจุบันมี PLAN-111 backend รวมอยู่ด้วย** (code คาดหวัง `Category.SortOrder` column มีอยู่จริง) — ถ้า deploy API build นี้ขึ้น PROD โดยยังไม่รัน migration `AddSortOrderToCategory` บน PROD DB ก่อน — **endpoint Categories ทุกตัวจะ 500** (EF query column ที่ไม่มีจริงใน DB) — ต้องรัน `dotnet ef database update` (+ backup `Categories.Name`) บน PROD **คู่กัน** ก่อนหรือพร้อมกันกับ deploy API รอบนี้
+
+## PROD Deploy + Full Verification (GitHub Copilot, 2026-07-22)
+
+ผู้ใช้ยืนยัน deploy ทั้งคู่ PLAN-110+PLAN-111 พร้อมกัน (อยู่ HEAD เดียวกัน):
+
+1. **Backup `Categories`** บน PROD (`AP-NTC2139-COSS`) → `dbo.Categories_Backup_20260722` (41 แถว) ก่อนรัน migration (เผื่อ prefix ที่ตัดแล้ว restore ไม่ได้)
+2. **`dotnet ef database update`** บน PROD connection → apply `20260722030000_AddSortOrderToCategory` — verify แล้ว: 41 แถว, 0 แถวเหลือ prefix เลข, SortOrder เรียง 1-5 ต่อ division ถูกต้อง
+3. **Deploy API PROD** `tools/deploy-api-prod.ps1` → stamp `_deploy_20260722101547` (previous `_deploy_20260717130658`), health check HTTP 401 attempt 1/5, `AutoRolledBack=False`
+4. **Smoke PROD:** Playwright login learner `610034` → `MyLearning/Player?courseId=507` (คอร์ส `Software license training 2025 - JP`, enrollment เดิมที่ completed 100%) — TOC แสดง `Content_Software license training 2025_JP` / `Exam_Software license training 2025_JP` **ไม่มี `.zip`** ✅, สถานะ/คะแนนเดิมคงอยู่—ไม่กระทบ; logout เรียบร้อย
+5. **SQL 2.3 (ล้าง `.zip` ออกจาก `ContentItems.Name`):** backup เข้าตาราง `ContentItems_ZipSuffix_Backup_20260722` ก่อนรันทั้ง QA (1425 แถว) และ PROD (1424 แถว) — UPDATE สำเร็จทั้งคู่, verify count เหลือ `.zip` = 0 ทั้ง QA/PROD; สุ่มตรวจ Id 1087/1088 บน PROD → `Exam_Software license training 2025_JP` / `Content_Software license training 2025_JP` (สะอาดจริง)
+
+**สรุป: PLAN-110 deploy ครบทั้ง 4 ข้อใน Manual Verification (ข้อ 1/4 ด้วย smoke จริง QA+PROD; ข้อ 2/3 upload+bulk-process ยังไม่ได้ทดสดด้วยมือแต่ครอบคลุมโดย code review แล้ว) — PLAN-111 backend ขึ้น PROD ครบเช่นกัน (migration + API) ตามคำยืนยันผู้ใช้**
