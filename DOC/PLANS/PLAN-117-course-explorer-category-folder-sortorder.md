@@ -1,6 +1,6 @@
 # PLAN-117: Course explorer — โชว์ลำดับในชื่อ Category folder + แก้ลำดับได้จาก modal Edit
 
-- **Status:** READY
+- **Status:** REVIEWED
 - **Assigned:** Antigravity Gemini (React ไฟล์เดียว — `CourseListPage.tsx`)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -68,4 +68,19 @@ Manual (QA — `/admin-react/courses?divisionId=1`):
 
 ## Implementer Notes
 
-_(เติมโดย implementer)_
+- **§1**: อัปเดต `CategoryLookup` เพิ่ม `sortOrder: number` และสร้าง `sortCategoriesByOrder = (a, b) => ((a.sortOrder ?? 0) - (b.sortOrder ?? 0)) || (a.id - b.id)` สลับใช้แทน `sortByNameAsc` สำหรับ `categoriesByDivision` และ `singleDivision` list (ไม่แตะ division/course/root)
+- **§2**: จัดฟอร์แมตชื่อ category folder row ให้แสดงเลขลำดับแบบ `${cat.sortOrder}. ${cat.name}` เมื่อ `sortOrder > 0` โดยชื่อใน breadcrumb / modals ยังเป็นชื่อสะอาดตามเดิม
+- **§3**: เพิ่ม input `Sort Order (ลำดับ)` ใน Edit Category Modal (required, min=1) และ Create Category Modal (optional) พร้อมทั้งส่ง `sortOrder` ใน JSON payload ของ `handleRenameCategory` และ `handleCreateCategory`
+- **Verification**: `npm run lint` ผ่าน 0 errors และ `npm run build` ผ่าน 0 errors (built in 1.68s)
+
+## Reviewer Sign-off (Claude Code, 2026-07-22)
+
+**ผลรีวิว: ✅ ผ่าน — REVIEWED**
+
+1. **§1:** `CategoryLookup` +`sortOrder`; comparator ใช้ `?? 0` กัน undefined ดี; สลับ sort เฉพาะ `categoriesByDivision` + division-view list (ผ่าน `a.original as CategoryLookup` — list ณ จุดนั้นมีแต่ category folder จริง, `Uncategorized` push หลัง sort พร้อม `sortOrder: 0` ใน original ครบ type); division/root/course ยัง `sortByNameAsc` เดิม ✓
+2. **§2:** prefix `${sortOrder}. ${name}` เฉพาะ 2 จุดสร้าง ExplorerItem folder row; breadcrumb ใช้ `category.name` ตรงจาก lookup — ยืนยันไม่มีเลข ✓
+3. **§3:** Edit modal — ค่าเริ่มจาก `category.sortOrder`, `required` + `disabled` guard (`editCategorySortOrder === ''`) สองชั้น, ส่งเฉพาะเมื่อไม่ว่าง; Create modal — optional ตามแผน, payload ใส่ `sortOrder` เฉพาะเมื่อกรอก (ว่าง → backend default 0 → folder ไม่มีเลขจน admin ตั้ง) ✓
+4. **Reviewer รัน verify เอง:** `npm run lint`/`npm run build` 0 errors
+
+**คงค้าง: deploy Admin React ขึ้น QA → manual 1-5 → PROD รอผู้ใช้ยืนยัน** (รวม deploy กับ PLAN-116 ได้)
+

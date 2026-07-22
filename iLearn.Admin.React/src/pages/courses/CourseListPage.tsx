@@ -48,6 +48,7 @@ type CategoryLookup = {
   id: number
   name: string
   divisionId: number
+  sortOrder: number
   courseCount?: number
   description?: string | null
 }
@@ -104,6 +105,10 @@ function sortByNameAsc<T extends { name: string }>(a: T, b: T) {
   return a.name.localeCompare(b.name)
 }
 
+function sortCategoriesByOrder<T extends { sortOrder?: number; id: number }>(a: T, b: T) {
+  return ((a.sortOrder ?? 0) - (b.sortOrder ?? 0)) || (a.id - b.id)
+}
+
 export function CourseListPage() {
   const navigate = useNavigate()
   const { isSuperAdmin } = useSession()
@@ -113,12 +118,14 @@ export function CourseListPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryDescription, setNewCategoryDescription] = useState('')
+  const [newCategorySortOrder, setNewCategorySortOrder] = useState<number | ''>('')
   const [newCategoryDivisionId, setNewCategoryDivisionId] = useState<number | ''>('')
   const [submittingCreate, setSubmittingCreate] = useState(false)
 
   const [editingCategory, setEditingCategory] = useState<CategoryLookup | null>(null)
   const [editCategoryName, setEditCategoryName] = useState('')
   const [editCategoryDescription, setEditCategoryDescription] = useState('')
+  const [editCategorySortOrder, setEditCategorySortOrder] = useState<number | ''>('')
   const [submittingRename, setSubmittingRename] = useState(false)
 
   const [divisions, setDivisions] = useState<DivisionLookup[]>([])
@@ -157,7 +164,7 @@ export function CourseListPage() {
       existing.push(category)
       map.set(divId, existing)
     }
-    map.forEach(children => children.sort(sortByNameAsc))
+    map.forEach(children => children.sort(sortCategoriesByOrder))
     return map
   }, [categories])
 
@@ -346,6 +353,7 @@ export function CourseListPage() {
   const openCreateCategoryModal = useCallback(() => {
     setNewCategoryName('')
     setNewCategoryDescription('')
+    setNewCategorySortOrder('')
     setNewCategoryDivisionId('')
     setIsCreateModalOpen(true)
   }, [])
@@ -354,6 +362,7 @@ export function CourseListPage() {
     setEditingCategory(category)
     setEditCategoryName(category.name)
     setEditCategoryDescription(category.description || '')
+    setEditCategorySortOrder(category.sortOrder !== undefined && category.sortOrder !== null ? category.sortOrder : '')
   }, [])
 
   const handleCreateCategory = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
@@ -377,13 +386,18 @@ export function CourseListPage() {
 
     setSubmittingCreate(true)
     try {
-      const fd = new FormData()
-      fd.append('values', JSON.stringify({ 
+      const payload: Record<string, any> = { 
         name: nameVal, 
         divisionId: divisionIdVal, 
         isActive: true,
         description: newCategoryDescription.trim() || null
-      }))
+      }
+      if (newCategorySortOrder !== '') {
+        payload.sortOrder = Number(newCategorySortOrder)
+      }
+
+      const fd = new FormData()
+      fd.append('values', JSON.stringify(payload))
 
       await fetchWithAccessControl('admin/CategoriesCRUD/Post', {
         method: 'POST',
@@ -394,6 +408,7 @@ export function CourseListPage() {
       setIsCreateModalOpen(false)
       setNewCategoryName('')
       setNewCategoryDescription('')
+      setNewCategorySortOrder('')
       setNewCategoryDivisionId('')
       await loadData()
     } catch (error) {
@@ -402,7 +417,7 @@ export function CourseListPage() {
     } finally {
       setSubmittingCreate(false)
     }
-  }, [newCategoryName, newCategoryDescription, currentDivisionId, newCategoryDivisionId, loadData, singleDivision])
+  }, [newCategoryName, newCategoryDescription, newCategorySortOrder, currentDivisionId, newCategoryDivisionId, loadData, singleDivision])
 
   const handleRenameCategory = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -416,12 +431,17 @@ export function CourseListPage() {
 
     setSubmittingRename(true)
     try {
-      const fd = new FormData()
-      fd.append('key', String(editingCategory.id))
-      fd.append('values', JSON.stringify({ 
+      const valuesPayload: Record<string, any> = { 
         name: nameVal,
         description: editCategoryDescription.trim() || null
-      }))
+      }
+      if (editCategorySortOrder !== '') {
+        valuesPayload.sortOrder = Number(editCategorySortOrder)
+      }
+
+      const fd = new FormData()
+      fd.append('key', String(editingCategory.id))
+      fd.append('values', JSON.stringify(valuesPayload))
 
       await fetchWithAccessControl('admin/CategoriesCRUD/Put', {
         method: 'PUT',
@@ -432,6 +452,7 @@ export function CourseListPage() {
       setEditingCategory(null)
       setEditCategoryName('')
       setEditCategoryDescription('')
+      setEditCategorySortOrder('')
       await loadData()
     } catch (error) {
       console.error(error)
@@ -439,7 +460,7 @@ export function CourseListPage() {
     } finally {
       setSubmittingRename(false)
     }
-  }, [editingCategory, editCategoryName, editCategoryDescription, loadData])
+  }, [editingCategory, editCategoryName, editCategoryDescription, editCategorySortOrder, loadData])
 
   const handleDeleteCategory = useCallback(async (category: CategoryLookup) => {
     const coursesCount = coursesByCategory.get(category.id)?.length ?? 0
@@ -551,7 +572,7 @@ export function CourseListPage() {
         const count = coursesByCategory.get(cat.id)?.length ?? 0
         return {
           id: cat.id,
-          name: cat.name,
+          name: cat.sortOrder > 0 ? `${cat.sortOrder}. ${cat.name}` : cat.name,
           description: cat.description || 'Category folder',
           isFolder: true,
           countText: `${count} courses`,
@@ -568,7 +589,7 @@ export function CourseListPage() {
         const count = coursesByCategory.get(cat.id)?.length ?? 0
         return {
           id: cat.id,
-          name: cat.name,
+          name: cat.sortOrder > 0 ? `${cat.sortOrder}. ${cat.name}` : cat.name,
           description: cat.description || 'Category folder',
           isFolder: true,
           countText: `${count} courses`,
@@ -576,7 +597,7 @@ export function CourseListPage() {
         }
       })
 
-      list.sort(sortByNameAsc)
+      list.sort((a, b) => sortCategoriesByOrder(a.original as CategoryLookup, b.original as CategoryLookup))
 
       if (uncategorizedCourses.length > 0) {
         list.push({
@@ -585,7 +606,7 @@ export function CourseListPage() {
           description: 'Courses without division/category',
           isFolder: true,
           countText: '1 category',
-          original: { id: 0, name: 'Uncategorized' }
+          original: { id: 0, name: 'Uncategorized', divisionId: 0, sortOrder: 0 }
         })
       }
 
@@ -850,6 +871,19 @@ export function CourseListPage() {
               </div>
 
               <div className="space-y-1">
+                <label htmlFor="newCategorySortOrder" className="wiz-label">Sort Order (ลำดับ)</label>
+                <input
+                  id="newCategorySortOrder"
+                  type="number"
+                  min={1}
+                  value={newCategorySortOrder}
+                  onChange={event => setNewCategorySortOrder(event.target.value === '' ? '' : Number(event.target.value))}
+                  className="wiz-input"
+                  placeholder="e.g. 1, 2, 3..."
+                />
+              </div>
+
+              <div className="space-y-1">
                 <label htmlFor="categoryDescription" className="wiz-label">Description (คำอธิบาย)</label>
                 <textarea
                   id="categoryDescription"
@@ -918,6 +952,20 @@ export function CourseListPage() {
               </div>
 
               <div className="space-y-1">
+                <label htmlFor="editCategorySortOrder" className="wiz-label">Sort Order (ลำดับ) <span className="text-red-500">*</span></label>
+                <input
+                  id="editCategorySortOrder"
+                  type="number"
+                  min={1}
+                  required
+                  value={editCategorySortOrder}
+                  onChange={event => setEditCategorySortOrder(event.target.value === '' ? '' : Number(event.target.value))}
+                  className="wiz-input"
+                  placeholder="e.g. 1, 2, 3..."
+                />
+              </div>
+
+              <div className="space-y-1">
                 <label htmlFor="editCategoryDescription" className="wiz-label">Description (คำอธิบาย)</label>
                 <textarea
                   id="editCategoryDescription"
@@ -942,7 +990,7 @@ export function CourseListPage() {
                 type="submit"
                 variant="primary"
                 loading={submittingRename}
-                disabled={submittingRename || !editCategoryName.trim()}
+                disabled={submittingRename || !editCategoryName.trim() || editCategorySortOrder === ''}
                 className="px-4 py-2 text-xs font-bold shadow-3xs"
               >
                 Save Changes

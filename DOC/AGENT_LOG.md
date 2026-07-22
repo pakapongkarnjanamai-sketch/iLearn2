@@ -2,6 +2,27 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Claude Code — รีวิว PLAN-116 + PLAN-117 → REVIEWED ทั้งคู่ + commit (5f4389d + PLAN-117 ตามมา)
+- ทำอะไร: **PLAN-116** — callback/cursor หายครบ 2 chart + 2 callers, dim logic คงอยู่ (detail ยังส่ง `activeStatus` ⇒ sync กับ toolbar), sidebar label guard `>0` ถูกต้อง "ทั้งหมด" ไม่มีเลข. **PLAN-117** — mirror type + comparator `?? 0`, สลับ sort เฉพาะรายการ category (Uncategorized push หลัง sort พร้อม sortOrder 0), prefix เฉพาะ folder row (breadcrumb ใช้ `category.name` ตรง — สะอาด), Edit modal required+disabled สองชั้น ค่าเริ่มถูก, Create modal optional ส่ง field เฉพาะเมื่อกรอก. รัน verify เอง: lint + React build + iLearn.User build 0 errors ครบ
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-116-*.md` + `PLAN-117-*.md` (→REVIEWED + Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว)
+- Verified: npm lint/build + dotnet build iLearn.User โดย reviewer เอง
+- **คงค้าง deploy สะสม (รอผู้ใช้ยืนยัน): QA = Admin React (114+115+116+117) + API (114) + iLearn.User (116); PROD = PLAN-113 (API+User) + ทั้งหมดข้างต้นหลัง QA ผ่าน** — ตอน smoke QA อย่าลืมปิด loop PLAN-115 ข้อ 1-2 (Edit Properties + แก้ sortOrder ผ่าน UI)
+
+## [2026-07-22 —] GitHub Copilot — PLAN-116: implement ยกเลิกคลิก filter บน chart + เลขลำดับหน้าชื่อหมวด learner sidebar — build/lint ผ่าน รอ deploy
+- ทำอะไร: **§1** `AssignmentReportCharts.tsx` ตัด `onSelectStatus`/`onSelectCourse` props + `cursor="pointer"`/`onClick` ออกจาก `<Pie>`/`<Bar>` ทั้งสอง component คง `activeStatus`/`activeCourse` + fillOpacity dim logic ไว้ครบ (chart ยังสะท้อน filter จาก toolbar). แก้ 2 callers: `AssignmentDetailPage.tsx` ลบ callback (เดิมสลับ tab→'learners'+set filter — toolbar `learnerStatusFilter` เดิมยังทำงานปกติไม่ได้แตะ), `AssignmentReportPage.tsx` ลบ callback (toolbar `statusFilter`/`courseFilter` เดิมยังอยู่). **§2** `MyLearning/Index.cshtml` `renderCategorySidebar`: เพิ่ม `${sortOrder}. ${name}` เฉพาะเมื่อ `sortOrder > 0`, แถว "ทั้งหมด" ไม่มีเลข
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/{AssignmentReportCharts.tsx,AssignmentDetailPage.tsx,AssignmentReportPage.tsx}`, `iLearn.User/Views/MyLearning/Index.cshtml`, `DOC/PLANS/PLAN-116-*.md` (→DONE + Implementer Notes), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี API/DB — internal component props (`StatusDonut`/`CourseCompletionBars` ตัด callback), callers แก้ครบทั้ง 2 ไฟล์
+- Verified: `npm run lint` 0 errors, `npm run build` 0 errors; `dotnet build iLearn.User\iLearn.User.csproj -o artifacts\verify-user` succeeded 0 errors (74 pre-existing nullable warnings ไม่เกี่ยว), artifacts ลบแล้ว
+- **คงค้าง:** manual QA smoke (คลิก chart ไม่มีอะไรเกิดขึ้น + hover tooltip ปกติ + sidebar เลขลำดับ) ยังไม่ทำ รอ deploy QA — deploy iLearn.User ขึ้น PROD ต้องพา PLAN-113 ไปด้วย (HEAD เดียวกัน, ยังรอผู้ใช้ยืนยัน PROD)
+
+
+## [2026-07-22 —] Antigravity — PLAN-117: Course explorer โชว์ลำดับใน Category folder + Edit modal แก้ลำดับได้
+- ทำอะไร: implement ตาม PLAN-117 — **§1** เพิ่ม `sortOrder: number` ใน `CategoryLookup` + comparator `sortCategoriesByOrder` เรียงตาม `sortOrder` แล้วตามด้วย `id` ใน `categoriesByDivision` และ `singleDivision` (ไม่แตะ division/course/root) **§2** แสดงชื่อ category folder เป็น `${cat.sortOrder}. ${cat.name}` เฉพาะเมื่อ `sortOrder > 0` (breadcrumb/modal ชื่อยังคงสะอาดไม่มีเลข) **§3** เพิ่ม number input `Sort Order (ลำดับ)` ใน Edit Category Modal (`required`, `min={1}`) และ Create Category Modal (optional) พร้อมส่ง `sortOrder` ใน `handleRenameCategory` และ `handleCreateCategory`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseListPage.tsx`, `DOC/PLANS/PLAN-117-course-explorer-category-folder-sortorder.md` (->DONE), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (mirror ตาม backend DTO เดิม)
+- Verified: `npm run lint` ผ่าน 0 errors, `npm run build` ผ่าน 0 errors (built in 1.68s)
+
 ## [2026-07-22 —] Claude Code — เขียน PLAN-117: Course explorer โชว์ลำดับใน Category folder + Edit modal แก้ลำดับได้ (มอบ Gemini)
 - ทำอะไร: ผู้ใช้ขอที่ `/admin-react/courses?divisionId=1`. สำรวจ: `admin/CategoriesCRUD/Get` ส่ง `sortOrder` อยู่แล้ว (PLAN-111) แต่ mirror `CategoryLookup` ใน `CourseListPage.tsx` ยังไม่มี field; folder เรียงด้วย `sortByNameAsc`; Edit modal PUT `values` JSON → backend `PopulateObject` รับ `sortOrder` ได้เลย ⇒ **React ไฟล์เดียว ไม่แตะ backend**. เขียน PLAN-117: §1 +type +comparator (sortOrder,id) เฉพาะ 2 จุดที่ sort category (~160/~579 — division/root/course ไม่แตะ) §2 folder name = `${sortOrder}. ${name}` เมื่อ >0 (breadcrumb/modal ชื่อสะอาด, Uncategorized ไม่มีเลข) §3 Edit modal +number input sortOrder + New Category modal เพิ่มแบบ optional (กันค่า 0 ลอยบนแบบเงียบ)
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-117-*.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
