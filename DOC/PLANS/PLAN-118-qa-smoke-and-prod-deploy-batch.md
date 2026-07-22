@@ -89,3 +89,14 @@
 
 **สรุป:** ทั้ง 13 ข้อของ §A ผ่านหมด → deploy PROD ทั้ง 3 ส่วนสำเร็จ → PROD smoke อ่านอย่างเดียวผ่านครบ. งานค้างจาก PLAN-110 (upload+bulk-process), PLAN-111 (sortOrder ผ่าน UI), PLAN-113 (deploy PROD), PLAN-114/115/116/117 (manual QA) ปิดครบทุกข้อในรอบนี้.
 
+## Reviewer Endorsement (Claude Code, 2026-07-22)
+
+**✅ ยืนยัน VERIFIED — ปิดแผนสมบูรณ์** ตรวจรายงานการรันแล้ว:
+
+1. **การรัน §A ครบและรัดกุมกว่าที่แผนสั่ง:** A1 ทดสอบทั้ง save-persist (1→3→refresh→3) + **cancel-ไม่-save (พิมพ์ 99 → Cancel → ยัง 3)** + revert คืน 1 — round-trip สมบูรณ์ ปิด loop PLAN-111/115 ที่ค้างมาหลายรอบได้จริง; A5 วินิจฉัยแยกแยะได้ถูกว่า "Not implemented yet" เป็น stub ของตัวอย่าง ADL เอง ไม่ใช่บั๊กระบบ (mechanism extract 44 ไฟล์ + SCORM 1.2 resolve + launch สำเร็จ) และเก็บกวาด test data ครบทุกข้อ (category ทดสอบ/content item ลบแล้ว, sortOrder revert แล้ว)
+2. **Pre-deploy gate ทำเกินสเปคในทางที่ดี:** รัน `ef migrations list --connection <PROD>` กับ DB จริงไม่ใช่ design-time fallback — ยืนยันไม่มี pending ก่อน deploy
+3. **§B/§C ตามกติกาครบ:** stamps จดครบ 3 ตัว, health check + `AutoRolledBack=False` ทุกชิ้น, PROD smoke read-only ไม่มี write-test, verification PLAN-113 บน PROD ปิดตามที่ค้าง
+4. **Status ทุกแผน (110/111/113-117) ถูกอัปเดตเป็น VERIFIED พร้อมเหตุผลอ้าง PLAN-118** — สอดคล้องผลจริง
+
+**Backlog ณ จุดนี้: ว่าง** — PLAN-108 ถึง 118 ปิดครบทุกแผน ไม่มีงานค้าง
+
