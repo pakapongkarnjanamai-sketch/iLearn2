@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Claude Code — เขียน PLAN-117: Course explorer โชว์ลำดับใน Category folder + Edit modal แก้ลำดับได้ (มอบ Gemini)
+- ทำอะไร: ผู้ใช้ขอที่ `/admin-react/courses?divisionId=1`. สำรวจ: `admin/CategoriesCRUD/Get` ส่ง `sortOrder` อยู่แล้ว (PLAN-111) แต่ mirror `CategoryLookup` ใน `CourseListPage.tsx` ยังไม่มี field; folder เรียงด้วย `sortByNameAsc`; Edit modal PUT `values` JSON → backend `PopulateObject` รับ `sortOrder` ได้เลย ⇒ **React ไฟล์เดียว ไม่แตะ backend**. เขียน PLAN-117: §1 +type +comparator (sortOrder,id) เฉพาะ 2 จุดที่ sort category (~160/~579 — division/root/course ไม่แตะ) §2 folder name = `${sortOrder}. ${name}` เมื่อ >0 (breadcrumb/modal ชื่อสะอาด, Uncategorized ไม่มีเลข) §3 Edit modal +number input sortOrder + New Category modal เพิ่มแบบ optional (กันค่า 0 ลอยบนแบบเงียบ)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-117-*.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (mirror ตามของจริง)
+- Verified: — (แผน; อ่าน CourseListPage โครง type/sort/loadData/edit modal)
+- **ถึง Gemini: ห้ามแตะการเรียง division/course/root; เลขเฉพาะ folder row — breadcrumb ห้ามมีเลข; เช็ค AGENT_LOG ก่อนเริ่ม (Copilot อาจกำลังทำ PLAN-116 อยู่ คนละไฟล์แต่ตรวจก่อนตามกติกา)**
+
 ## [2026-07-22 —] Claude Code — เขียน PLAN-116: ยกเลิกคลิก filter บน chart + เลขลำดับหน้าชื่อหมวด learner sidebar (มอบ Copilot)
 - ทำอะไร: ผู้ใช้สั่ง (1) ยกเลิกการคลิก filter ที่ PLAN-114 เคยคงไว้ (2) แสดง "ลำดับ" ของ Categories ใน sidebar หน้า MyLearning = option §4 ของ PLAN-111 ที่ยืนยันแล้ว. สำรวจ: จุดคลิกมีแค่ `Pie.onClick`/`Bar.onClick` (legend ไม่ clickable); sidebar มี `cat.sortOrder` พร้อมใช้จาก PLAN-113. เขียน PLAN-116: §1 ตัด `onSelectStatus`/`onSelectCourse` + `cursor="pointer"` ออกจาก chart ทั้ง 2 ตัว + callers 2 ไฟล์ **แต่คง `activeStatus`/`activeCourse` dim logic** (chart ยังสะท้อน filter จาก toolbar); §2 sidebar แสดง `${sortOrder}. ${name}` เฉพาะเมื่อ sortOrder > 0, "ทั้งหมด" ไม่มีเลข
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-116-*.md` (ใหม่ READY), `DOC/AGENT_LOG.md`

@@ -1,0 +1,71 @@
+# PLAN-117: Course explorer — โชว์ลำดับในชื่อ Category folder + แก้ลำดับได้จาก modal Edit
+
+- **Status:** READY
+- **Assigned:** Antigravity Gemini (React ไฟล์เดียว — `CourseListPage.tsx`)
+- **Reviewer:** Claude Code
+- **สร้างเมื่อ:** 2026-07-22
+- **ที่มา:** ผู้ใช้รีวิว `/admin-react/courses?divisionId=1` บน QA: (1) อยากเห็น **ลำดับ** ของ Category แสดงในชื่อ folder (2) ปุ่ม **Edit** ของ category folder ให้แก้ **ลำดับ** ได้ด้วย
+- **อ่าน `iLearn.Admin.React/README.md` (API Contract Sync) ก่อนเริ่ม**
+
+---
+
+## วินิจฉัย (ยืนยันจากโค้ด — `CourseListPage.tsx`)
+
+- categories โหลดจาก `admin/CategoriesCRUD/Get` (บรรทัด ~315) ซึ่ง**ส่ง `sortOrder` มาแล้ว**ตั้งแต่ PLAN-111 — แต่ mirror type `CategoryLookup` (~47-53) **ยังไม่มี field นี้** ⇒ แค่เติม type ก็ใช้ได้ ไม่ต้องแตะ backend
+- การเรียง category folder ใช้ `sortByNameAsc` (ชื่อ A-Z) — 2 จุดที่เป็น **รายการ category**: `categoriesByDivision` (~160) และสาขา division view (~579); ส่วน `items.sort` ที่ ~533/~609 เป็นรายการ division/root — **ห้ามแตะ**
+- ปุ่ม Edit ของ folder เปิด modal (`editingCategory` state, ~886) มีช่อง name + description แล้ว PUT `admin/CategoriesCRUD/Put` ด้วย `values` JSON — backend รับ `sortOrder` ผ่าน `PopulateObject` ได้อยู่แล้ว (PLAN-111 §2)
+- pseudo folder `Uncategorized` (id 0) ถูก push ต่อท้ายหลัง sort — ไม่กระทบ
+
+## Scope (React ล้วน — ไม่มี backend/migration)
+
+### §1 Mirror type + การเรียง
+
+- `CategoryLookup` เพิ่ม `sortOrder: number` (คอมเมนต์ mirror อ้าง `CategoryDto` เดิม)
+- เพิ่ม comparator `sortCategoriesByOrder = (a, b) => (a.sortOrder - b.sortOrder) || (a.id - b.id)` แล้วใช้แทน `sortByNameAsc` เฉพาะ **2 จุดที่ sort รายการ category**: `categoriesByDivision` (~160) และ list ใน division view (~579)
+- `sortByNameAsc` ของ division/root/course ไม่แตะ
+
+### §2 แสดงลำดับในชื่อ folder
+
+- ตอนสร้าง `ExplorerItem` ของ category folder: `name: category.sortOrder > 0 ? `${category.sortOrder}. ${category.name}` : category.name`
+- เฉพาะ **folder row** — breadcrumb / modal / ที่อื่นที่ใช้ `category.name` คงชื่อสะอาดไม่มีเลข
+- `Uncategorized` ไม่มีเลข
+
+### §3 Edit modal แก้ลำดับได้
+
+- state `editCategorySortOrder` — ตั้งค่าเริ่มจาก `editingCategory.sortOrder` ตอนเปิด modal
+- เพิ่ม **number input** `Sort Order (ลำดับ)` (`min={1}`, `required`, pattern เดียวกับฟอร์ม `MasterDataDetailPage` ของ PLAN-111) ใน modal Edit Category
+- `handleRenameCategory`: เพิ่ม `sortOrder: Number(editCategorySortOrder)` ลง `values` JSON — ส่งเฉพาะเมื่อเป็นเลขถูกต้อง (form `required` + native submit กันค่าว่างแล้ว — modal นี้เป็น `as="form"` `onSubmit` อยู่แล้ว ✓)
+- **modal New Category** เพิ่ม input เดียวกันแบบ **optional** (ว่างได้ → ไม่ส่ง field → backend default 0): กัน category ใหม่ที่ไม่ตั้งลำดับไปลอยบนสุดแบบเงียบ ๆ — ถ้าเว้นว่าง folder จะแสดงชื่อไม่มีเลข (ตาม §2 กติกา >0) จน admin มาตั้ง
+
+### นอก Scope (ห้ามทำ)
+
+- ห้ามแตะ backend — `CategoriesCRUD/Get`/`Put` รองรับครบแล้ว
+- ห้ามแตะการเรียง division / course rows / root items
+- ห้าม drag-drop
+- ห้ามใส่เลขใน breadcrumb หรือหน้าจออื่นนอก folder list ของหน้านี้
+
+## Contract ที่เปลี่ยน
+
+ไม่มี — mirror type ตามของจริงที่ backend ส่งอยู่แล้ว
+
+## Verification
+
+```powershell
+cd iLearn.Admin.React; npm run lint; npm run build
+```
+
+Manual (QA — `/admin-react/courses?divisionId=1`):
+1. Category folders แสดง `1. <ชื่อ>`, `2. <ชื่อ>` … เรียงตามลำดับ (ตรงกับหน้า Master Data Categories); `Uncategorized` อยู่ท้าย ไม่มีเลข
+2. กด Edit ที่ folder → modal มีช่อง Sort Order ค่าปัจจุบัน → แก้เลข → Save → folder เรียงใหม่ + เลขหน้าชื่อเปลี่ยน; ชื่อ/description เดิมไม่พัง (แก้กลับหลังทดสอบ)
+3. New Category: สร้างโดยไม่กรอกลำดับ → โผล่ไม่มีเลขนำหน้า; สร้างพร้อมลำดับ → แสดงเลขถูก (ลบ category ทดสอบทิ้งหลังเสร็จ)
+4. คลิกเข้า folder → breadcrumb แสดงชื่อ**ไม่มีเลข**; course list ข้างในปกติ
+5. console 0 error
+
+## Deploy note
+
+- **Admin React เท่านั้น** — QA → verify → PROD (รอผู้ใช้ยืนยัน)
+- ระวังชนกับ PLAN-116 §1 ที่ Copilot อาจกำลังแก้ `AssignmentReportCharts`/หน้า assignments — คนละไฟล์กัน ไม่ควรชน แต่เช็ค AGENT_LOG ก่อนเริ่มตามกติกา
+
+## Implementer Notes
+
+_(เติมโดย implementer)_
