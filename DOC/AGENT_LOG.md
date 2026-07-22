@@ -2,6 +2,24 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Antigravity — Show All Courses in Summary Report, Metrics Guide Help Modal (PLAN-128) & Deploy QA+PROD
+- ทำอะไร: **§1 (Backend)** แก้ไข `ReportService.cs` ใน `GetCourseSummaryReportAsync` ให้ดึงคอร์สทั้งหมดในแคตตาล็อก (`_courseRepo`) เป็น Query หลัก (กรองตาม `DivisionId` หากเป็น DivisionAdmin) แล้ว Left Join สถิติการเรียน ทำให้คอร์สทุกคอร์สในแคตตาล็อก (รวมคอร์สที่มี 0 enrollments) แสดงในหน้ารายงานสรุปครบถ้วน 100%. **§2 (Frontend & UI Help Popup)** เพิ่มปุ่ม **"Metrics Guide / คู่มือตัววัด"** และปุ่มไอคอน Info บนตารางของ `CourseSummaryReportPage.tsx` เมื่อคลิกจะเปิด `Modal` ป๊อปอัปคำอธิบาย สูตรคำนวณ และตัวอย่างเปรียบเทียบระหว่าง **Completion Rate (%)** กับ **Avg Progress (%)** อย่างละเอียดชัดเจน. **§3 (Deploy QA & PROD)** รัน `tools/deploy-api.ps1`, `tools/deploy-admin-react.ps1`, `tools/deploy-api-prod.ps1` และ `tools/deploy-admin-react-prod.ps1` อัปเดตทั้งเซิร์ฟเวอร์ QA (`AP-NTC2138-QAWB`) และ PROD (`ap-ntc2137-prwb`) เรียบร้อยสำเร็จ 100%.
+- ไฟล์หลักที่แตะ: `iLearn.Application/Services/ReportService.cs`, `iLearn.Admin.React/src/pages/reports/CourseSummaryReportPage.tsx`, `DOC/PLANS/PLAN-128-course-summary-report-all-courses.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: `npm run lint` ผ่าน 0 errors, `npm run build` ผ่าน 0 errors, `dotnet test` ผ่าน 242/242 tests, QA & PROD HealthChecks OK, Robocopy ExitCode: 3 (CopySucceeded)
+
+
+## [2026-07-22 —] Antigravity — Standardizing Reports Pages UI Design (PLAN-127)
+- ทำอะไร: ออกแบบและปรับปรุงส่วนงานรายงาน (Reports) ทั้ง 5 หน้าใน `iLearn.Admin.React/src/pages/reports` ให้มีมาตรฐานเดียวกันตาม UI Conventions (Card, SectionHeader, Badge, StatusBadge, ProgressBar, ListToolbar, SegmentedToggle, AppButton, format.ts):
+  1. `ReportHubPage.tsx`: ยกระดับ Card layout, ป้าย Category Tag (`Badge variant="tag"`), Visual hierarchy และ Arrow Navigation Link
+  2. `ComplianceReportPage.tsx`: เพิ่ม Back link ย้อนกลับ `/reports`, ปรับแต่ง 5 KPI Summary Cards, division chart, Overview Rates division/department toggle, และ Overdue Enrollments table ค้นหาด้วย ListToolbar สลับหน้าย่อย และ clickable transcript link
+  3. `CourseSummaryReportPage.tsx`: เพิ่ม Back link ย้อนกลับ `/reports`, เพิ่ม 5 KPI summary tiles (Total Courses, Total Enrolled, Completed, Overdue, Avg Completion Rate), sortable headers, ค้นหาผ่าน ListToolbar และ Export CSV
+  4. `ActivityReportPage.tsx`: เพิ่ม Back link ย้อนกลับ `/reports`, เพิ่ม 4 Period KPI summary cards, period selector toggle (6/12/24 เดือน), Recharts bar charts, และ Monthly breakdown table
+  5. `TranscriptReportPage.tsx`: เพิ่ม Back link ย้อนกลับ `/reports`, ออกแบบ Learner search header พร้อมปุ่มเคลียร์, เพิ่ม Learner Information Card, Filterable Training records table, และ `@media print` layout formatting
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/reports/ReportHubPage.tsx`, `iLearn.Admin.React/src/pages/reports/ComplianceReportPage.tsx`, `iLearn.Admin.React/src/pages/reports/CourseSummaryReportPage.tsx`, `iLearn.Admin.React/src/pages/reports/ActivityReportPage.tsx`, `iLearn.Admin.React/src/pages/reports/TranscriptReportPage.tsx`, `DOC/PLANS/PLAN-127-reports-ui-standardization.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: `npm run lint` ผ่าน 0 errors, `npm run build` ผ่าน 0 errors (built in 1.71s)
+
 ## [2026-07-22 —] Antigravity — Gender Prefix Removal Across System (NameHelper & format.ts)
 - ทำอะไร: ยกเลิกการแสดงผลคำนำหน้าชื่อที่บอกถึงเพศทั้งหมด (เช่น นาย, นาง, นางสาว, น.ส., เด็กชาย, เด็กหญิง, ด.ช., ด.ญ., Mr., Mrs., Miss, Ms., Master) ทั้งระบบ. **§1 (Backend)** สร้าง `NameHelper.StripGenderPrefix` ใน `iLearn.Application/Common/NameHelper.cs` พร้อมอัปเดตการ mapping ชื่อใน `EmployeeHubLearnerApiService.cs`, `LearnerApiService.cs` และ `ExternalLearnerDto.FullName`. **§2 (Frontend)** เพิ่ม `stripGenderPrefix` ใน `src/lib/format.ts` และอัปเดต `LearnerDirectorySelector.tsx` ใน `iLearn.Admin.React`. **§3 (Unit Tests)** สร้าง `NameHelperTests.cs` ครอบคลุมเคสคำนำหน้าชื่อไทย/อังกฤษทั้งหมด.
 - ไฟล์หลักที่แตะ: `iLearn.Application/Common/NameHelper.cs`, `iLearn.Infrastructure/Services/EmployeeHubLearnerApiService.cs`, `iLearn.Infrastructure/Services/LearnerApiService.cs`, `iLearn.Application/DTOs/ExternalLearnerDto.cs`, `iLearn.Admin.React/src/lib/format.ts`, `iLearn.Admin.React/src/components/shared/LearnerDirectorySelector.tsx`, `iLearn.Tests/NameHelperTests.cs`, `DOC/AGENT_LOG.md`

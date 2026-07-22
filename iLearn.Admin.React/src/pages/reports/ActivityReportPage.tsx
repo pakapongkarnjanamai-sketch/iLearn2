@@ -1,7 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Activity,
   Download,
+  ArrowLeft,
+  CheckCircle2,
+  BookOpen,
+  Users,
+  Clock,
 } from 'lucide-react'
 import {
   Bar,
@@ -47,6 +53,30 @@ export function ActivityReportPage() {
     }
   }, [months])
 
+  const periodStats = useMemo(() => {
+    if (!data || data.months.length === 0) {
+      return {
+        totalCompletions: 0,
+        totalNewEnrollments: 0,
+        avgActiveLearners: 0,
+        totalHoursPlayed: 0,
+      }
+    }
+    const totalCompletions = data.months.reduce((acc, r) => acc + r.completions, 0)
+    const totalNewEnrollments = data.months.reduce((acc, r) => acc + r.newEnrollments, 0)
+    const avgActiveLearners = Math.round(
+      data.months.reduce((acc, r) => acc + r.activeLearners, 0) / data.months.length
+    )
+    const totalHoursPlayed = data.months.reduce((acc, r) => acc + r.totalHoursPlayed, 0)
+
+    return {
+      totalCompletions,
+      totalNewEnrollments,
+      avgActiveLearners,
+      totalHoursPlayed,
+    }
+  }, [data])
+
   const handleExportCsv = () => {
     if (!data || data.months.length === 0) {
       toast.info('No activity records to export')
@@ -84,8 +114,18 @@ export function ActivityReportPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Header with Navigation */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <SectionHeader icon={Activity}>Training Activity Report</SectionHeader>
+        <div className="flex flex-col gap-2">
+          <Link
+            to="/reports"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 w-fit transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Back to Report Hub</span>
+          </Link>
+          <SectionHeader icon={Activity}>Training Activity Report</SectionHeader>
+        </div>
 
         <SegmentedToggle
           options={[
@@ -98,6 +138,61 @@ export function ActivityReportPage() {
           variant="segment"
         />
       </div>
+
+      {/* KPI Summary Grid */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card bodyClassName="p-4 flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
+              Total Completions
+            </span>
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-hidden="true" />
+          </div>
+          <div className="text-2xl font-extrabold text-emerald-600 tabular-nums leading-tight mt-1">
+            {formatNumber(periodStats.totalCompletions)}
+          </div>
+          <span className="text-xxs text-slate-400 font-medium">Finished courses in period</span>
+        </Card>
+
+        <Card bodyClassName="p-4 flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
+              New Enrollments
+            </span>
+            <BookOpen className="h-4 w-4 text-indigo-500" aria-hidden="true" />
+          </div>
+          <div className="text-2xl font-extrabold text-indigo-600 tabular-nums leading-tight mt-1">
+            {formatNumber(periodStats.totalNewEnrollments)}
+          </div>
+          <span className="text-xxs text-slate-400 font-medium">New course assignments</span>
+        </Card>
+
+        <Card bodyClassName="p-4 flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
+              Avg Active Learners
+            </span>
+            <Users className="h-4 w-4 text-amber-500" aria-hidden="true" />
+          </div>
+          <div className="text-2xl font-extrabold text-amber-600 tabular-nums leading-tight mt-1">
+            {formatNumber(periodStats.avgActiveLearners)}
+          </div>
+          <span className="text-xxs text-slate-400 font-medium">Active learners / month</span>
+        </Card>
+
+        <Card bodyClassName="p-4 flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
+              Total Hours Played
+            </span>
+            <Clock className="h-4 w-4 text-blue-500" aria-hidden="true" />
+          </div>
+          <div className="text-2xl font-extrabold text-slate-800 tabular-nums leading-tight mt-1">
+            {formatNumber(periodStats.totalHoursPlayed, 1)} h
+          </div>
+          <span className="text-xxs text-slate-400 font-medium">Cumulative learning time</span>
+        </Card>
+      </section>
 
       {/* Graphs */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">

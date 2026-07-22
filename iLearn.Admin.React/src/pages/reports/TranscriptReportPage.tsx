@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   GraduationCap,
   Printer,
   Search,
   BookOpen,
+  ArrowLeft,
+  X,
+  UserCheck,
 } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
 import { SectionHeader } from '../../components/ui/SectionHeader'
@@ -14,6 +17,7 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { AppButton } from '../../components/ui/AppButton'
 import { Badge } from '../../components/ui/Badge'
+import { ListToolbar } from '../../components/ui/ListToolbar'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { formatDate, formatPercent, formatDuration, formatNumber } from '../../lib/format'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
@@ -29,6 +33,7 @@ export function TranscriptReportPage() {
   const [data, setData] = useState<TranscriptReportDto | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
+  const [recordSearch, setRecordSearch] = useState('')
   const [visibleRows, setVisibleRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
 
   useEffect(() => {
@@ -69,10 +74,24 @@ export function TranscriptReportPage() {
     }
   }, [codeParam])
 
-  const visibleTranscriptRows = useMemo(() => {
+  useEffect(() => {
+    setVisibleRows(DETAIL_TABLE_CHUNK_SIZE)
+  }, [recordSearch])
+
+  const filteredTranscriptRows = useMemo(() => {
     if (!data) return []
-    return data.rows.slice(0, visibleRows)
-  }, [data, visibleRows])
+    const q = recordSearch.trim().toLowerCase()
+    if (!q) return data.rows
+    return data.rows.filter((r) =>
+      [r.courseCode, r.courseTitle, r.status, r.assignmentNo]
+        .filter(Boolean)
+        .some((val) => val!.toLowerCase().includes(q))
+    )
+  }, [data, recordSearch])
+
+  const visibleTranscriptRows = useMemo(() => {
+    return filteredTranscriptRows.slice(0, visibleRows)
+  }, [filteredTranscriptRows, visibleRows])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -85,6 +104,14 @@ export function TranscriptReportPage() {
     setVisibleRows(DETAIL_TABLE_CHUNK_SIZE)
   }
 
+  const handleClearSearch = () => {
+    setInputCode('')
+    setSearchParams({})
+    setData(null)
+    setError(null)
+    setHasSearched(false)
+  }
+
   const handlePrint = () => {
     if (!data) return
     setVisibleRows(data.rows.length)
@@ -93,17 +120,39 @@ export function TranscriptReportPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Top Header with Navigation & Search Bar */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
-        <SectionHeader icon={GraduationCap}>Learner Transcript</SectionHeader>
+        <div className="flex flex-col gap-2">
+          <Link
+            to="/reports"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 w-fit transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Back to Report Hub</span>
+          </Link>
+          <SectionHeader icon={GraduationCap}>Learner Transcript</SectionHeader>
+        </div>
 
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Search learner code..."
-            value={inputCode}
-            onChange={(e) => setInputCode(e.target.value)}
-            className="appearance-none rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-slate-300 focus:outline-none focus:border-indigo-500 w-48"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Enter learner code (EId)..."
+              value={inputCode}
+              onChange={(e) => setInputCode(e.target.value)}
+              className="appearance-none rounded-lg border border-slate-200 bg-white pl-3 pr-8 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 focus:outline-none focus:border-indigo-500 w-56 shadow-xs"
+            />
+            {inputCode && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                title="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
           <AppButton type="submit" size="sm" icon={Search}>
             Search
           </AppButton>
@@ -123,30 +172,45 @@ export function TranscriptReportPage() {
       )}
 
       {!loading && !hasSearched && !error && (
-        <Card bodyClassName="p-12 text-center text-slate-400 font-medium flex flex-col items-center justify-center gap-2 print:hidden">
-          <Search className="h-8 w-8 text-slate-300" />
-          <div>Please search for a learner code to generate their complete transcript.</div>
+        <Card bodyClassName="p-12 text-center text-slate-400 font-medium flex flex-col items-center justify-center gap-3 print:hidden">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+            <UserCheck className="h-7 w-7" />
+          </div>
+          <div className="text-sm font-bold text-slate-700">Search Learner Transcript</div>
+          <div className="text-xs text-slate-500 max-w-md leading-relaxed">
+            Please enter a valid learner code (e.g. employee EId) in the search box above to generate and inspect their complete training history.
+          </div>
         </Card>
       )}
 
       {!loading && data && !error && (
         <div className="flex flex-col gap-6">
-          {/* Transcript Header info */}
+          {/* Printable Transcript Header (only visible when printing) */}
+          <div className="hidden print:block mb-4 pb-4 border-b border-slate-200">
+            <h1 className="text-xl font-bold text-slate-900">Official Learner Training Transcript</h1>
+            <p className="text-xs text-slate-500 mt-1">
+              Generated at: {formatDate(data.generatedAt)}
+            </p>
+          </div>
+
+          {/* Learner Information Card */}
           <Card title="Learner Information" icon={GraduationCap} className="relative">
-            <div className="absolute top-4 right-4 print:hidden">
+            <div className="absolute top-3.5 right-4 print:hidden">
               <AppButton onClick={handlePrint} icon={Printer} variant="secondary" size="sm">
                 Print Transcript
               </AppButton>
             </div>
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-700">
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 <div>
                   <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">Learner Name</span>
                   <span className="text-sm font-extrabold text-slate-800">{data.learnerName || '—'}</span>
                 </div>
                 <div>
                   <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">Learner Code</span>
-                  <span className="font-mono font-bold text-slate-800">{data.learnerCode}</span>
+                  <span className="font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded text-xs inline-block">
+                    {data.learnerCode}
+                  </span>
                 </div>
                 {data.learnerGroups && data.learnerGroups.length > 0 && (
                   <div>
@@ -162,7 +226,7 @@ export function TranscriptReportPage() {
                 )}
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 <div>
                   <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">Division</span>
                   <span className="text-slate-800 font-semibold">{data.division || '—'}</span>
@@ -178,7 +242,7 @@ export function TranscriptReportPage() {
                       value={data.totalCourses > 0 ? (data.completedCourses / data.totalCourses) * 100 : 0}
                       completed={data.completedCourses === data.totalCourses && data.totalCourses > 0}
                     />
-                    <span className="text-xxs font-bold text-slate-600">
+                    <span className="text-xxs font-bold text-slate-600 tabular-nums">
                       {data.completedCourses} of {data.totalCourses} completed ({data.totalCourses > 0 ? formatPercent((data.completedCourses / data.totalCourses) * 100) : '—'})
                     </span>
                   </div>
@@ -187,8 +251,16 @@ export function TranscriptReportPage() {
             </div>
           </Card>
 
-          {/* Transcript Records */}
+          {/* Training Records Card */}
           <Card title="Training Records" icon={BookOpen}>
+            <div className="border-b border-slate-100 bg-slate-50/20 px-5 print:hidden">
+              <ListToolbar
+                searchValue={recordSearch}
+                onSearchChange={setRecordSearch}
+                searchPlaceholder="Filter transcript by course code, title or status..."
+              />
+            </div>
+
             <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
@@ -204,7 +276,7 @@ export function TranscriptReportPage() {
                 <tbody className="divide-y divide-slate-100 text-slate-700">
                   {visibleTranscriptRows.map((row, idx) => (
                     <tr key={`${row.enrollmentId}-${idx}`} className="hover:bg-slate-50/50 transition duration-100">
-                      <td className="p-3 pl-5">
+                      <td className="p-3 pl-5 select-all">
                         <div className="font-bold text-slate-800 text-xs sm:text-[13px]">{row.courseTitle || '—'}</div>
                         <div className="text-xxs font-mono text-slate-400 mt-0.5">
                           {[row.courseCode, row.assignmentNo ? `Assign: ${row.assignmentNo}` : null]
@@ -231,7 +303,7 @@ export function TranscriptReportPage() {
                       </td>
                     </tr>
                   ))}
-                  {data.rows.length === 0 && (
+                  {filteredTranscriptRows.length === 0 && (
                     <tr>
                       <td colSpan={6} className="p-6 text-center text-slate-400 text-xs font-medium">
                         No enrollment history found for this learner
@@ -242,7 +314,7 @@ export function TranscriptReportPage() {
               </table>
             </div>
 
-            {data.rows.length > visibleTranscriptRows.length && (
+            {filteredTranscriptRows.length > visibleTranscriptRows.length && (
               <div className="border-t border-slate-100 p-3 text-center print:hidden">
                 <AppButton
                   variant="secondary"

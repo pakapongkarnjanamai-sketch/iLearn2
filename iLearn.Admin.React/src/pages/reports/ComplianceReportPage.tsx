@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom'
 import {
   Users,
   BookOpen,
-  CheckCircle,
+  CheckCircle2,
   AlertTriangle,
   Percent,
   Download,
   ChevronRight,
   TrendingUp,
+  ArrowLeft,
 } from 'lucide-react'
 import {
   Bar,
@@ -146,71 +147,93 @@ export function ComplianceReportPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SectionHeader icon={TrendingUp}>Compliance & Overdue Report</SectionHeader>
+      {/* Header with Navigation */}
+      <div className="flex flex-col gap-2">
+        <Link
+          to="/reports"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 w-fit transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Back to Report Hub</span>
+        </Link>
+        <SectionHeader icon={TrendingUp}>Compliance & Overdue Report</SectionHeader>
+      </div>
 
       {/* KPI Tiles */}
-      <section className="grid grid-cols-2 lg:grid-cols-5 border border-slate-200 rounded-lg bg-white shadow-xs divide-y lg:divide-y-0 lg:divide-x divide-slate-100 overflow-hidden">
-        <div className="p-4 flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-            <Users className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
-            Total Learners
+      <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <Card bodyClassName="p-4 flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
+              Total Learners
+            </span>
+            <Users className="h-4 w-4 text-slate-400" aria-hidden="true" />
           </div>
-          <div className="text-2xl font-extrabold text-slate-800 tabular-nums leading-tight">
+          <div className="text-2xl font-extrabold text-slate-800 tabular-nums leading-tight mt-1">
             {formatNumber(data.totalLearners)}
           </div>
-        </div>
+          <span className="text-xxs text-slate-400 font-medium">Registered workforce</span>
+        </Card>
 
-        <div className="p-4 flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-            <BookOpen className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
-            Open Enrollments
+        <Card bodyClassName="p-4 flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
+              Open Enrollments
+            </span>
+            <BookOpen className="h-4 w-4 text-blue-500" aria-hidden="true" />
           </div>
-          <div className="text-2xl font-extrabold text-slate-800 tabular-nums leading-tight">
+          <div className="text-2xl font-extrabold text-slate-800 tabular-nums leading-tight mt-1">
             {formatNumber(data.openEnrollments)}
           </div>
-        </div>
+          <span className="text-xxs text-slate-400 font-medium">Assigned course tasks</span>
+        </Card>
 
-        <div className="p-4 flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-            <CheckCircle className="h-3.5 w-3.5 text-emerald-500" aria-hidden="true" />
-            Completed
+        <Card bodyClassName="p-4 flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
+              Completed
+            </span>
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-hidden="true" />
           </div>
-          <div className="text-2xl font-extrabold text-slate-800 tabular-nums leading-tight">
+          <div className="text-2xl font-extrabold text-emerald-600 tabular-nums leading-tight mt-1">
             {formatNumber(data.completedEnrollments)}
           </div>
-        </div>
+          <span className="text-xxs text-emerald-600 font-medium">Finished courses</span>
+        </Card>
 
-        <div className="p-4 flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
+        <Card bodyClassName="p-4 flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
+              Overdue
+            </span>
             <AlertTriangle
-              className={`h-3.5 w-3.5 ${data.overdueEnrollments > 0 ? 'text-rose-500' : 'text-slate-400'}`}
+              className={`h-4 w-4 ${data.overdueEnrollments > 0 ? 'text-rose-500' : 'text-slate-400'}`}
               aria-hidden="true"
             />
-            Overdue
           </div>
           <div
-            className={`text-2xl font-extrabold tabular-nums leading-tight ${
-              data.overdueEnrollments > 0 ? 'text-red-600' : 'text-slate-800'
+            className={`text-2xl font-extrabold tabular-nums leading-tight mt-1 ${
+              data.overdueEnrollments > 0 ? 'text-rose-600' : 'text-slate-800'
             }`}
           >
             {formatNumber(data.overdueEnrollments)}
           </div>
-          {data.overdueLearners > 0 && (
-            <div className="text-xxs text-rose-600 font-semibold mt-0.5">
-              Across {formatNumber(data.overdueLearners)} learners
-            </div>
-          )}
-        </div>
+          <span className="text-xxs text-rose-600 font-semibold">
+            {data.overdueLearners > 0 ? `Across ${formatNumber(data.overdueLearners)} learners` : 'Zero overdue'}
+          </span>
+        </Card>
 
-        <div className="p-4 flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-            <Percent className="h-3.5 w-3.5 text-indigo-500" aria-hidden="true" />
-            Compliance Rate
+        <Card bodyClassName="p-4 flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
+              Compliance Rate
+            </span>
+            <Percent className="h-4 w-4 text-indigo-500" aria-hidden="true" />
           </div>
-          <div className="text-2xl font-extrabold text-slate-800 tabular-nums leading-tight">
+          <div className="text-2xl font-extrabold text-indigo-600 tabular-nums leading-tight mt-1">
             {formatPercent(data.complianceRate)}
           </div>
-        </div>
+          <span className="text-xxs text-indigo-600 font-medium">Overall target progress</span>
+        </Card>
       </section>
 
       {/* Charts & Group breakdown */}
@@ -376,15 +399,19 @@ export function ComplianceReportPage() {
                     {row.learnerName ? (
                       <Link
                         to={`/reports/transcript?code=${row.learnerCode}`}
-                        className="font-bold text-indigo-600 hover:text-indigo-800 text-xs sm:text-[13px] inline-flex items-center gap-1"
+                        className="font-bold text-indigo-600 hover:text-indigo-800 text-xs sm:text-[13px] inline-flex items-center gap-1 group/link"
                       >
-                        {row.learnerName}
-                        <ChevronRight className="h-3 w-3" />
+                        <span>{row.learnerName}</span>
+                        <ChevronRight className="h-3 w-3 transition-transform group-hover/link:translate-x-0.5" />
                       </Link>
                     ) : (
-                      <div className="font-bold text-slate-800 text-xs sm:text-[13px]">
-                        {row.learnerCode}
-                      </div>
+                      <Link
+                        to={`/reports/transcript?code=${row.learnerCode}`}
+                        className="font-bold text-indigo-600 hover:text-indigo-800 text-xs sm:text-[13px] inline-flex items-center gap-1 group/link"
+                      >
+                        <span>{row.learnerCode}</span>
+                        <ChevronRight className="h-3 w-3 transition-transform group-hover/link:translate-x-0.5" />
+                      </Link>
                     )}
                     <div className="text-xxs font-mono text-slate-400 mt-0.5">{row.learnerCode}</div>
                     {(row.division || row.department) && (

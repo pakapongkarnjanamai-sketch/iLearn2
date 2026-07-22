@@ -209,9 +209,29 @@ namespace iLearn.Application.Services
         public async Task<CourseSummaryReportDto> GetCourseSummaryReportAsync(
             int? divisionId, DateTime currentDate, CancellationToken cancellationToken = default)
         {
-            // Get enrollments scoped by division (effective-schedule projection), grouped by course
+            // 1. Get all courses in catalog (scoped by division if specified)
+            var coursesQuery = _courseRepo.GetQuery()
+                .AsNoTracking();
+
+            if (divisionId.HasValue)
+            {
+                coursesQuery = coursesQuery.Where(c => c.Category != null && c.Category.DivisionId == divisionId.Value);
+            }
+
+            var courses = await coursesQuery
+                .Select(c => new { c.Id, c.Code, c.Title, CategoryName = c.Category != null ? c.Category.Name : null })
+                .ToListAsync(cancellationToken);
+
+            if (courses.Count == 0)
+            {
+                return new CourseSummaryReportDto { GeneratedAt = currentDate };
+            }
+
+            var courseIds = courses.Select(c => c.Id).ToList();
+
+            // 2. Get enrollments scoped by division (effective-schedule projection), grouped by course
             var courseGroups = await BuildVisibleEnrollmentRowsQuery(divisionId)
-                .Where(e => e.CourseId.HasValue)
+                .Where(e => e.CourseId.HasValue && courseIds.Contains(e.CourseId.Value))
                 .GroupBy(e => e.CourseId!.Value)
                 .Select(g => new
                 {
@@ -227,23 +247,9 @@ namespace iLearn.Application.Services
                 })
                 .ToListAsync(cancellationToken);
 
-            if (courseGroups.Count == 0)
-            {
-                return new CourseSummaryReportDto { GeneratedAt = currentDate };
-            }
+            var groupMap = courseGroups.ToDictionary(g => g.CourseId);
 
-            // Get course info
-            var courseIds = courseGroups.Select(g => g.CourseId).ToList();
-            var courses = await _courseRepo.GetQuery()
-                .AsNoTracking()
-                .IgnoreQueryFilters()
-                .Where(c => courseIds.Contains(c.Id))
-                .Select(c => new { c.Id, c.Code, c.Title, CategoryName = c.Category != null ? c.Category.Name : null })
-                .ToListAsync(cancellationToken);
-
-            var courseMap = courses.ToDictionary(c => c.Id);
-
-            // Count assignments per course
+            // 3. Count assignments per course
             var assignmentCounts = await _assignmentRepo.GetQuery()
                 .AsNoTracking()
                 .Where(a => a.CourseId.HasValue && courseIds.Contains(a.CourseId.Value))
@@ -254,23 +260,25 @@ namespace iLearn.Application.Services
 
             var assignmentCountMap = assignmentCounts.ToDictionary(a => a.CourseId, a => a.Count);
 
-            var rows = courseGroups.Select(g =>
+            // 4. Map all courses into summary rows
+            var rows = courses.Select(course =>
             {
-                courseMap.TryGetValue(g.CourseId, out var course);
-                assignmentCountMap.TryGetValue(g.CourseId, out var asgCount);
+                groupMap.TryGetValue(course.Id, out var g);
+                assignmentCountMap.TryGetValue(course.Id, out var asgCount);
+
                 return new CourseSummaryRow
                 {
-                    CourseId = g.CourseId,
-                    Code = course?.Code,
-                    Title = course?.Title,
-                    CategoryName = course?.CategoryName,
+                    CourseId = course.Id,
+                    Code = course.Code,
+                    Title = course.Title,
+                    CategoryName = course.CategoryName,
                     AssignmentCount = asgCount,
-                    EnrolledLearners = g.EnrolledLearners,
-                    CompletedCount = g.CompletedCount,
-                    OverdueCount = g.OverdueCount,
-                    AvgProgress = g.AvgProgress,
-                    CompletionRate = g.TotalEnrollments > 0 ? (double)g.CompletedCount / g.TotalEnrollments * 100 : 0,
-                    AvgScore = g.AvgScore,
+                    EnrolledLearners = g?.EnrolledLearners ?? 0,
+                    CompletedCount = g?.CompletedCount ?? 0,
+                    OverdueCount = g?.OverdueCount ?? 0,
+                    AvgProgress = g?.AvgProgress ?? 0,
+                    CompletionRate = (g != null && g.TotalEnrollments > 0) ? (double)g.CompletedCount / g.TotalEnrollments * 100 : 0,
+                    AvgScore = g?.AvgScore,
                 };
             }).ToList();
 
@@ -280,6 +288,7 @@ namespace iLearn.Application.Services
                 Rows = rows,
             };
         }
+
 
         public async Task<ActivityReportDto> GetActivityReportAsync(
             int months, int? divisionId, CancellationToken cancellationToken = default)
