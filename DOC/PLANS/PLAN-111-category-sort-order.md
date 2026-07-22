@@ -156,3 +156,13 @@ Manual (QA):
 7. **Reviewer รัน verify เองครบ:** `dotnet test` → **222/222 passed**; `npm run lint` + `npm run build` → 0 errors
 
 **คงค้างก่อน VERIFIED:** QA DB อัปเดตแล้ว (Gemini รัน `database update`) — เหลือ deploy API + Admin React ขึ้น QA แล้ว manual check ข้อ 4-7 → PROD (รอผู้ใช้ยืนยัน + **backup `Categories.Name` ก่อน** เพราะ `Down()` คืนชื่อไม่ได้ + รัน `dotnet ef database update` คู่ deploy PROD)
+
+## Admin React Deploy + Full Verification (GitHub Copilot, 2026-07-22)
+
+- Deploy Admin React ขึ้น QA (`tools/deploy-admin-react.ps1`) — `npm run lint` + `npm run build` ผ่าน 0 errors, robocopy สำเร็จ
+- **Smoke QA** (`https://ap-ntc2138-qawb/iLearn/admin-react/master-data/categories`): คอลัมน์ **ลำดับ** ซ้ายสุด เลข 1,2,3… เรียงต่อ division, ชื่อไม่มีเลขนำหน้า (42 records); เปิด detail ของ "Environment & Safety" (Id 23) → Fact **Sort Order: 1** แสดงถูก; ทดลอง Edit Properties หลายครั้ง — ตรวจ DB หลังทำ: `Name`/`SortOrder` ของ Id 23 **ไม่เปลี่ยนแปลง** (ไม่มีการแก้ข้อมูลโดยไม่ตั้งใจ); toast "Changes saved successfully" 2 ครั้งที่เห็นระหว่างนั้นตรวจแล้วเป็น SignalR broadcast `adminactivitycreated` ของกิจกรรม admin คนอื่น (console warning ยืนยัน) **ไม่ใช่ผลจากการทดสอบของเรา**
+- Deploy Admin React ขึ้น PROD (`tools/deploy-admin-react-prod.ps1`) — lint+build 0 errors, robocopy สำเร็จ
+- **Smoke PROD** (`https://ap-ntc2137-prwb/iLearn/admin-react/master-data/categories`): คอลัมน์ ลำดับ ซ้ายสุด เลข 1,2,3,4… เรียงต้อง, ชื่อไม่มี prefix, 41 records, ไม่มี error
+- **ข้อ 6 (learner sidebar เรียงตามลำดับใหม่):** ยังไม่ได้ทำ — ตาม Limitation ที่ reviewer จดไว้: sidebar learner เรียงตาม categoryId ไม่ใช่ sortOrder — อยู่นอก scope ของแผนนี้ (§4 เป็น option รอผู้ใช้ยืนยัน)
+
+**PLAN-111 ปิดงานสมบูรณ์: API + migration + Admin React ขึ้น QA และ PROD ครบทั้งหมด เหลือเฉพาะ˶ learner sidebar reorder (อยู่นอก scope)**
