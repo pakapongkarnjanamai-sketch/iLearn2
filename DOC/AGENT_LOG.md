@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Claude Code — เขียน PLAN-119: ปุ่มเข้าสู่ระบบสีขาว + apple-touch-icon แก้ Add to Home Screen บน iPad (มอบ Copilot)
+- ทำอะไร: ผู้ใช้ขอ 2 ข้อ. วินิจฉัย: (1) `.btn-login` พื้นแบรนด์บนการ์ดขาว → เปลี่ยนขาวต้องมี border สีแบรนด์กันกลืน (2) **root cause ไอคอน:** iOS ใช้ `apple-touch-icon` PNG เท่านั้น (ไม่รองรับ SVG) — แอปมีแค่ favicon.svg/ico ไม่มี `<link apple-touch-icon>` และ host ใต้ `/iLearn/` ทำให้ Safari probe root ไม่เจอ → fallback screenshot. เขียน PLAN-119: §1 CSS ปุ่มขาว+ขอบแบรนด์+hover brand-lighter (ไม่แตะ markup/JS PLAN-108) §2 gen `apple-touch-icon.png` 180×180 จากดีไซน์ favicon.svg (พื้นเต็มจัตุรัสห้ามมุมโปร่งใส — iOS mask เอง; ให้ script System.Drawing ในแผน) + `<link>` ใน `_DevExtremeLayout` (**ห้าม asp-append-version** — iOS บางรุ่นไม่โหลด icon มี query string) + ตรวจ .gitignore re-include
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-119-*.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (CSS + static asset + head link)
+- Verified: — (แผน; อ่าน Index.cshtml/.btn-login/login-card + ls wwwroot + favicon.svg + layout เดียว)
+- **ถึง Copilot: verification ข้อ 4 (Add to Home Screen จริง) ต้องให้ผู้ใช้ทดสอบบน iPad — ถ้าเคย add ไว้ต้องลบเก่าก่อน add ใหม่ (iOS cache icon); ห้ามทำ PWA manifest เต็ม**
+
 ## [2026-07-22 —] Claude Code — รีวิว PLAN-118 → ยืนยัน VERIFIED — backlog ว่าง (108-118 ปิดครบ)
 - ทำอะไร: ตรวจรายงานการรันของ Copilot — §A 13/13 รัดกุมกว่าสเปค (A1 ทดสอบทั้ง save-persist + cancel-ไม่-save + revert; A5 วินิจฉัย "Not implemented yet" = stub ของ ADL sample ถูกต้อง, test data เก็บกวาดครบ), pre-deploy gate รัน `ef migrations list` กับ PROD DB จริง (เกินสเปคในทางดี), §B stamps/health check/AutoRolledBack ครบ 3 ชิ้น, §C read-only ตามกติกา + ปิด verification PLAN-113 บน PROD, status ทุกแผนอัปเดตตรงผลจริง. เติม Reviewer Endorsement ท้าย PLAN-118
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-118-*.md` (+Endorsement), `DOC/AGENT_LOG.md`
