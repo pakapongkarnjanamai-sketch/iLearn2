@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Claude Code — เขียน PLAN-109 (สถานะ 3 คำ + เลิก pill + สลับปุ่ม toolbar) มอบ Copilot
+- ทำอะไร: ผู้ใช้รีวิว Player บน iPad (อาการนิ่งของ 108 หายแล้ว ✅) ขอปรับ 3 อย่าง. เขียน PLAN-109: **§1** ตัดคำ `ดูอย่างเดียว` (3 จุด — 107 ซ่อนแถวอยู่แล้ว) + เปลี่ยน `พร้อมแสดงผล`→`เรียนจบแล้ว` (1 จุด, ห้ามแตะ enable #btnPreSave) ⇒ เหลือ 3 คำ กำลังเรียน/เรียนจบแล้ว/ไม่ผ่านเกณฑ์. **§2** เลิก `.course-status-pill` → `.course-meta-value` + เปลี่ยน `.status-*` เป็นสีอักษรอย่างเดียว (แบบ B ผู้ใช้เลือก) — ยืนยัน status-* ใช้เฉพาะ #courseStatusDisplay จึงแก้ปลอดภัย. **§3 Claude สลับปุ่ม เต็มจอ↔พับแถบข้อมูล ให้แล้วใน working tree** (build ผ่าน) Copilot แค่ commit รวม. **QA deploy ผู้ใช้อนุมัติล่วงหน้า**
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-109-*.md` (ใหม่ READY), `iLearn.User/Views/MyLearning/Player.cshtml` (§3 button swap โดย Claude), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (แก้ label string + CSS; #courseStatusDisplay id เดิม)
+- Verified: build 0 errors (หลังสลับปุ่ม) + grep ยืนยัน status-* ใช้ที่เดียว
+- **ถึง Copilot: §3 ทำแล้วอย่าทำซ้ำ (commit รวม); §1 แก้แค่ string ห้ามแตะ logic ปุ่มแสดงผล; §2 วาง .status-* หลัง .course-meta-value เพื่อให้สีอักษรชนะ; deploy QA ได้เลย ห้าม PROD**
+
 ## [2026-07-21 —] Claude Code — รีวิว PLAN-108 รอบ 4: Fix 4/6/7 ผ่าน + ยอมรับ Fix 5 เป็น false finding
 - ทำอะไร: commit `4f7e65b` ทำ Fix 4/6/7. **Fix 4** `a.catalog-course-item:not(.catalog-list-item){display:block}` — render จริงยืนยัน list เป็น flex row, badge ไม่เต็มกว้าง, ปุ่มขวา ⇒ regression หาย. **Fix 6** ปุ่ม ดูเนื้อหา กลับมาเป็น `<span>` (list+grid) ไม่มี nested anchor. **Fix 7** ครบ 4 ส่วน: spinner เป็น CSS `::before content` (JS ไม่แตะ class ไอคอน), pointer-events เข้า class, `pageshow` ล้าง .is-navigating (จับ bfcache ที่ DOMContentLoaded ไม่จับ), timeout 8s. **Fix 5 (login autofocus): ผมแจ้งผิดในรอบ 3** — `$employeeCodeBox.trigger("focus")` มีมาตั้งแต่ commit แรก `7bdfca5` ไม่เคยหาย; รอบ 3 ผม grep `focus()` ซึ่งไม่ match `.trigger("focus")` เลยสรุปผิด. โค้ด login ถูกต้องอยู่แล้ว ($employeeCodeBox ชี้ #employee-code-input จริง)
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-108-*.md` (→REVIEWED รอบ 4 + Sign-off), `DOC/AGENT_LOG.md`
