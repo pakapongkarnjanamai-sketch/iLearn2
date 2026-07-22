@@ -82,6 +82,8 @@ namespace iLearn.Application.DTOs
         public string? Code { get; set; }
         public string? Title { get; set; }
         public string? CategoryName { get; set; }
+        public string? DivisionName { get; set; }
+        public string? CourseTypeName { get; set; }
         public int AssignmentCount { get; set; }
         public int EnrolledLearners { get; set; }
         public int CompletedCount { get; set; }
@@ -90,6 +92,7 @@ namespace iLearn.Application.DTOs
         public double CompletionRate { get; set; }
         public double? AvgScore { get; set; }
     }
+
 
     // ── GET api/Reports/activity?months=12 ──
     public class ActivityReportDto

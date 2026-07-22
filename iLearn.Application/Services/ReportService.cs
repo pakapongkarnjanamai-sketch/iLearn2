@@ -219,7 +219,14 @@ namespace iLearn.Application.Services
             }
 
             var courses = await coursesQuery
-                .Select(c => new { c.Id, c.Code, c.Title, CategoryName = c.Category != null ? c.Category.Name : null })
+                .Select(c => new {
+                    c.Id,
+                    c.Code,
+                    c.Title,
+                    CategoryName = c.Category != null ? c.Category.Name : null,
+                    DivisionName = c.Category != null && c.Category.Division != null ? c.Category.Division.Name : null,
+                    CourseTypeName = c.CourseType != null ? c.CourseType.Name : null
+                })
                 .ToListAsync(cancellationToken);
 
             if (courses.Count == 0)
@@ -272,6 +279,8 @@ namespace iLearn.Application.Services
                     Code = course.Code,
                     Title = course.Title,
                     CategoryName = course.CategoryName,
+                    DivisionName = course.DivisionName,
+                    CourseTypeName = course.CourseTypeName,
                     AssignmentCount = asgCount,
                     EnrolledLearners = g?.EnrolledLearners ?? 0,
                     CompletedCount = g?.CompletedCount ?? 0,

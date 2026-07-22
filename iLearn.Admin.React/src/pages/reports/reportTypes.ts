@@ -77,6 +77,8 @@ export interface CourseSummaryRow {
   code?: string | null
   title?: string | null
   categoryName?: string | null
+  divisionName?: string | null
+  courseTypeName?: string | null
   assignmentCount: number
   enrolledLearners: number
   completedCount: number
@@ -85,6 +87,7 @@ export interface CourseSummaryRow {
   completionRate: number
   avgScore?: number | null
 }
+
 
 // Mirrors ActivityReportDto (iLearn.Application/DTOs/ReportDtos.cs)
 export interface ActivityReportDto {

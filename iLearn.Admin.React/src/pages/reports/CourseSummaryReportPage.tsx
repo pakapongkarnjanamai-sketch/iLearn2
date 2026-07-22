@@ -17,6 +17,7 @@ import { Card } from '../../components/ui/Card'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { ProgressBar } from '../../components/ui/ProgressBar'
+import { Badge } from '../../components/ui/Badge'
 import { AppButton } from '../../components/ui/AppButton'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { Modal } from '../../components/ui/Modal'
@@ -31,11 +32,12 @@ type SortKey =
   | 'code'
   | 'title'
   | 'categoryName'
+  | 'divisionName'
+  | 'courseTypeName'
   | 'assignmentCount'
   | 'enrolledLearners'
   | 'completedCount'
   | 'overdueCount'
-  | 'avgProgress'
   | 'completionRate'
   | 'avgScore'
 
@@ -44,7 +46,7 @@ export function CourseSummaryReportPage() {
   const [data, setData] = useState<CourseSummaryReportDto | null>(null)
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('completionRate')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [visibleRows, setVisibleRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
 
@@ -75,7 +77,7 @@ export function CourseSummaryReportPage() {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
     } else {
       setSortKey(key)
-      setSortOrder('asc')
+      setSortOrder('desc')
     }
   }
 
@@ -133,7 +135,7 @@ export function CourseSummaryReportPage() {
     const q = search.trim().toLowerCase()
     if (!q) return sortedRows
     return sortedRows.filter((r) =>
-      [r.code, r.title, r.categoryName]
+      [r.code, r.title, r.categoryName, r.divisionName, r.courseTypeName]
         .filter(Boolean)
         .some((val) => val!.toLowerCase().includes(q))
     )
@@ -150,26 +152,30 @@ export function CourseSummaryReportPage() {
       return
     }
     const header = [
+      '#',
       'Course Code',
       'Course Title',
       'Category',
+      'Division',
+      'Course Type',
       'Assignments',
       'Enrolled Learners',
       'Completed Count',
       'Overdue Count',
-      'Avg Progress %',
       'Completion Rate %',
       'Avg Score',
     ]
-    const body = data.rows.map((r) => [
+    const body = data.rows.map((r, idx) => [
+      idx + 1,
       r.code ?? '',
       r.title ?? '',
       r.categoryName ?? '',
+      r.divisionName ?? '',
+      r.courseTypeName ?? 'General',
       r.assignmentCount,
       r.enrolledLearners,
       r.completedCount,
       r.overdueCount,
-      formatPercent(r.avgProgress).replace('%', ''),
       formatPercent(r.completionRate).replace('%', ''),
       r.avgScore !== null && r.avgScore !== undefined ? formatNumber(r.avgScore) : '',
     ])
@@ -284,7 +290,7 @@ export function CourseSummaryReportPage() {
               onClick={() => setIsHelpModalOpen(true)}
               className="flex items-center gap-1 text-xxs font-extrabold text-slate-400 hover:text-indigo-600 uppercase tracking-wider text-left transition-colors"
             >
-              <span>Avg Completion Rate</span>
+              <span>Overall Completion Rate</span>
               <Info className="h-3 w-3 text-indigo-400" />
             </button>
             <Percent className="h-4 w-4 text-indigo-500" aria-hidden="true" />
@@ -296,7 +302,7 @@ export function CourseSummaryReportPage() {
         </Card>
       </section>
 
-      {/* Courses Performance List */}
+      {/* Courses Performance List with Scroller Grid */}
       <Card
         title="Courses Performance List"
         actions={
@@ -316,16 +322,18 @@ export function CourseSummaryReportPage() {
           <ListToolbar
             searchValue={search}
             onSearchChange={setSearch}
-            searchPlaceholder="Search course code, title or category..."
+            searchPlaceholder="Search course code, title, division or category..."
           />
         </div>
 
-        <div className="overflow-x-auto custom-scrollbar">
+        {/* Scroller Grid container with max-height and custom scrollbar */}
+        <div className="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar">
           <table className="w-full text-left text-sm border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs select-none">
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs select-none sticky top-0 z-10 shadow-xs">
+                <th className="p-3 pl-5 text-center w-12">#</th>
                 <th
-                  className="p-3 pl-5 cursor-pointer hover:bg-slate-100/70 transition duration-100"
+                  className="p-3 cursor-pointer hover:bg-slate-100/70 transition duration-100"
                   onClick={() => handleSort('code')}
                 >
                   Code{renderSortIndicator('code')}
@@ -341,6 +349,18 @@ export function CourseSummaryReportPage() {
                   onClick={() => handleSort('categoryName')}
                 >
                   Category{renderSortIndicator('categoryName')}
+                </th>
+                <th
+                  className="p-3 cursor-pointer hover:bg-slate-100/70 transition duration-100"
+                  onClick={() => handleSort('divisionName')}
+                >
+                  Division{renderSortIndicator('divisionName')}
+                </th>
+                <th
+                  className="p-3 text-center cursor-pointer hover:bg-slate-100/70 transition duration-100"
+                  onClick={() => handleSort('courseTypeName')}
+                >
+                  Type{renderSortIndicator('courseTypeName')}
                 </th>
                 <th
                   className="p-3 text-center cursor-pointer hover:bg-slate-100/70 transition duration-100"
@@ -367,17 +387,7 @@ export function CourseSummaryReportPage() {
                   Overdue{renderSortIndicator('overdueCount')}
                 </th>
                 <th
-                  className="p-3 cursor-pointer hover:bg-slate-100/70 transition duration-100"
-                  onClick={() => handleSort('avgProgress')}
-                >
-                  <div className="flex items-center gap-1" onClick={(e) => { e.stopPropagation(); setIsHelpModalOpen(true); }}>
-                    <span>Avg Progress</span>
-                    <Info className="h-3 w-3 text-slate-400 hover:text-indigo-600" />
-                    {renderSortIndicator('avgProgress')}
-                  </div>
-                </th>
-                <th
-                  className="p-3 cursor-pointer hover:bg-slate-100/70 transition duration-100"
+                  className="p-3 cursor-pointer hover:bg-slate-100/70 transition duration-100 min-w-44"
                   onClick={() => handleSort('completionRate')}
                 >
                   <div className="flex items-center gap-1" onClick={(e) => { e.stopPropagation(); setIsHelpModalOpen(true); }}>
@@ -395,9 +405,12 @@ export function CourseSummaryReportPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
-              {visibleCourseRows.map((row) => (
+              {visibleCourseRows.map((row, idx) => (
                 <tr key={row.courseId} className="hover:bg-slate-50/50 transition duration-100">
-                  <td className="p-3 pl-5 text-xs font-mono font-bold text-slate-700 select-all">
+                  <td className="p-3 pl-5 text-center text-xs font-semibold text-slate-400 tabular-nums">
+                    {idx + 1}
+                  </td>
+                  <td className="p-3 text-xs font-mono font-bold text-slate-700 select-all">
                     {row.code || '—'}
                   </td>
                   <td className="p-3 text-xs font-bold text-slate-800">
@@ -405,6 +418,18 @@ export function CourseSummaryReportPage() {
                   </td>
                   <td className="p-3 text-xs font-semibold text-slate-500">
                     {row.categoryName || '—'}
+                  </td>
+                  <td className="p-3 text-xs font-semibold text-slate-600">
+                    {row.divisionName || '—'}
+                  </td>
+                  <td className="p-3 text-center text-xs">
+                    <Badge
+                      tone={(row.courseTypeName || '').toLowerCase().includes('special') ? 'warning' : 'info'}
+                      variant="soft"
+                      size="xxs"
+                    >
+                      {row.courseTypeName || 'General'}
+                    </Badge>
                   </td>
                   <td className="p-3 text-center text-xs font-semibold tabular-nums">
                     {formatNumber(row.assignmentCount)}
@@ -420,14 +445,9 @@ export function CourseSummaryReportPage() {
                       {row.overdueCount}
                     </span>
                   </td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-2">
-                      <ProgressBar value={row.avgProgress} completed={row.completionRate >= 100} />
-                    </div>
-                  </td>
-                  <td className="p-3">
+                  <td className="p-3 min-w-44">
                     <div className="flex items-center gap-3">
-                      <ProgressBar value={row.completionRate} completed={row.completionRate >= 100} maxWidthClass="max-w-20" />
+                      <ProgressBar value={row.completionRate} completed={row.completionRate >= 100} maxWidthClass="max-w-24" />
                       <span className="text-xxs font-bold text-slate-500 tabular-nums">
                         {formatPercent(row.completionRate)}
                       </span>
@@ -440,7 +460,7 @@ export function CourseSummaryReportPage() {
               ))}
               {filteredRows.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="p-6 text-center text-slate-400 text-xs font-medium">
+                  <td colSpan={12} className="p-6 text-center text-slate-400 text-xs font-medium">
                     No course records found
                   </td>
                 </tr>
@@ -478,52 +498,38 @@ export function CourseSummaryReportPage() {
             </div>
             <p className="text-slate-600">
               วัดจากสัดส่วนเปอร์เซ็นต์ของผู้เรียนที่ <strong>เรียนจบตามเกณฑ์ 100% (Completed)</strong> แล้ว
-              เปรียบเทียบกับจำนวนผู้เรียนทั้งหมดที่ถูกมอบหมายในคอร์สนั้น
+              เปรียบเทียบกับจำนวนผู้เรียนทั้งหมดที่ถูกมอบหมายในคอร์สนั้น (เป็นตัววัดการเรียนสำเร็จหลักคอลัมน์เดียวของตาราง)
             </p>
             <div className="bg-white p-2.5 rounded-lg border border-indigo-100 font-mono text-xxs font-bold text-indigo-800">
-              สูตร: (จำนวนผู้เรียนที่สำเร็จ ÷ จำนวนผู้เรียนทั้งหมดที่ถูกมอบหมาย) × 100
+              สูตรคำนวณ: (จำนวนผู้เรียนที่สำเร็จ ÷ จำนวนผู้เรียนทั้งหมดที่ถูกมอบหมาย) × 100
             </div>
           </div>
 
-          {/* Section 2: Avg Progress */}
+          {/* Section 2: Overall Completion Rate */}
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-2">
             <div className="flex items-center gap-2 text-slate-800 font-extrabold text-sm">
-              <BookOpen className="h-4 w-4 text-indigo-600" />
-              <span>Avg Progress (%) — ความคืบหน้าบทเรียนเฉลี่ย</span>
+              <Layers className="h-4 w-4 text-indigo-600" />
+              <span>Overall Completion Rate — อัตราเรียนสำเร็จรวมภาพรวม</span>
             </div>
             <p className="text-slate-600">
-              วัดจากค่าเฉลี่ยของ <strong>เปอร์เซ็นต์เนื้อหาบทเรียนที่ผู้เรียนทุกคนสะสมมาได้</strong> แม้ผู้เรียนจะยังเรียนไม่เสร็จ 100%
-              ก็นำ % ความคืบหน้าปัจจุบันมาร่วมคิดค่าเฉลี่ยด้วย
+              คือตัวเลขการ์ดสรุปบนหัวหน้า แสดงอัตราการเรียนสำเร็จรวมของทุกคอร์สในระบบเปรียบเทียบกับจำนวนผู้เรียนที่ถูกลงทะเบียนทั้งหมด
             </p>
-            <div className="bg-white p-2.5 rounded-lg border border-slate-200 font-mono text-xxs font-bold text-slate-700">
-              สูตร: ผลรวม % ความคืบหน้าของผู้เรียนทุกคน ÷ จำนวนผู้เรียนทั้งหมด
-            </div>
           </div>
 
-          {/* Section 3: Comparison Example */}
+          {/* Section 3: Example */}
           <div className="border border-amber-200 bg-amber-50/40 rounded-xl p-4 flex flex-col gap-3">
             <h4 className="font-bold text-amber-900 text-xs uppercase tracking-wider">
-              💡 ตัวอย่างเปรียบเทียบความแตกต่าง (Comparison Example)
+              💡 ตัวอย่างการคิดคำนวณ Completion Rate
             </h4>
-            <p className="text-amber-800">
-              สมมติคอร์สมีผู้เรียน 2 คน:
+            <p className="text-amber-800 leading-relaxed">
+              สมมติคอร์ส A มีผู้เรียนถูกมอบหมายทั้งหมด <strong>100 คน</strong>:
               <br />
-              • <strong>นาย A:</strong> เรียนเนื้อหาไปได้ 90% (ยังไม่เสร็จสิ้น)
+              • เรียนสำเร็จ 100% แล้ว: <strong>75 คน</strong>
               <br />
-              • <strong>นาย B:</strong> เรียนเนื้อหาครบ 100% (เรียนจบแล้ว - Completed)
+              • ยังเรียนไม่สำเร็จ (กำลังเรียนอยู่ หรือ เกินกำหนด): <strong>25 คน</strong>
+              <br />
+              $\rightarrow$ ค่า <strong>Completion Rate</strong> ของคอร์ส A จะเท่ากับ <strong>75.0%</strong>
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-              <div className="bg-white p-3 rounded-lg border border-amber-200 flex flex-col gap-1">
-                <span className="font-bold text-slate-500 text-xxs uppercase">Avg Progress</span>
-                <span className="text-base font-extrabold text-slate-800 tabular-nums">95.0%</span>
-                <span className="text-xxs text-slate-500">(90% + 100%) ÷ 2 = ความคืบหน้าสะสมสูงมาก</span>
-              </div>
-              <div className="bg-white p-3 rounded-lg border border-amber-200 flex flex-col gap-1">
-                <span className="font-bold text-slate-500 text-xxs uppercase">Completion Rate</span>
-                <span className="text-base font-extrabold text-indigo-600 tabular-nums">50.0%</span>
-                <span className="text-xxs text-slate-500">นับเฉพาะ นาย B คนเดียวที่สำเร็จ 100%</span>
-              </div>
-            </div>
           </div>
 
           {/* Section 4: Other Metrics */}
