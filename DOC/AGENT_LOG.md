@@ -2,6 +2,19 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Claude Code — รีวิว PLAN-109 → REVIEWED ผ่านสะอาด (render พิสูจน์ 3 สี)
+- ทำอะไร: §1 เหลือ 3 label (grep 0 ดูอย่างเดียว/พร้อมแสดงผล), ไม่แตะ #btnPreSave. §2 render จริงวัด computed style: status-muted #475569 / success #1e7e34 / danger #dc3545 — ทุกตัว background โปร่งใส padding 0 radius 0 font 12.8px/600 เท่า course-meta-value (source order status-* หลัง meta-value → สีชนะ), ลบ pill+status-warning rule แล้ว. §3 btnFullscreen ก่อน btnToggleSidebar. build 0 err + node --check ผ่าน
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-109-*.md` (→REVIEWED + Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว)
+- Verified: render measurement 3 สี + build + node --check
+- คงค้างก่อน VERIFIED: เล่นคอร์สจบ/ตกจริงบน QA (account ไม่มี state นั้น) — สีพิสูจน์แล้ว, logic แค่ label string, ความเสี่ยงต่ำ
+## [2026-07-22 —] GitHub Copilot — PLAN-109: deploy PROD ตามคำยืนยันผู้ใช้ในแชท + smoke ปิด gap สถานะ "เรียนจบแล้ว"
+- ทำอะไร: ผู้ใช้ยืนยันในแชท "deploy ทั้งหมด to prod" หลัง QA smoke ผ่าน → deploy `tools\deploy-user-prod.ps1` (เฉพาะ `iLearn.User` — งานนี้แตะแค่โปรเจกต์เดียวตาม scope ของแผน) → stamp `_user_deploy_20260722085448` live, post-deploy health check `HTTP 200` ผ่านอัตโนมัติ. **Smoke PROD** ด้วย learner ทดสอบ 610034 (บัญชีเดิมที่เคยใช้ E2E บน PROD มาก่อน — อ่านอย่างเดียว ไม่กด save/commit ใด ๆ): เจอคอร์ส `SA-101-JP` (courseId=507) ที่ **completed จริง** บน PROD ⇒ ปิด gap ที่ QA ไม่มีให้ทดสอบได้ — ยืนยัน `#courseStatusDisplay` = `course-meta-value status-success`, สีเขียว `rgb(30,126,52)`, พื้นโปร่งใส, border-radius 0 (ไม่ใช่ pill), ข้อความ `เรียนจบแล้ว`. Toolbar order + `window.DevExpress===undefined` ตรงเหมือน QA. Logout หลังทดสอบเสร็จ
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-109-*.md` (→VERIFIED), `DOC/AGENT_LOG.md` (ไม่มีการแก้โค้ดเพิ่มรอบนี้ — deploy ของที่มีอยู่แล้ว)
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: PROD health check 200 (auto จาก deploy script) + Playwright smoke ยืนยันครบทั้ง 2 สถานะสี (กำลังเรียน จาก QA รอบก่อน + เรียนจบแล้ว จาก PROD รอบนี้) + toolbar + ไม่มี DevExpress
+- **PLAN-109 ปิดงานสมบูรณ์:** deploy ทั้ง QA + PROD แล้ว, smoke ครอบคลุม 2/3 สถานะสี (เหลือ `ไม่ผ่านเกณฑ์`/สอบตก ที่ไม่มีบัญชีทดสอบพร้อมสถานะนี้ในทั้ง 2 env — ความเสี่ยงต่ำเพราะ logic เดิมไม่เปลี่ยน)
+
 ## [2026-07-22 —] Claude Code — เขียน PLAN-111: Category SortOrder (running no ต่อ Division) — backend+React
 - ทำอะไร: ผู้ใช้ขอให้ Categories มี running no แยกจากชื่อ, เรียง id ต่อ Division, admin ปรับเอง. สำรวจ: Category ไม่มี field ลำดับ (เลข "1." ฝังใน Name), admin React เป็น table config (moduleConfigs masterDataCategories), ordering ปัจจุบัน by Name. **ผู้ใช้ตัดสิน: (1) แก้ด้วยช่องกรอกตัวเลข ไม่ใช่ drag-drop (2) ตัดเลขหน้าชื่อออก**. เขียน PLAN-111: §1 เพิ่ม `Category.SortOrder` + migration (backfill row_number per DivisionId order by Id + ตัด prefix `^\d+\.\s*` จาก Name) §2 API เพิ่ม `sortOrder` ใน CategoryDto + รับแก้ผ่าน PUT + เปลี่ยน ordering เป็น (DivisionId,SortOrder,Id) [CONTRACT FREEZE] §3 React เพิ่มคอลัมน์ ลำดับ ซ้ายสุด + number input ในฟอร์ม §4 learner sidebar ตัด prefix ตามเจตนา (เพิ่มเลขนำหน้าเป็น option รอยืนยัน)
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-111-*.md` (ใหม่ READY), `DOC/AGENT_LOG.md`

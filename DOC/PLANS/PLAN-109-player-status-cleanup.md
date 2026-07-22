@@ -1,6 +1,6 @@
 # PLAN-109: Player สถานะ — เหลือ 3 คำ + เลิก pill เป็นข้อความมีสี + สลับปุ่ม toolbar
 
-- **Status:** READY
+- **Status:** VERIFIED — deployed QA + PROD, smoke tested both (Playwright), ผู้ใช้อนุมัติ PROD ในแชท (2026-07-22)
 - **Assigned:** GitHub Copilot
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -105,4 +105,30 @@ deploy **learner** อย่างเดียว (`tools\deploy-user.ps1`, defa
 
 ## Implementer Notes
 
-_(เติมโดย implementer — แนบ screenshot สถานะ + toolbar)_
+- §1: แก้ label string ครบ 4 จุด — `renderCourseDetails` (isCompleted→เรียนจบแล้ว, else if !isReadOnly→กำลังเรียน, ตัดสาขา isReadOnly ทิ้ง), `setupReadOnlyMode` (เหลือแค่ if isCompleted→เรียนจบแล้ว ไม่มี else), `recalcTotalProgress` ทั้ง 2 จุด (allPassed→เรียนจบแล้ว, readOnly branch เหลือแค่ if isCompleted). ไม่แตะ `.prop("disabled", ...)` ของ `#btnPreSave` ตามที่สั่ง
+- §2: markup `#courseStatusDisplay` เปลี่ยน class `course-status-pill` → `course-meta-value` (คง id + status-muted เริ่มต้น). CSS ลบ `.course-status-pill` และ `.status-warning` ทิ้ง, เปลี่ยน `.status-muted/.status-success/.status-danger` เหลือแค่ `color` (ไม่มี background) — ยังอยู่หลัง `.course-meta-value` ใน source order เหมือนเดิม
+- ไม่แตะ `removeClass("status-muted status-success status-danger status-warning")` ใน `setCourseStatusDisplay` — เหลือ reference ถึง class ที่ไม่มี CSS แล้วแต่ไม่กระทบ (ตามคำสั่งห้ามแตะ logic ของฟังก์ชันนี้)
+- §3: ปุ่ม toolbar สลับไว้แล้วโดย Claude ก่อนหน้า (ยืนยันด้วย grep — `#btnFullscreen` มาก่อน `#btnToggleSidebar` ที่บรรทัด 604/607) — ไม่ต้องแก้ซ้ำ
+- Verified: `dotnet build iLearn.User -o artifacts\verify-user-109` → Build succeeded 0 errors (74 warnings เดิม, ไม่เกี่ยวกับงานนี้), ลบ artifacts แล้ว
+- **Deploy QA:** `tools\deploy-user.ps1` → stamp `_user_deploy_20260722083900` live (คำสั่งเดิม `_user_deploy_20260721170621`)
+- **Smoke QA (Playwright, learner 610034, courseId=968 "TEST" กำลังเรียน 50%):**
+  - `#courseStatusDisplay` → `className="course-meta-value status-muted"`, computed `color: rgb(71,85,105)`, `background: rgba(0,0,0,0)` (โปร่งใส, ไม่มี pill), `border-radius: 0px`, text = `กำลังเรียน` ✅ ตรง §1/§2
+  - Toolbar: `#btnFullscreen` มาก่อน `#btnToggleSidebar` ในโครง DOM จริง ✅ ตรง §3
+  - `window.DevExpress === undefined` ✅ (PLAN-108 ยังอยู่), console 0 error ระหว่างโหลด Player
+  - **ไม่ได้ทดสอบบน QA** สถานะ `เรียนจบแล้ว`/`ไม่ผ่านเกณฑ์` จริง — บัญชีทดสอบ 610034 บน QA ไม่มีคอร์สที่ completed/failed อยู่ในตอนนี้ (KPI แสดง 0 เรียนจบแล้ว)
+- **ผู้ใช้ยืนยัน deploy PROD ในแชท (2026-07-22)** — deploy ด้วย `tools\deploy-user-prod.ps1` → stamp `_user_deploy_20260722085448` live, post-deploy health check `HTTP 200` ผ่านอัตโนมัติ
+- **Smoke PROD (Playwright, learner 610034 — บัญชีทดสอบเดิมที่เคยใช้ E2E บน PROD มาก่อน, อ่านอย่างเดียว ไม่กด commit/save ใด ๆ):**
+  - courseId=507 "SA-101-JP" (คอร์สที่ completed จริงของบัญชีนี้) → `#courseStatusDisplay` computed: `className="course-meta-value status-success"`, `color: rgb(30,126,52)` (เขียว), `background: transparent`, `border-radius: 0px`, text = `เรียนจบแล้ว` ✅ **ปิด gap ที่ QA ไม่มีให้เทียบ** — ยืนยันสถานะสีเขียว/เรียนจบแล้วทำงานถูกต้องจริงบน PROD
+  - Toolbar `#btnFullscreen` → `#btnToggleSidebar` ✅, `window.DevExpress === undefined` ✅, console 0 error
+  - ยังไม่มีเคส `ไม่ผ่านเกณฑ์` (สีแดง) ให้ทดสอบจริงในบัญชีนี้ — logic ไม่เปลี่ยน (แก้แค่ label string) ความเสี่ยงต่ำ, ปิด session ด้วยการกด "ออกจากระบบ" เรียบร้อยหลังทดสอบ
+
+## Reviewer Sign-off (Claude Code, 2026-07-22)
+
+- **§1 ผ่าน:** เหลือ 3 label — `กำลังเรียน`/`เรียนจบแล้ว`/`ไม่ผ่านเกณฑ์` (grep ยืนยัน 0 `ดูอย่างเดียว`, 0 `พร้อมแสดงผล`); สาขา read-only-non-completed ตัด call ทิ้งครบ 3 จุด, โครง if/else เหลือ isCompleted→เรียนจบแล้ว ถูกต้อง; **ไม่แตะ `.prop("disabled")` ของ #btnPreSave** ✅
+- **§2 ผ่าน — render พิสูจน์ทั้ง 3 สี:** markup `course-meta-value status-muted` (ไม่มี pill); `.status-*` เป็น **สีอักษรอย่างเดียว** วัดจริง: กำลังเรียน `#475569` · เรียนจบแล้ว `#1e7e34` · ไม่ผ่านเกณฑ์ `#dc3545` — ทุกตัว **background โปร่งใส, padding 0, radius 0, font 12.8px/600 เท่า `.course-meta-value` เป๊ะ** ✅ `.course-meta-value`(210) มาก่อน `.status-*`(220) → สีอักษรชนะ ✅ ลบ `.course-status-pill` + `.status-warning` rule แล้ว (`status-warning` เหลือแค่ใน `removeClass` — ไม่มี CSS แล้ว ไม่มีผล) ✅
+- **§3 ผ่าน:** `#btnFullscreen`(584) มาก่อน `#btnToggleSidebar`(587); id/onclick/`d-none d-lg-inline-flex` เดิมครบ ✅
+- **Verify อิสระ:** build 0 errors · `node --check` ผ่าน · render measurement เทียบ reference plain value
+- **Copilot smoke QA:** สถานะ `กำลังเรียน` computed color rgb(71,85,105) = `#475569` ตรงกับที่ผมวัด · toolbar order · DevExpress undefined · 0 error
+- **คงค้างก่อน VERIFIED:** ยังไม่ได้ทดสอบ `เรียนจบแล้ว`/`ไม่ผ่านเกณฑ์` บน state จริง (QA account ไม่มีคอร์ส completed/failed) — **แต่ผม render พิสูจน์สีทั้ง 2 แล้ว + logic เป็นแค่ label string ที่ setCourseStatusDisplay เดิม** ⇒ ความเสี่ยงต่ำมาก; ยืนยันเต็มเมื่อผู้ใช้เล่นคอร์สจบ/ตกจริง
+
+**สรุป: ผ่านรีวิว ไม่มี finding**
