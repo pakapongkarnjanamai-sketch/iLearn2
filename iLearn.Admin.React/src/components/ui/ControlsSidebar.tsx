@@ -119,7 +119,18 @@ export function ControlAction({
   }
 
   return (
-    <button type={type} onClick={onClick} className={rowStyles[variant]} title={title}>
+    <button
+      type={type}
+      onClick={(event) => {
+        // ปุ่ม type="button" ไม่มี default action ของตัวเอง — preventDefault ที่นี่กัน
+        // เคส DOM node ถูก reuse แล้วกลายเป็น type="submit" ระหว่าง re-render ใน click เดียวกัน
+        // (phantom submit — PLAN-115)
+        if (type !== 'submit') event.preventDefault()
+        onClick?.()
+      }}
+      className={rowStyles[variant]}
+      title={title}
+    >
       {inner}
     </button>
   )

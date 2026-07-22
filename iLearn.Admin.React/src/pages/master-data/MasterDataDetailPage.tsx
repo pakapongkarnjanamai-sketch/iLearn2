@@ -189,10 +189,11 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
               {isEditing ? (
                 // Edit Mode Actions
                 <>
-                  <ControlAction type="submit" icon={Save} loading={busy} variant="primary">
+                  <ControlAction key="save" type="submit" icon={Save} loading={busy} variant="primary">
                     {busy ? 'Saving...' : 'Save Changes'}
                   </ControlAction>
                   <ControlAction
+                    key="cancel"
                     icon={X}
                     disabled={busy}
                     onClick={() => {
@@ -210,8 +211,8 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
               ) : (
                 // View Mode Actions
                 <>
-                  <ControlAction icon={Edit3} onClick={() => setIsEditing(true)}>Edit Properties</ControlAction>
-                  <ControlAction icon={Trash2} onClick={handleDelete} variant="danger">Delete Record</ControlAction>
+                  <ControlAction key="edit" icon={Edit3} onClick={() => setIsEditing(true)}>Edit Properties</ControlAction>
+                  <ControlAction key="delete" icon={Trash2} onClick={handleDelete} variant="danger">Delete Record</ControlAction>
                 </>
               )}
             </ControlsSidebar>

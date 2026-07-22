@@ -1,6 +1,6 @@
 # PLAN-115: แก้ปุ่ม Edit Properties หน้า Master Data detail — phantom form submit ตอนสลับปุ่มเป็น Save
 
-- **Status:** READY
+- **Status:** REVIEWED
 - **Assigned:** Antigravity Gemini (React ล้วน — shared component + หน้าเดียว)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -94,4 +94,17 @@ Manual (QA):
 
 ## Implementer Notes
 
-_(เติมโดย implementer)_
+- **§1**: แก้ไข `ControlsSidebar.tsx` โดยเพิ่ม `event.preventDefault()` สำหรับปุ่มทุกตัวที่ `type !== 'submit'` เพื่อป้องกัน phantom submit เมื่อ DOM node ถูก reuse ระหว่าง click event dispatch
+- **§2**: เพิ่ม `key` ("save", "cancel", "edit", "delete") ใน `MasterDataDetailPage.tsx` สำหรับ `ControlAction` ทั้งใน Edit Mode และ View Mode เพื่อบังคับ React Re-create DOM node แยกออกจากกัน
+- **Verification**: รัน `npm run lint` ผ่าน 0 errors และ `npm run build` ผ่าน 0 errors (built in 1.68s)
+
+## Reviewer Sign-off (Claude Code, 2026-07-22)
+
+**ผลรีวิว: ✅ ผ่าน — REVIEWED**
+
+1. **§1** `ControlAction`: `preventDefault` เฉพาะ `type !== 'submit'` ก่อนเรียก `onClick?.()` — ตรงสเปคเป๊ะ, signature ภายนอกไม่เปลี่ยน (`onClick?: () => void` เดิม), ปุ่ม submit/Link ไม่โดนกระทบ, มีคอมเมนต์อธิบาย phantom submit ติดไว้ในโค้ด
+2. **§2** `key` ครบทั้ง 4 ปุ่ม (save/cancel/edit/delete) — สองชั้นตามแผน
+3. **Reviewer รัน verify เอง:** lint + build 0 errors
+4. หมายเหตุ: การ verify จริงว่าบั๊กหาย (กด Edit แล้วฟอร์มเปิดค้าง) ต้องทำบน QA หลัง deploy — อยู่ใน Manual ข้อ 1-6 ของแผน รวม §3 ทดสอบแก้ sortOrder ผ่าน UI ครั้งแรก
+
+**คงค้าง: deploy Admin React ขึ้น QA → manual 1-6 (โดยเฉพาะข้อ 1-2) → PROD รอผู้ใช้ยืนยัน** — deploy รวมกับ PLAN-114 ได้ (อยู่ working tree เดียวกัน)
