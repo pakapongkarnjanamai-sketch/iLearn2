@@ -37,12 +37,15 @@ namespace iLearn.API.Controllers
             }
 
             var lookupQuery = query
-                .OrderBy(c => c.Name)
+                .OrderBy(c => c.DivisionId)
+                .ThenBy(c => c.SortOrder)
+                .ThenBy(c => c.Id)
                 .Select(c => new CategoryDto
                 {
                     Id = c.Id,
                     Name = c.Name,
-                    DivisionId = c.DivisionId
+                    DivisionId = c.DivisionId,
+                    SortOrder = c.SortOrder
                 });
 
             return Ok(await DataSourceLoader.LoadAsync(lookupQuery, loadOptions));
@@ -63,7 +66,8 @@ namespace iLearn.API.Controllers
                 {
                     Id = c.Id,
                     Name = c.Name,
-                    DivisionId = c.DivisionId
+                    DivisionId = c.DivisionId,
+                    SortOrder = c.SortOrder
                 })
                 .FirstOrDefaultAsync();
 

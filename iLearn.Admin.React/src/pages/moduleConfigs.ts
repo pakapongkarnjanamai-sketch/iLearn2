@@ -187,6 +187,7 @@ export const adminListConfigs = {
     hasDescription: true,
     searchExpr: ['name', 'description'],
     columns: [
+      { dataField: 'sortOrder', caption: 'ลำดับ', dataType: 'number', width: 90, alignment: 'center' },
       { dataField: 'name', caption: 'Category Name', minWidth: 260 },
       { dataField: 'description', caption: 'Description', minWidth: 220 },
       { dataField: 'divisionName', caption: 'Division', width: 150 },

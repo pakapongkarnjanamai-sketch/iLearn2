@@ -1,4 +1,4 @@
-﻿using iLearn.Application.Common;
+using iLearn.Application.Common;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
@@ -91,7 +91,8 @@ namespace iLearn.Infrastructure.Persistence
             // Unique: 1 Enrollment ต่อ 1 Assignment (ไม่ซ้ำ)
             modelBuilder.Entity<EnrollmentAssignment>()
                 .HasIndex(ea => new { ea.EnrollmentId, ea.AssignmentId })
-                .IsUnique();
+                .IsUnique()
+                .HasFilter("[IsDeleted] = 0");
 
             // 2. Config CourseContentItem (Many-to-Many)
             modelBuilder.Entity<CourseContentItem>()
@@ -232,7 +233,8 @@ namespace iLearn.Infrastructure.Persistence
             // Unique: 1 Assignment + 1 Course (ไม่ซ้ำ)
             modelBuilder.Entity<AssignmentCourse>()
                 .HasIndex(ac => new { ac.AssignmentId, ac.CourseId })
-                .IsUnique();
+                .IsUnique()
+                .HasFilter("[IsDeleted] = 0");
 
             // ── Read-only view: vw_AssignmentList (keyless — no soft-delete filter needed) ──
             modelBuilder.Entity<AssignmentListRow>(entity =>
@@ -260,7 +262,7 @@ namespace iLearn.Infrastructure.Persistence
             modelBuilder.Entity<Assignment>()
                 .HasIndex(a => new { a.AssignmentNo, a.CourseId })
                 .IsUnique()
-                .HasFilter("[AssignmentNo] IS NOT NULL AND [CourseId] IS NOT NULL");
+                .HasFilter("[AssignmentNo] IS NOT NULL AND [CourseId] IS NOT NULL AND [IsDeleted] = 0");
 
             // Config Course <-> CourseType
             modelBuilder.Entity<Course>()

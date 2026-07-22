@@ -55,6 +55,9 @@ namespace iLearn.API.Controllers.Base
             if (_currentUser.DivisionId.HasValue)
                 query = query.Where(c => c.DivisionId == _currentUser.DivisionId.Value);
 
+            // Default order: running number (SortOrder) within each Division
+            query = query.OrderBy(c => c.DivisionId).ThenBy(c => c.SortOrder).ThenBy(c => c.Id);
+
             // Load course counts per category
             var courseCounts = await _courseRepo.GetQuery()
                 .GroupBy(c => c.CategoryId)
@@ -69,7 +72,8 @@ namespace iLearn.API.Controllers.Base
                 divisionName = c.Division != null ? c.Division.Name : null,
                 c.IsActive,
                 c.CreatedAt,
-                c.Description
+                c.Description,
+                c.SortOrder
             });
 
             var loadResult = DataSourceLoader.Load(projected, loadOptions);
@@ -85,6 +89,7 @@ namespace iLearn.API.Controllers.Base
                     c.IsActive,
                     c.CreatedAt,
                     c.Description,
+                    c.SortOrder,
                     courseCount = courseCounts.GetValueOrDefault((int)c.Id, 0)
                 }).ToList();
 
@@ -125,8 +130,9 @@ namespace iLearn.API.Controllers.Base
                 ("name",     false) => query.OrderBy(c => c.Name),
                 ("isactive", true)  => query.OrderByDescending(c => c.IsActive),
                 ("isactive", false) => query.OrderBy(c => c.IsActive),
-                (_,          false) => query.OrderBy(c => c.Id),
-                _                   => query.OrderByDescending(c => c.Id),
+                ("sortorder", true)  => query.OrderByDescending(c => c.DivisionId).ThenByDescending(c => c.SortOrder),
+                ("sortorder", false) => query.OrderBy(c => c.DivisionId).ThenBy(c => c.SortOrder),
+                _ => query.OrderBy(c => c.DivisionId).ThenBy(c => c.SortOrder).ThenBy(c => c.Id),
             };
 
             var totalCount = await query.CountAsync();
@@ -144,6 +150,7 @@ namespace iLearn.API.Controllers.Base
                     divisionName = c.Division != null ? c.Division.Name : null,
                     c.IsActive,
                     c.Description,
+                    c.SortOrder,
                     courseCount = c.Courses.Count()
                 })
                 .ToListAsync();

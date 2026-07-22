@@ -13,6 +13,9 @@ namespace iLearn.Domain.Entities
         [StringLength(500)]
         public string? Description { get; set; }
 
+        /// <summary>Running number (1-based) used to order categories within a Division; admin-editable.</summary>
+        public int SortOrder { get; set; }
+
         public ICollection<Course> Courses { get; set; } = new List<Course>();
     }
 }

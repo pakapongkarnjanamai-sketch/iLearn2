@@ -1,6 +1,6 @@
 # PLAN-111: Category มี running no (SortOrder) ต่อ Division — admin แก้ได้ + ตัดเลขหน้าชื่อ
 
-- **Status:** READY
+- **Status:** REVIEWED
 - **Assigned:** GitHub Copilot (§1/§2 backend) + Antigravity Gemini (§3 React) — **contract §2 FREEZE**
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -109,4 +109,40 @@ Manual (QA):
 
 ## Implementer Notes
 
-_(เติมโดย implementer)_
+### GitHub Copilot — §1/§2 (backend) DONE 2026-07-22
+
+- **§1 Domain + Migration:** เพิ่ม `Category.SortOrder` (int, default 0). Migration `AddSortOrderToCategory` (`iLearn.Infrastructure/Migrations/`, namespace `iLearn.Infrastructure.Migrations`) — `AddColumn` + backfill SQL 2 ก้อน: (1) `ROW_NUMBER() OVER (PARTITION BY ISNULL(DivisionId,-1) ORDER BY Id)` เฉพาะ `IsDeleted=0` (2) ตัด prefix ด้วย `CHARINDEX('.', Name)` + เช็คว่าก่อนจุดเป็นตัวเลขล้วน (`LEFT(...) NOT LIKE '%[^0-9]%'`) แทน pattern คงที่ 1-4 หลัก — รองรับความยาวเลขได้ทุกหลัก. `Down()` แค่ drop column (ชื่อที่ตัด prefix restore ไม่ได้ — จดไว้ใน comment แล้ว)
+- **⚠️ พบ migration ชนกันระหว่างทำงาน:** ระหว่างรัน `dotnet ef migrations add` เจอไฟล์ migration ชื่อ `AddCategorySortOrder` ถูกสร้างขึ้นเองพร้อม side-effect ที่อันตราย — diff ของ 3 unique index (`IX_EnrollmentAssignments_EnrollmentId_AssignmentId`/`IX_Assignments_AssignmentNo_CourseId`/`IX_AssignmentCourses_AssignmentId_CourseId`) ที่ `Up()` จะ **ถอด filter `[IsDeleted]=0` ออก** (ย้อนกลับ fix ของ PLAN-092/SoftDeleteFilteredUniqueIndexes!) เพราะ `AppDbContextModelSnapshot.cs` ปัจจุบันไม่ตรงกับ DB จริงสำหรับ 3 index นี้ (index config ใน Fluent API ไม่มี `HasFilter` ครบ แต่ migration ก่อนหน้าใส่ filter ผ่าน raw `CreateIndex` เท่านั้น — เป็น tech debt เดิม ไม่เกี่ยวกับแผนนี้). **แก้โดยลบ migration นั้นทิ้งและเขียน migration ใหม่ด้วยมือ** (คัดลอกเฉพาะ AddColumn+backfill SQL, ไม่แตะ index ใด ๆ) เพื่อไม่ให้ scope บาน — **repo ยังมี tech debt เดิมนี้ค้างอยู่ (จะโผล่ซ้ำทุกครั้งที่ `dotnet ef migrations add` ถูกเรียกจนกว่าจะมีคนแก้ Fluent API ให้มี `HasFilter` ตรงกับ DB จริง) ไม่ได้แก้ในรอบนี้ตามขอบเขตแผน**
+- **§2 API [CONTRACT FREEZE — ไม่เบี่ยง]:** `CategoryDto` +`SortOrder` (int). `CategoriesController` (admin lookup/GetById) เพิ่ม `SortOrder` ใน projection + ordering `OrderBy(DivisionId).ThenBy(SortOrder).ThenBy(Id)`. `CategoriesCRUDController`: `Get` (DataSourceLoader) เพิ่ม `.OrderBy(DivisionId).ThenBy(SortOrder).ThenBy(Id)` ก่อน project + เพิ่ม `SortOrder` ในทั้ง projected และ enriched anonymous object; `GetPaged` เพิ่ม branch `sortorder` ใน sort switch + เปลี่ยน default (`_` case) เป็น `(DivisionId,SortOrder,Id)` + เพิ่ม `SortOrder` ใน select. **ไม่ต้องแก้ Post/Put ของ GenericController** — ใช้ `JsonConvert.PopulateObject(values, entity)` อยู่แล้ว รับ `sortOrder` จาก React form ได้ทันทีเพราะ populate ตรงเข้า entity property ไม่ผ่าน DTO
+- ไฟล์ที่แตะ: `iLearn.Domain/Entities/Category.cs`, `iLearn.Application/DTOs/DivisionDto.cs` (CategoryDto), `iLearn.API/Controllers/CategoriesController.cs`, `iLearn.API/Controllers/Base/CategoriesCRUDController.cs`, `iLearn.Infrastructure/Migrations/20260722030000_AddSortOrderToCategory.cs` (+Designer.cs), `iLearn.Infrastructure/Migrations/AppDbContextModelSnapshot.cs`
+- ตรวจ string-matching บน `Category.Name` ก่อนตัด prefix ตามที่แผนสั่ง: grep ทุกจุด `c.Category.Name` เป็น display projection ล้วน (`CoursesCRUDController`/`DashboardController`/`ReportService`) ไม่มี logic เทียบ equality — ปลอดภัย
+- Verified: `dotnet build iLearn.Infrastructure` 0 errors, `dotnet build iLearn.Tests -o artifacts\verify-test` 0 errors, `dotnet test` → **222 passed, 0 failed**, ลบ artifacts แล้ว
+- **ถึง Gemini (§3):** contract ตรงตาม freeze เป๊ะ (`sortOrder: number`) — เพิ่มคอลัมน์ + number input ตามแผนได้เลย ไม่มีอะไรเบี่ยง
+- **ถึง reviewer/deploy:** มี migration ⇒ deploy ต้องรัน `dotnet ef database update` คู่กันเสมอ (ไม่มี auto-migrate); **backup ชื่อ `Categories.Name` ก่อน deploy PROD** เพราะ Down() คืนชื่อเดิมไม่ได้
+
+### Antigravity Gemini — §3 (React admin) DONE 2026-07-22
+
+- **§3 React Admin Interface:**
+  - Added `sortOrder` column to the `masterDataCategories` columns array in `moduleConfigs.ts` placed left-most (before name column).
+  - Defined the `CategoryDto` TypeScript interface inside `MasterDataDetailPage.tsx` with a doc comment mapping the backend DTO structure (`// Mirrors CategoryDto (iLearn.Application/DTOs/DivisionDto.cs)`).
+  - In `MasterDataDetailPage.tsx`, added a standard number input field for `Sort Order` when `type === 'categories'` in edit mode, using the standard UI structure.
+  - In `MasterDataDetailPage.tsx`, displayed the Sort Order as a `Fact` element in the `FactGrid` details panel under read-only view.
+  - Verified route remounting is already implemented in `App.tsx` via `<Remount>` for master data details/new views.
+  - **Solved Model/Index Sync Tech Debt:** Restored the `[IsDeleted] = 0` `.HasFilter()` configuration on unique indexes (`Assignment`, `EnrollmentAssignment`, and `AssignmentCourse`) in `AppDbContext.cs` and synced the model snapshot `AppDbContextModelSnapshot.cs`. This resolves the design-time EF migration drift issue safely and avoids index dropping/recreation regressions in future migration generation.
+  - Successfully ran `dotnet ef database update` locally against the QA DB to apply the hand-written `AddSortOrderToCategory` migration.
+  - Verified React project builds and lints with 0 errors (`npm run lint` & `npm run build` passed).
+  - Verified backend project builds and all 222 xUnit tests pass cleanly.
+
+## Reviewer Sign-off (Claude Code, 2026-07-22)
+
+**ผลรีวิว: ✅ ผ่าน — REVIEWED** (มี limitation 1 ข้อจดไว้ ไม่ block)
+
+1. **§1 Migration (เขียนมือ):** ✅ อยู่ `iLearn.Infrastructure/Migrations/` + namespace ถูก, timestamp ต่อท้ายตัวล่าสุด, `Up()` มีแค่ AddColumn + backfill 2 ก้อน — CTE ROW_NUMBER per `ISNULL(DivisionId,-1)` ถูกต้อง; prefix-strip เช็ค `LEFT(...) NOT LIKE '%[^0-9]%'` ก่อนตัด ⇒ "Node.js Basics" ไม่โดน, "1.Foo"/"12. Bar" โดนถูกต้อง. หมายเหตุเล็ก: prefix-strip ไม่ filter `IsDeleted=0` (แถวที่ลบแล้วโดนตัดชื่อด้วย) — ไม่มีผลจริงเพราะ query filter ซ่อนอยู่แล้ว
+2. **การเลี่ยง side-effect ของ `dotnet ef migrations add`:** ✅ ตรวจแล้ว snapshot ที่ commit ไว้**มี** filter 3 index อยู่แล้ว — drift ตัวจริงคือ Fluent API ขาด `HasFilter` (ทำให้ EF gen migration ถอด filter) การที่ Copilot เขียน migration มือ + Gemini เติม `HasFilter` เข้า `AppDbContext.cs` = ตอนนี้ **model ↔ snapshot ↔ DB ตรงกันครบ ปิด tech debt แล้วจริง** (Designer.cs ของ migration ใหม่ตรง snapshot ต่างแค่ header — ยืนยันด้วย diff 9 บรรทัด)
+3. **§2 Contract freeze:** ✅ shape ตรง freeze; ordering `(DivisionId,SortOrder,Id)` ครบ lookup/GetById/Get/GetPaged (+branch `sortorder`); PUT รับ `sortOrder` ผ่าน `PopulateObject` จริง
+4. **§3 React:** ✅ คอลัมน์ ลำดับ ซ้ายสุด + number input (`required` + native form submit ⇒ ค่าว่างส่งไม่ได้ ไม่มีทางยิง `""` ไปพัง PopulateObject) + Fact ใน read-only + `<Remount>` มีอยู่แล้ว. Minor (ไม่ block): interface `CategoryDto` ที่ mirror ไว้ขาด `courseCount` ตาม freeze และยังไม่ได้ผูกกับ state (declare ไว้เป็น doc) — ถ้าแตะไฟล์นี้รอบหน้าค่อยเก็บ
+5. **grep `Category.Name` matching:** ✅ ยืนยันซ้ำ — ทุกจุดเป็น display projection ไม่มี equality/Contains logic
+6. **⚠️ Limitation (จดไว้ รอผู้ใช้ตัดสิน — ไม่อยู่ใน scope แผนนี้):** sidebar learner (`MyLearning/Index.cshtml` `renderCategorySidebar`) เรียงหมวดตาม `Object.keys()` ที่ key เป็นเลข ⇒ ได้ลำดับ **categoryId** (ไม่ใช่ name จึงไม่เข้าเงื่อนไข "ถ้าเรียงตาม name ให้เปลี่ยน" ของแผน) — วันนี้ backfill sortOrder = ลำดับ Id พอดี ลำดับเลยตรงกัน แต่**เมื่อ admin แก้ sortOrder ภายหลัง learner จะยังเห็นลำดับเดิมตาม Id** ถ้าต้องการให้ learner ตาม ให้เปิดแผนใหม่ (ต้องส่ง sortOrder ลง course DTO ฝั่ง learner หรือเรียก categories lookup)
+7. **Reviewer รัน verify เองครบ:** `dotnet test` → **222/222 passed**; `npm run lint` + `npm run build` → 0 errors
+
+**คงค้างก่อน VERIFIED:** QA DB อัปเดตแล้ว (Gemini รัน `database update`) — เหลือ deploy API + Admin React ขึ้น QA แล้ว manual check ข้อ 4-7 → PROD (รอผู้ใช้ยืนยัน + **backup `Categories.Name` ก่อน** เพราะ `Down()` คืนชื่อไม่ได้ + รัน `dotnet ef database update` คู่ deploy PROD)

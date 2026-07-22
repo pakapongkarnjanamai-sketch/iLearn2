@@ -20,6 +20,18 @@ import { createAdminDataSource } from '../../lib/createDataSource'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 
+// Mirrors CategoryDto (iLearn.Application/DTOs/DivisionDto.cs)
+export interface CategoryDto {
+  id: number
+  name: string
+  description?: string | null
+  divisionId?: number | null
+  divisionName?: string | null
+  sortOrder: number
+  isActive: boolean
+  createdAt: string
+}
+
 type MasterDataDetailPageProps = {
   isNew?: boolean
 }
@@ -226,6 +238,27 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                     />
                   </div>
 
+                  {type === 'categories' && (
+                    <div className="space-y-1.5">
+                      <label htmlFor="sort-order-field" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">
+                        Sort Order (ลำดับ)
+                      </label>
+                      <input
+                        id="sort-order-field"
+                        type="number"
+                        min={1}
+                        required
+                        value={activeValues.sortOrder !== undefined && activeValues.sortOrder !== null ? activeValues.sortOrder : ''}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? '' : Number(e.target.value)
+                          handleFieldChange('sortOrder', val)
+                        }}
+                        placeholder="Enter sort order (e.g. 1, 2, 3...)"
+                        className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/30 transition duration-150"
+                      />
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-3 py-2">
                     <input
                       type="checkbox"
@@ -276,6 +309,14 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                       colSpan="full"
                     >
                       {item?.description || '—'}
+                    </Fact>
+                  )}
+
+                  {type === 'categories' && (
+                    <Fact
+                      label="Sort Order"
+                    >
+                      {item?.sortOrder !== undefined && item?.sortOrder !== null ? item.sortOrder : '—'}
                     </Fact>
                   )}
 
