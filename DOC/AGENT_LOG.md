@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Claude Code — รีวิว PLAN-113 → REVIEWED (commit 646136e) + สมมติฐานใหม่เรื่องปุ่ม Edit Properties
+- ทำอะไร: รีวิว diff ครบ — §1 additive DTO+projection เป๊ะ ไม่แตะ ordering courses; §2 `Object.values().filter(id!==undefined).sort((sortOrder,id))` ถูกต้อง (entry 'all' เป็น raw array ถูกกรองเอง, `data-category` render ค่าเท่าเดิม click/lookup ไม่เปลี่ยน); manual สลับ sortOrder จริงเห็นผล end-to-end ปิด loop PLAN-111. รัน verify เอง: 222/222. **เรื่องปุ่ม Edit Properties ที่ Copilot รายงานว่ากดไม่ติด:** ตรวจโค้ดแล้ว `ControlAction` เป็น `type="button"`+onClick ถูกต้อง — **สมมติฐานที่เข้าเค้ากว่า: กด Edit แล้วปุ่มตำแหน่งเดิมกลายเป็น Save Changes (submit)** ⇒ automation กดซ้ำพิกัดเดิม = save แล้วเด้งกลับ view mode ทันที (อธิบาย toast "Changes saved successfully" ที่รอบ PLAN-111 โทษ SignalR ด้วย) — ต้องพิสูจน์ด้วยตาจริง เสนอ PLAN-114 รอผู้ใช้ตัดสิน
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-113-*.md` (→REVIEWED + Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว)
+- Verified: dotnet test 222/222 โดย reviewer เอง + อ่าน ControlsSidebar/MasterDataDetailPage ยืนยัน type ปุ่ม
+- **คงค้าง: deploy PROD (API + iLearn.User) รอผู้ใช้ยืนยัน; ปุ่ม Edit Properties รอผู้ใช้กดพิสูจน์เองหรือเปิด PLAN-114**
+
 ## [2026-07-22 —] GitHub Copilot — PLAN-113: implement + deploy QA + smoke test สลับ sortOrder จริง — รอ PROD
 - ทำอะไร: implement ตามแผน — **§1** `LearnerCourseCatalogDto` +`CategorySortOrder` (additive), `EnrollmentsController.GetCourseCatalog` projection เพิ่ม `CategorySortOrder = c.Category?.SortOrder ?? 0` **§2** `organizeCoursesByCategory` เก็บ sortOrder ต่อ category entry, `renderCategorySidebar` เปลี่ยนจาก `Object.keys().forEach` เป็น `Object.values().filter(...).sort((sortOrder, id))`. Build+test: 0 errors, 222/222 ผ่าน. Deploy QA (API stamp `_deploy_20260722105526` + User stamp `_user_deploy_20260722105719`). **Manual test ตัวจริงตามแผน:** login learner 610034 เห็น sidebar เรียง EP1(1) ก่อน PLAN-079(2) ตรงกับ admin grid → เรียก PUT CategoriesCRUD สลับ sortOrder สองหมวดจริงผ่าน browser session admin → refresh learner → sidebar สลับตามทันที → สลับกลับคืนค่าเดิมหลังทดสอบ — ปิด loop manual ที่ค้างจาก PLAN-111 ด้วย. ระหว่างทางพิมพ์ category id ผิด 1 ครั้ง (แก้ sortOrder ของ "Special knowledge" id=81 แทน PLAN-079) — ตรวจพบและ revert เป็น 12 ทันทีก่อนไปแก้ id ที่ถูกต้อง (82)
 - ไฟล์หลักที่แตะ: `iLearn.Application/DTOs/LearnerCourseCatalogDto.cs`, `iLearn.API/Controllers/EnrollmentsController.cs`, `iLearn.User/Views/MyLearning/Index.cshtml`, `DOC/PLANS/PLAN-113-*.md` (→QA VERIFIED + Implementer Notes), `DOC/AGENT_LOG.md`

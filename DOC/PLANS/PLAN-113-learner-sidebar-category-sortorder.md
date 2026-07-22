@@ -1,6 +1,6 @@
 # PLAN-113: learner sidebar เรียงหมวดหมู่ตาม Category.SortOrder (ปิด limitation ของ PLAN-111)
 
-- **Status:** QA VERIFIED — รอผู้ใช้ยืนยัน deploy PROD
+- **Status:** REVIEWED + QA VERIFIED — รอผู้ใช้ยืนยัน deploy PROD
 - **Assigned:** GitHub Copilot (API + learner view — งานเล็ก ทำคนเดียวทั้งสองฝั่ง)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -76,4 +76,16 @@ Manual (QA):
 - **หมายเหตุ:** ระหว่างหา category id ของ "PLAN-079 SCORM Conformance Test" พิมพ์ id ผิดหนึ่งครั้ง (แก้ `Category.SortOrder` ของ "Special knowledge" id=81 แทน) — ตรวจพบและ revert กลับเป็น 12 ทันที (ค่าที่สอดคล้องกับลำดับ backfill เดิมของ division นั้น) ก่อนไปแก้ id ที่ถูกต้อง (82) — ไม่กระทบข้อมูลจริงหลังแก้ไข
 - **Edit Properties button บน Category Detail page (Admin React):** ลองกดแล้วไม่เปิดฟอร์มแก้ไขที่มองเห็นได้ (ปุ่มดูเหมือนไม่ทำงานหรือ toggle เงียบ) — ใช้ direct API PUT แทนสำหรับ manual test นี้ **นอก scope ของ PLAN-113** แต่ควรมีคนตรวจสอบ UI ปุ่มนี้ในแผนแยก
 - **คงค้างก่อน deploy PROD:** รอผู้ใช้ยืนยัน (ตาม Deploy note ของแผน)
+
+## Reviewer Sign-off (Claude Code, 2026-07-22)
+
+**ผลรีวิว: ✅ ผ่าน — REVIEWED** (commit `646136e`)
+
+1. **§1 API:** ✅ +`CategorySortOrder` ใน DTO + projection `c.Category?.SortOrder ?? 0` — additive เป๊ะ, ordering ของ courses ใน response ไม่ถูกแตะ (`OrderBy(Code).ThenBy(Title)` เดิม)
+2. **§2 JS:** ✅ `Object.values(...).filter(...).sort((sortOrder, id))` — entry `'all'` (raw array ไม่มี `.id`) ถูกกรองด้วย `cat.id !== undefined` ถูกต้อง; `data-category="${cat.id}"` render ค่าเดียวกับ `${catId}` เดิม (string เดียวกัน) ⇒ click handler/lookup ไม่เปลี่ยนพฤติกรรม; "ทั้งหมด" ยังอยู่บนสุดนอก loop; `?? 0` fallback กัน deploy skew ตามแผน
+3. **Manual ข้อ 2 (สลับ sortOrder จริง) ทำแล้วเห็นผล end-to-end** — ปิด loop ที่ค้างจาก PLAN-111 ✅ และ revert ค่ากลับหลังทดสอบ; อุบัติเหตุแก้ id ผิด (81 Special knowledge) ถูก revert เป็นค่า backfill เดิม (12) — จดไว้แล้ว โปร่งใสดี
+4. **Reviewer รัน verify เอง:** `dotnet test` → **222/222 passed**
+5. **⚠️ Finding ใหม่จาก implementer ที่ต้องตามต่อ (นอก scope 113):** ปุ่ม **Edit Properties** บนหน้า Category Detail ถูกรายงานว่า "กดแล้วฟอร์มไม่เปิด" — reviewer ตรวจโค้ดแล้ว `ControlAction` เป็น `type="button"` + `onClick={() => setIsEditing(true)}` ถูกต้อง **สมมติฐานที่เข้าเค้ากว่า: กด Edit แล้วปุ่มตำแหน่งเดิมกลายเป็น "Save Changes" (type=submit)** ⇒ automation ที่กดซ้ำพิกัดเดิม = สั่ง save ทันทีแล้วเด้งกลับ view mode (อธิบาย toast "Changes saved successfully" ที่รอบ PLAN-111 เคยโทษ SignalR ด้วย) — ต้องพิสูจน์ด้วยตาจริง เสนอเปิด PLAN-114 หรือให้ผู้ใช้กดเองบน admin ที่เปิดอยู่
+
+**คงค้าง: deploy PROD (API + iLearn.User) รอผู้ใช้ยืนยัน**
 
