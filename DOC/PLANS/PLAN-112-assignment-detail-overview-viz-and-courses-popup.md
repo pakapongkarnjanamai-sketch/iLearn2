@@ -1,6 +1,6 @@
 # PLAN-112: Assignment detail — Overview มี visualization + ย้าย courses ของ learner ไป popup
 
-- **Status:** READY
+- **Status:** REVIEWED
 - **Assigned:** Antigravity Gemini (React ล้วน ไฟล์เดียวเป็นหลัก)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -69,4 +69,29 @@ Manual (QA — ใช้ AS-20260713-002 /assignments/288 ที่ผู้ใ�
 
 ## Implementer Notes
 
-_(เติมโดย implementer)_
+- **§1 Overview status visualization:**
+  - เพิ่ม layout `grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 items-center` ใน `<Card title="Overview">`
+  - Reuse `StatusDonut` และ `buildStatusData` จาก `./AssignmentReportCharts`
+  - ผูก `onSelectStatus` ให้สลับไป tab `learners` (`setActiveDetailTab('learners')`) และตั้งค่า `learnerStatusFilter`
+  - ผูก `activeStatus={learnerStatusFilter}` เพื่อให้ donut highlight ตรงตาม status filter ปัจจุบัน
+- **§2 Learners tab & courses popup:**
+  - ลบคอลัมน์ `Assigned Courses & Progress` (th/td), state `expandedCodes`, และปุ่ม `Expand all/Collapse all` ใน toolbar ออก
+  - ปรับคอลัมน์ `Summary` แสดง `n Completed`, `StatusBadge`, `Badge` `{totalCount} courses` และปุ่ม `AppButton` `"View courses"` (กรณี `totalCount === 0` แสดง italic `"No courses assigned"`)
+  - เพิ่ม Modal `z-50` สำหรับแสดงรายการคอร์สของ learner ที่เลือก (`courseModalCode`) โดยดึงข้อมูลจาก `groupedLearners` ล่าสุดเสมอ
+  - ปุ่ม Reset รายคอร์ส (`handleResetLearnerCourse`) ภายใน popup modal สามารถกดได้โดย `ConfirmDialog` ซ้อนบน modal ด้วย `z-60` และ refresh ข้อมูลใน popup สดอัตโนมัติ
+  - ลบ import `ChevronDown` และ `ChevronUp` ที่ไม่ได้ใช้ออก
+- **Verification:**
+  - `npm run lint` ผ่าน 0 errors
+  - `npm run build` ผ่าน 0 errors (built in 1.62s)
+
+## Reviewer Sign-off (Claude Code, 2026-07-22)
+
+**ผลรีวิว: ✅ ผ่าน — REVIEWED** (แก้ข้อเท็จจริงใน notes 1 จุด ไม่กระทบโค้ด)
+
+1. **§1 Donut:** ✅ reuse `StatusDonut` + `buildStatusData` (มีอยู่แล้วใน `AssignmentReportCharts.tsx:172` — **ไฟล์ Report ไม่ถูกแตะเลย** ตามข้อห้าม); `onSelectStatus` สลับ tab + ตั้ง filter, `activeStatus` sync สองทางกับ `SegmentedToggle`; layout `lg:grid-cols-[1fr_auto]` + donut 280px มี border แบ่ง, จอแคบ stack ตามสเปค
+2. **§2 ตัดคอลัมน์/popup:** ✅ `expandedCodes` + Expand all + ChevronDown/Up หายเกลี้ยง; ตารางเหลือ 4 คอลัมน์ + `colSpan={4}` แก้ตาม; Summary รวม `N/M Completed` + badge + ปุ่ม View courses (learner 0 คอร์ส = italic ไม่มีปุ่ม); popup ใช้ `modalLearner` memo จาก `groupedLearners` ล่าสุด (**ไม่ snapshot** ตามที่แผนบังคับ) + effect ปิดเองเมื่อ learner หายหลัง reload; reset รายคอร์สอยู่ใน popup ครบ
+3. **จุดที่ notes เขียนคลาดเคลื่อน (โค้ดไม่ผิด):** ConfirmDialog **ไม่ใช่ z-60** — ใช้ `Modal`/`.modal-overlay` = z-50 เท่ากับ popup; ที่ทับได้ถูกต้องเพราะ `{confirmDialog}` render หลัง popup ใน DOM (z เท่ากัน ตัวหลังชนะ) ซึ่งเป็น pattern เดิมของหน้านี้อยู่แล้ว (confirm "Unverified Codes" ทับ Add Learners modal ด้วยกลไกเดียวกัน) — behavior ถูก แต่ถ้าอนาคตย้ายตำแหน่ง `{confirmDialog}` ใน tree ให้ระวัง
+4. **ของเดิมไม่พัง:** filter logic (`l.courses.some`), bulk select/reset/remove, Load more, ลิงก์โปรไฟล์ — ไม่ถูกแตะ; `Badge`/`ProgressBar`/`StatusBadge`/`IconButton` ใช้ shared ครบ ไม่มี hand-roll
+5. **Reviewer รัน verify เอง:** `npm run lint` + `npm run build` → 0 errors
+
+**คงค้างก่อน VERIFIED:** deploy Admin React ขึ้น QA + manual ข้อ 1-6 ใน Verification (โดยเฉพาะข้อ 2 คลิก donut→filter และข้อ 4 reset ใน popup แล้วข้อมูล refresh) → PROD รอผู้ใช้ยืนยัน

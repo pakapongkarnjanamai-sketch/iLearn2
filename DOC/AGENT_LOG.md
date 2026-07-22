@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Claude Code — รีวิว PLAN-112 → REVIEWED ผ่าน (แก้ข้อเท็จจริง z-index ใน notes)
+- ทำอะไร: รีวิวงาน Gemini — §1 donut reuse `StatusDonut`+`buildStatusData` (มีอยู่แล้วที่ `AssignmentReportCharts.tsx:172`, ไฟล์ Report ไม่ถูกแตะตามข้อห้าม), sync สองทางกับ filter ถูกต้อง; §2 `expandedCodes`/Expand all หายเกลี้ยง, ตาราง 4 คอลัมน์ + `colSpan={4}` ถูก, popup ใช้ memo จาก `groupedLearners` ล่าสุด (ไม่ snapshot) + effect ปิดเองเมื่อ learner หาย, reset รายคอร์สย้ายเข้า popup ครบ. **แก้ข้อเท็จจริง:** notes อ้าง ConfirmDialog z-60 — จริง ๆ `.modal-overlay` = z-50 เท่า popup, ที่ทับได้เพราะ `{confirmDialog}` อยู่หลังใน DOM (pattern เดิมของหน้านี้: confirm Unverified Codes ทับ Add Learners modal ด้วยกลไกเดียวกัน) — behavior ถูก โค้ดไม่ต้องแก้ แต่จดไว้กันคนย้ายตำแหน่ง `{confirmDialog}` ในอนาคต. รัน verify เอง: lint + build 0 errors
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-112-*.md` (→REVIEWED + Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว)
+- Verified: npm run lint + npm run build โดย reviewer เอง + grep z-index จริงใน Modal/index.css + ตรวจ AssignmentReportCharts ไม่ถูกแก้
+- **คงค้างก่อน VERIFIED: deploy Admin React ขึ้น QA** + manual 6 ข้อ (เน้นข้อ 2 คลิก donut→filter, ข้อ 4 reset ใน popup แล้ว refresh) → PROD รอผู้ใช้ยืนยัน
+
 ## [2026-07-22 —] Antigravity — PLAN-112: Assignment detail — Overview status donut visualization + ย้าย courses ของ learner ไป popup modal
 - ทำอะไร: **§1** ปรับ layout ใน `<Card title="Overview">` ของ `AssignmentDetailPage.tsx` เป็น responsive 2 คอลัมน์ (`grid-cols-1 lg:grid-cols-[1fr_auto]`) โดยเพิ่ม `StatusDonut` ขวาของ `FactGrid` ซึ่ง reuse `StatusDonut` + `buildStatusData` จาก `AssignmentReportCharts.tsx` (ไม่แตะ backend); คลิก segment donut จะสลับไป tab Learners + filter ตาม status และ sync donut highlight กับ `learnerStatusFilter`. **§2** ใน Learners tab ตัดคอลัมน์ `Assigned Courses & Progress`, state `expandedCodes` และปุ่ม Expand/Collapse all ออก; ปรับคอลัมน์ `Summary` ให้มี `Badge` แสดงจำนวนคอร์ส และ `AppButton` `"View courses"` สำหรับเปิด popup modal (`z-50`); ภายใน popup render รายการคอร์ส/progress/status พร้อมปุ่ม reset รายคอร์ส (`IconButton` `RotateCcw`) ซึ่งยังคงใช้ `useConfirm` (ConfirmDialog `z-60`) ได้ และ refresh ข้อมูลใน popup สดอัตโนมัติ
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `DOC/PLANS/PLAN-112-assignment-detail-overview-viz-and-courses-popup.md` (→DONE), `DOC/AGENT_LOG.md`

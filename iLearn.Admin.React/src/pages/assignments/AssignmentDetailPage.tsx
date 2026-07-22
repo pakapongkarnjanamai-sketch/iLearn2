@@ -11,10 +11,9 @@ import {
   CalendarClock,
   Search,
   X,
-  Plus,
-  ChevronDown,
-  ChevronUp
+  Plus
 } from 'lucide-react'
+import { StatusDonut, buildStatusData } from './AssignmentReportCharts'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
@@ -159,8 +158,8 @@ export function AssignmentDetailPage() {
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(new Set())
   const [bulkWorking, setBulkWorking] = useState<'reset' | 'remove' | null>(null)
 
-  // Collapse/expand per learner row in Learners tab
-  const [expandedCodes, setExpandedCodes] = useState<Set<string>>(new Set())
+  // Learner course popup modal
+  const [courseModalCode, setCourseModalCode] = useState<string | null>(null)
 
   const groupedLearners = useMemo<GroupedLearner[]>(() => {
     if (!assignment?.learners) return []
@@ -193,6 +192,11 @@ export function AssignmentDetailPage() {
 
     return Array.from(map.values())
   }, [assignment])
+
+  const modalLearner = useMemo(() => {
+    if (!courseModalCode) return null
+    return groupedLearners.find(l => l.learnerCode === courseModalCode) ?? null
+  }, [groupedLearners, courseModalCode])
 
   const filteredLearners = useMemo(() => {
     const q = learnerSearch.trim().toLowerCase()
@@ -234,7 +238,7 @@ export function AssignmentDetailPage() {
     setVisibleCourseRows(DETAIL_TABLE_CHUNK_SIZE)
     setVisibleLearnerRows(DETAIL_TABLE_CHUNK_SIZE)
     setSelectedCodes(new Set())
-    setExpandedCodes(new Set())
+    setCourseModalCode(null)
   }, [id])
 
   useEffect(() => {
@@ -250,6 +254,12 @@ export function AssignmentDetailPage() {
       return next.size === prev.size ? prev : next
     })
   }, [groupedLearners])
+
+  useEffect(() => {
+    if (courseModalCode && !groupedLearners.some(l => l.learnerCode === courseModalCode)) {
+      setCourseModalCode(null)
+    }
+  }, [groupedLearners, courseModalCode])
 
   // Extend due date
   const handleExtendDueDate = async () => {
@@ -686,6 +696,7 @@ export function AssignmentDetailPage() {
       >
         <main className="space-y-6">
           <Card icon={FileBarChart} title="Overview" bodyClassName="p-5">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 items-center">
               <FactGrid className="pt-2">
                 <Fact label="Learners" valueClassName="font-bold text-slate-800">
                   {assignment.totalEmployees}
@@ -716,6 +727,18 @@ export function AssignmentDetailPage() {
                   </Fact>
                 )}
               </FactGrid>
+              <div className="w-full lg:w-[280px] shrink-0 border-t lg:border-t-0 lg:border-l border-slate-100 pt-4 lg:pt-0 lg:pl-6">
+                <StatusDonut
+                  data={buildStatusData(assignment.learners)}
+                  completionRate={assignment.completionRate}
+                  activeStatus={learnerStatusFilter}
+                  onSelectStatus={(statusKey) => {
+                    setActiveDetailTab('learners')
+                    setLearnerStatusFilter(statusKey)
+                  }}
+                />
+              </div>
+            </div>
           </Card>
 
           <DetailTabs
@@ -781,40 +804,16 @@ export function AssignmentDetailPage() {
                   onSearchChange={setLearnerSearch}
                   searchPlaceholder="Search code, name, division, department..."
                   toolbarContent={
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <SegmentedToggle
-                        variant="filter"
-                        options={[
-                          { value: 'All', label: 'All' },
-                          ...LEARNER_STATUS_KEYS.map(s => ({ value: s, label: learnerStatusLabel(s) })),
-                        ]}
-                        value={learnerStatusFilter}
-                        onChange={setLearnerStatusFilter}
-                        className="flex-wrap"
-                      />
-                      {filteredLearners.some(l => l.courses.length > 0) && (
-                        <AppButton
-                          variant="ghost"
-                          icon={filteredLearners.filter(l => l.courses.length > 0).every(l => expandedCodes.has(l.learnerCode)) ? ChevronUp : ChevronDown}
-                          onClick={() => {
-                            const expandable = filteredLearners.filter(l => l.courses.length > 0)
-                            const allExpanded = expandable.every(l => expandedCodes.has(l.learnerCode))
-                            if (allExpanded) {
-                              setExpandedCodes(new Set())
-                            } else {
-                              setExpandedCodes(prev => {
-                                const next = new Set(prev)
-                                expandable.forEach(l => next.add(l.learnerCode))
-                                return next
-                              })
-                            }
-                          }}
-                          className="px-2 py-1 text-xxs font-bold"
-                        >
-                          {filteredLearners.filter(l => l.courses.length > 0).every(l => expandedCodes.has(l.learnerCode)) ? 'Collapse all' : 'Expand all'}
-                        </AppButton>
-                      )}
-                    </div>
+                    <SegmentedToggle
+                      variant="filter"
+                      options={[
+                        { value: 'All', label: 'All' },
+                        ...LEARNER_STATUS_KEYS.map(s => ({ value: s, label: learnerStatusLabel(s) })),
+                      ]}
+                      value={learnerStatusFilter}
+                      onChange={setLearnerStatusFilter}
+                      className="flex-wrap"
+                    />
                   }
                 />
               </div>
@@ -870,7 +869,6 @@ export function AssignmentDetailPage() {
                         />
                       </th>
                       <th className="p-3">Learner</th>
-                      <th className="p-3">Assigned Courses & Progress</th>
                       <th className="p-3">Summary</th>
                       <th className="p-3 text-center">Actions</th>
                     </tr>
@@ -909,69 +907,30 @@ export function AssignmentDetailPage() {
                               )}
                             </div>
                           </td>
-                          <td className="p-3">
-                            <div className="flex flex-col gap-3">
-                              {l.courses.length === 0 ? (
+                          <td className="p-3 align-top">
+                            <div className="flex flex-col gap-1.5 items-start">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs font-bold text-slate-700">
+                                  {completedCount} / {totalCount} Completed
+                                </span>
+                                <StatusBadge size="xxs" tone={allCompleted ? 'success' : 'neutral'}>
+                                  {allCompleted ? 'Completed' : 'In Progress'}
+                                </StatusBadge>
+                              </div>
+                              {totalCount === 0 ? (
                                 <span className="text-slate-400 text-xs italic">No courses assigned</span>
-                              ) : !expandedCodes.has(l.learnerCode) ? (
+                              ) : (
                                 <div className="flex items-center gap-2">
-                                  <Badge tone="neutral" variant="soft" size="xxs">{l.courses.length} courses</Badge>
+                                  <Badge tone="neutral" variant="soft" size="xxs">{totalCount} courses</Badge>
                                   <AppButton
                                     variant="ghost"
-                                    icon={ChevronDown}
-                                    onClick={() => setExpandedCodes(prev => { const next = new Set(prev); next.add(l.learnerCode); return next })}
+                                    onClick={() => setCourseModalCode(l.learnerCode)}
                                     className="px-2 py-0.5 text-xxs font-bold"
                                   >
-                                    Show courses
+                                    View courses
                                   </AppButton>
                                 </div>
-                              ) : (
-                                <>
-                                  <div className="flex items-center">
-                                    <AppButton
-                                      variant="ghost"
-                                      icon={ChevronUp}
-                                      onClick={() => setExpandedCodes(prev => { const next = new Set(prev); next.delete(l.learnerCode); return next })}
-                                      className="px-2 py-0.5 text-xxs font-bold"
-                                    >
-                                      Hide courses
-                                    </AppButton>
-                                  </div>
-                                  {l.courses.map((c) => (
-                                    <div key={c.assignmentRuleId ?? c.courseCode ?? ''} className="flex items-center justify-between gap-6 border-b border-slate-100/50 last:border-0 pb-1.5 last:pb-0">
-                                      <div className="flex flex-col min-w-0 flex-1">
-                                        <span className="font-semibold text-slate-700 text-xs truncate" title={c.courseTitle || ''}>
-                                          {c.courseTitle}
-                                        </span>
-                                        <span className="font-mono text-slate-400 text-xxs mt-0.5">{c.courseCode}</span>
-                                      </div>
-                                      <div className="flex items-center gap-3 shrink-0">
-                                        <ProgressBar value={c.progress} completed={c.isCompleted} maxWidthClass="max-w-16" />
-                                        <StatusBadge size="xxs">{learnerStatusLabel(c.status)}</StatusBadge>
-                                        {typeof c.assignmentRuleId === 'number' && (
-                                          <IconButton
-                                            onClick={() => handleResetLearnerCourse(l.learnerCode, c.assignmentRuleId as number, c.courseTitle || c.courseCode || '')}
-                                            icon={RotateCcw}
-                                            tone="neutral"
-                                            size="sm"
-                                            title="Reset this course only"
-                                          />
-                                        )}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </>
                               )}
-                            </div>
-                          </td>
-                          <td className="p-3 align-top">
-                            <div className="flex flex-col gap-1">
-                              <span className="text-xs font-bold text-slate-700">
-                                {completedCount} / {totalCount} Completed
-                              </span>
-                              <StatusBadge size="xxs" tone={allCompleted ? 'success' : 'neutral'}>
-                                {allCompleted ? 'Completed' : 'In Progress'}
-                              </StatusBadge>
                             </div>
                           </td>
                           <td className="p-3 text-center align-top">
@@ -997,7 +956,7 @@ export function AssignmentDetailPage() {
                     })}
                     {filteredLearners.length === 0 && (
                       <tr>
-                        <td className="p-6 text-center text-slate-400" colSpan={5}>
+                        <td className="p-6 text-center text-slate-400" colSpan={4}>
                           No learners match the current filter.
                         </td>
                       </tr>
@@ -1328,6 +1287,72 @@ export function AssignmentDetailPage() {
                 disabled={pendingAddLearners.length === 0}
               >
                 Add Learners
+              </AppButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Learner Courses Modal */}
+      {courseModalCode && modalLearner && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in" onClick={() => setCourseModalCode(null)}>
+          <div className="bg-white border border-slate-200 rounded-xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-scale-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <BookOpen className="h-5 w-5 text-indigo-600 shrink-0" />
+                <div className="flex flex-col min-w-0">
+                  <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider truncate">
+                    {modalLearner.learnerName || modalLearner.learnerCode}
+                  </h3>
+                  <span className="text-xxs font-mono text-slate-400">{modalLearner.learnerCode}</span>
+                </div>
+              </div>
+              <IconButton
+                onClick={() => setCourseModalCode(null)}
+                icon={X}
+                title="Close"
+                tone="neutral"
+              />
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-3 min-h-0">
+              {modalLearner.courses.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 text-xs font-semibold italic">
+                  No courses assigned
+                </div>
+              ) : (
+                modalLearner.courses.map((c) => (
+                  <div key={c.assignmentRuleId ?? c.courseCode ?? ''} className="flex items-center justify-between gap-4 p-3 rounded-lg border border-slate-100 bg-slate-50/50">
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="font-semibold text-slate-800 text-xs truncate" title={c.courseTitle || ''}>
+                        {c.courseTitle}
+                      </span>
+                      <span className="font-mono text-slate-400 text-xxs mt-0.5">{c.courseCode}</span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <ProgressBar value={c.progress} completed={c.isCompleted} maxWidthClass="max-w-20" />
+                      <StatusBadge size="xxs">{learnerStatusLabel(c.status)}</StatusBadge>
+                      {typeof c.assignmentRuleId === 'number' && (
+                        <IconButton
+                          onClick={() => handleResetLearnerCourse(modalLearner.learnerCode, c.assignmentRuleId as number, c.courseTitle || c.courseCode || '')}
+                          icon={RotateCcw}
+                          tone="neutral"
+                          size="sm"
+                          title="Reset this course only"
+                        />
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="flex items-center justify-end px-6 py-4 border-t border-slate-100 bg-slate-50/50 shrink-0">
+              <AppButton
+                variant="ghost"
+                onClick={() => setCourseModalCode(null)}
+              >
+                Close
               </AppButton>
             </div>
           </div>
