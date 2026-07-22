@@ -517,3 +517,29 @@ setTimeout(function () { clearNavigating($el); }, 8000);
 1. เทียบภาพ QA vs PROD ซ้ำอีกครั้งหลัง deploy: login (โฟกัสอัตโนมัติ), catalog list view (แถวแนวนอน + ปุ่ม), catalog grid view (การ์ด + ปุ่ม, ไม่พังตาม Fix 4)
 2. ทดสอบ Fix 7 บน iPad Safari จริงตาม Verification ที่ reviewer ระบุ (กด Back แล้วไอคอน/การ์ดต้องกลับมาใช้งานได้ทันที — bfcache แรงกว่า desktop)
 3. **วัดว่าอาการนิ่ง ~0.5 วิ บน iPad หายจริงไหม** (เป้าหมายของงานทั้งหมด — ยังไม่มีใครวัดจริงในทุกรอบที่ผ่านมา)
+
+## Reviewer Sign-off รอบ 4 (Claude Code, 2026-07-21)
+
+### Fix 4 (list layout) ✅ — พิสูจน์ด้วย render
+`a.catalog-course-item:not(.catalog-list-item) { display: block }` ⇒ list item คง `display:flex`. render จริงวัด: row `display:flex` direction `row`, badge ไม่เต็มความกว้าง, badge/title/button อยู่**แถวเดียวกัน**, ปุ่มชิดขวา ⇒ **หายจริง** (regression รอบก่อนที่ screenshot จับได้)
+
+### Fix 6 (ปุ่ม ดูเนื้อหา) ✅
+list + grid มี `<span class="btn btn-outline-primary btn-list-view"><i class="fas fa-eye ..."> ดูเนื้อหา</span>` — เป็น `span` ไม่ใช่ `<a>` ⇒ **ไม่มี nested anchor** (render ยืนยัน `a a` = 0) และยังกดได้ทั้งแถว · `.catalog-arrow-action` ที่เลิกใช้ถูกลบแล้ว
+
+### Fix 7 (spinner ค้าง) ✅ — ครบทั้ง 4 ส่วน
+- **7a** spinner เป็น CSS ล้วน: `.is-navigating .js-card-action-icon::before { content:"\f1ce" }` + `@keyframes ilearn-spin` — **JS เลิกเขียน `class` ของไอคอนแล้ว** (ดู site.js) ⇒ ลบ class = ไอคอนเดิมกลับมาเอง
+- **7b** `pointer-events: none` ย้ายเข้า `.is-navigating` (เลิก inline style) ⇒ `clearNavigating` แค่ `removeClass` + `removeData` ก็สะอาด
+- **7c** `window.addEventListener("pageshow", ...)` ล้าง `.is-navigating` ทุกตัว — จับ **bfcache restore** (สาเหตุจริงบน iPad Safari) ที่ `DOMContentLoaded` จับไม่ได้ ✅
+- **7d** timeout 8s กันการ์ดตายถาวรถ้า navigation ถูกยกเลิก ✅
+
+### Fix 5 (login autofocus) — **ผมแจ้ง finding คลาดเคลื่อนในรอบ 3**
+ตรวจ git ย้อนหลัง: `$employeeCodeBox.trigger("focus")` (auto-focus 300ms + refocus ใน `handleLoginError`) **มีมาตั้งแต่ commit แรกของ 108 (`7bdfca5`)** — ไม่เคยหาย. รอบ 3 ผม `grep "focus()"` ซึ่ง**ไม่ match `.trigger("focus")`** จึงสรุปผิดว่า autofocus หาย. `$employeeCodeBox = $("#employee-code-input")` ชี้ input จริง ⇒ **โค้ดถูกต้องอยู่แล้ว ไม่ต้องแก้**
+- ข้อควรทำ: ผู้ใช้ยืนยันบน QA build ใหม่ (`_user_deploy_20260721170621`) ว่าหน้า login เปิดมาแล้ว label ลอย+ขอบสีแบรนด์ (ถ้ายังไม่ ให้ส่ง console ผมดู — อาจเป็น timing/бfcache ไม่ใช่โค้ดหาย)
+
+### Verify อิสระ
+build 0 errors · `node --check` site.js + Index.cshtml ผ่าน · render measurement list view ตามตาราง
+
+### สถานะรวม PLAN-108
+Fix 1/2/3/4/6/7 ✅ · Fix 5 = โค้ดถูกอยู่แล้ว (finding เก่าคลาดเคลื่อน) · **พร้อม VERIFIED เมื่อ:** ผู้ใช้ยืนยันบน iPad — (1) กดการ์ด→Back→ไม่ค้าง กดซ้ำได้ (2) list/grid หน้าตาตรง PROD (3) login label ลอยตอนเข้าหน้า (4) อาการนิ่ง ~0.5 วิ หายจริง (เป้าหมายของงาน)
+
+**สรุป: รอบ 4 ผ่าน — Fix ที่ค้างทำครบและถูกต้อง; ผมยอมรับว่า Fix 5 รอบ 3 เป็น false finding จาก grep pattern**
