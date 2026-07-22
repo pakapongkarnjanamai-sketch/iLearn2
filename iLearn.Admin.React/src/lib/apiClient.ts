@@ -29,12 +29,34 @@ const buildHeaders = (headers: HeadersInit | undefined) => {
 
 const readResponseBody = async (response: Response) => {
   const contentType = response.headers.get('content-type') || ''
+  let raw = ''
+  let message: string | undefined
 
   if (contentType.includes('application/json')) {
-    return JSON.stringify(await response.json())
+    try {
+      const data = await response.json()
+      raw = JSON.stringify(data)
+      const parsedMsg = data?.message || data?.Message || data?.error || data?.Error || data?.title || data?.Title
+      if (typeof parsedMsg === 'string' && parsedMsg.trim()) {
+        message = parsedMsg.trim()
+      }
+    } catch {
+      // fallback
+    }
   }
 
-  return response.text()
+  if (!raw) {
+    try {
+      raw = await response.text()
+      if (!message && raw && raw.length < 300 && !raw.includes('<html')) {
+        message = raw.trim()
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  return { raw, message }
 }
 
 export const fetchWithAccessControl = async <TResponse>(path: string, init: RequestInit = {}) => {
@@ -45,8 +67,9 @@ export const fetchWithAccessControl = async <TResponse>(path: string, init: Requ
   })
 
   if (!response.ok) {
-    const responseBody = await readResponseBody(response)
-    throw new ApiError(response.statusText || 'API request failed', response.status, responseBody)
+    const { raw, message } = await readResponseBody(response)
+    const finalMessage = message || response.statusText || 'API request failed'
+    throw new ApiError(finalMessage, response.status, raw)
   }
 
   if (response.status === 204) {

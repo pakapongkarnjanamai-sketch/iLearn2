@@ -284,7 +284,7 @@ namespace iLearn.Application.Services
             // ── Guard: Course must be Closed before it can be deleted ──────────
             if (course.Status != CourseStatus.Closed && !force)
                 throw new InvalidOperationException(
-                    "Cannot delete this course because it is not Closed. Please close the course first before deleting."
+                    "ไม่สามารถลบคอร์สนี้ได้เนื่องจากสถานะคอร์สยังไม่เป็น Closed (ปิดการเรียน) กรุณาเปลี่ยนสถานะเป็น Closed ก่อนทำการลบ"
                 );
 
             // ── Guard: prevent deletion if active learners exist ──────────────
@@ -295,7 +295,7 @@ namespace iLearn.Application.Services
             );
             if (inProgressCount > 0 && !force)
                 throw new InvalidOperationException(
-                    $"Cannot delete this course because {inProgressCount} learner(s) are currently taking the course (In Progress). Use Force Delete to override and clean up all active enrollments."
+                    $"ไม่สามารถลบคอร์สนี้ได้ เนื่องจากมีผู้เรียนกำลังเรียนค้างอยู่จำนวน {inProgressCount} คน (In Progress) หากต้องการลบคอร์สและล้างข้อมูลการลงทะเบียนค้างทั้งหมด สามารถใช้ Force Delete เพื่อบังคับลบได้"
                 );
 
             // ── หากสั่ง Force Delete: ทำการ Soft-delete Enrollments ทั้งหมดของคอร์สนี้ ──

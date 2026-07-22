@@ -2,6 +2,45 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Antigravity — Gender Prefix Removal Across System (NameHelper & format.ts)
+- ทำอะไร: ยกเลิกการแสดงผลคำนำหน้าชื่อที่บอกถึงเพศทั้งหมด (เช่น นาย, นาง, นางสาว, น.ส., เด็กชาย, เด็กหญิง, ด.ช., ด.ญ., Mr., Mrs., Miss, Ms., Master) ทั้งระบบ. **§1 (Backend)** สร้าง `NameHelper.StripGenderPrefix` ใน `iLearn.Application/Common/NameHelper.cs` พร้อมอัปเดตการ mapping ชื่อใน `EmployeeHubLearnerApiService.cs`, `LearnerApiService.cs` และ `ExternalLearnerDto.FullName`. **§2 (Frontend)** เพิ่ม `stripGenderPrefix` ใน `src/lib/format.ts` และอัปเดต `LearnerDirectorySelector.tsx` ใน `iLearn.Admin.React`. **§3 (Unit Tests)** สร้าง `NameHelperTests.cs` ครอบคลุมเคสคำนำหน้าชื่อไทย/อังกฤษทั้งหมด.
+- ไฟล์หลักที่แตะ: `iLearn.Application/Common/NameHelper.cs`, `iLearn.Infrastructure/Services/EmployeeHubLearnerApiService.cs`, `iLearn.Infrastructure/Services/LearnerApiService.cs`, `iLearn.Application/DTOs/ExternalLearnerDto.cs`, `iLearn.Admin.React/src/lib/format.ts`, `iLearn.Admin.React/src/components/shared/LearnerDirectorySelector.tsx`, `iLearn.Tests/NameHelperTests.cs`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: `npm run lint` ผ่าน 0 errors, `npm run build` ผ่าน 0 errors, `dotnet test` ผ่าน 242/242 tests (0 failures)
+
+
+## [2026-07-22 —] Antigravity — Safari iPad Favorites PNG Icon Fallback Fix
+- ทำอะไร: ปรับปรุง `_DevExtremeLayout.cshtml` เพิ่ม `<link href="~/apple-touch-icon-180.png" rel="icon" type="image/png" sizes="180x180" />` และ `<link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" />` เพื่อรองรับ Safari บน iPad/iOS เมื่อผู้ใช้สั่ง "เพิ่มไปยังรายการโปรด" (Add to Favorites / Bookmarks) เนื่องจาก Safari Favorites บน iPad ไม่รองรับการแสดงผลไฟล์ไอคอนประเภท SVG Vector (`favicon.svg`) และต้องใช้ภาพ PNG/ICO ความละเอียดสูง.
+- ไฟล์หลักที่แตะ: `iLearn.User/Views/Shared/_DevExtremeLayout.cshtml`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: `dotnet build iLearn.User` ผ่าน 0 errors (74 warnings)
+
+
+## [2026-07-22 —] Antigravity — Thai Translation for Course Deletion & Deploy to QA + PROD
+- ทำอะไร: **§1 (Thai Localization)** ปรับปรุงข้อความแจ้งเตือนป๊อปอัปยืนยันการลบคอร์ส, บังคับลบคอร์ส (Force Delete), Tooltip บนปุ่มลบ และข้อความแจ้งเตือนสาเหตุจาก Backend ใน `CourseService.cs` และ `CourseDetailPage.tsx` ให้เป็นภาษาไทยชัดเจนสุภาพ สื่อความหมายเข้าใจง่าย. **§2 (Deploy QA & PROD)** รัน `tools/deploy-api.ps1`, `tools/deploy-admin-react.ps1`, `tools/deploy-api-prod.ps1` และ `tools/deploy-admin-react-prod.ps1` อัปเดตทั้งเซิร์ฟเวอร์ QA (`AP-NTC2138-QAWB`) และ PROD (`ap-ntc2137-prwb`) สำเร็จ 100%.
+- ไฟล์หลักที่แตะ: `iLearn.Application/Services/CourseService.cs`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: `npm run lint` ผ่าน 0 errors, Deploy QA & PROD HealthCheck OK (HTTP 401), Robocopy CopySucceeded: True
+
+## [2026-07-22 —] Antigravity — Deploy Backend API & Admin React to PROD (PLAN-125, PLAN-126 & apiClient fix)
+- ทำอะไร: รัน `tools/deploy-api-prod.ps1` และ `tools/deploy-admin-react-prod.ps1` ทำการ publish `.NET Backend API` (เวอร์ชันแก้ Foreign Key, Closed Status Guard, Force Delete และ JSON Error Message Return) พร้อมทั้ง build & copy static assets ของ `Admin React` (เวอร์ชันแกะ JSON Error Message แสดงผลลัพธ์บน Toast และปุ่ม Disable Delete Course) ไปยัง PROD server (`ap-ntc2137-prwb`) สำเร็จเรียบร้อย.
+- ไฟล์หลักที่แตะ: `tools/deploy-api-prod.ps1`, `tools/deploy-admin-react-prod.ps1`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: `DELETE api/Courses/{id}?force={bool}` รองรับ query string `force` (default `false`) บน PROD
+- Verified: API Deploy & HealthCheck OK (HTTP 401), Admin React Deploy CopySucceeded: True (Robocopy exit code 3)
+
+## [2026-07-22 —] Antigravity — apiClient.ts JSON Error Message Extraction Fix & Complete Course 507 Cleanup
+- ทำอะไร: **§1 (apiClient.ts)** ปรับปรุง `readResponseBody` และ `fetchWithAccessControl` ใน `iLearn.Admin.React/src/lib/apiClient.ts` ให้ทำการ parse ข้อมูล JSON error response ที่ได้รับจาก Backend แล้วสกัด `message`/`Message`/`error`/`title` ออกมาตั้งเป็น `ApiError.message` อัตโนมัติ แทนการใช้เพียง `response.statusText` (เดิมแสดงเพียง "Bad Request" ลอยๆ บน Toast โดยไม่ระบุสาเหตุ). **§2 (Course 507 Cleanup)** ทำการเคลียร์ประวัติและ Soft-delete Enrollment 18197 ค้างของ Course 507 และ Hard-delete FileStorage 1087/1088 บนฐานข้อมูลเรียบร้อยแล้ว 100%.
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/lib/apiClient.ts`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: `npm run lint` ผ่าน 0 errors, `npm run build` ผ่าน 0 errors (built in 1.81s), Cleanup script สำหรับ Course 507 สำเร็จ 100%
+
+## [2026-07-22 —] Claude Code — IIS cleanup: ลบ deploy stamp เก่า 6+6 ตัว QA+PROD (~2.66 GB) — health check ผ่านหมด
+- ทำอะไร: ผู้ใช้ขอสำรวจ+เก็บกวาดไฟล์ไม่จำเป็นบน IIS. สำรวจ `\\AP-NTC2138-QAWB\wwwroot\iLearn` + `\\ap-ntc2137-prwb\wwwroot\iLearn` (สิทธิ์ session ปัจจุบันเข้าได้ ไม่ต้องใช้ credential เพิ่ม): อ่าน web.config ทุกโซนหา live stamp ก่อน แล้วลบเฉพาะ stamp เก่าแบบระบุชื่อทีละตัว (ผู้ใช้ยืนยันลบทั้งหมดทั้ง 2 เครื่อง). **QA ลบ:** `_user_deploy_{20260722132157,20260722133657}`, `Service\_deploy_{20260722100944,20260722105526}`, `admin\_admin_deploy_{20260710164712,20260710164817}`. **PROD ลบ:** `_user_deploy_{20260722132250,20260722133803}`, `Service\_deploy_{20260717130658,20260722101547}`, `admin\_admin_deploy_{20260710164915,20260713091430}`. **เก็บไว้ (อย่าลบในอนาคต):** live stamps, `wwwroot/`, `appsettings*.json` ที่ root ทุกโซน (คือ config จริง — ContentRoot อยู่ที่ root ไม่ใช่ stamp folder), `icons/`, `student/` (redirect stub 301→/iLearn), `Service\logs` (ว่าง)
+- ไฟล์หลักที่แตะ: ไม่มีโค้ด — server filesystem เท่านั้น + `.claude/settings.local.json` (เพิ่ม allow rule อ่าน PROD share), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: health check หลังลบ — QA: `/iLearn/` 200, `/admin-react/` 200, `Service/api/admin/session/me` 200; PROD: ครบ 3 ตัวเดียวกัน 200 หมด
+- **สำคัญถึงทุก agent: ตอนนี้ไม่มี stamp ก่อนหน้าเหลือบนทั้ง 2 เครื่อง ⇒ `-Rollback` ของ deploy scripts ใช้ไม่ได้จนกว่าจะมี deploy รอบใหม่ — ถ้าพัง ต้อง re-deploy จาก git; หมายเหตุ: PROD `Service\web.config` เปิด `stdoutLogEnabled=true` อยู่ (logs ยังว่าง) ควรพิจารณาปิดในแผนถัดไป**
+
 ## [2026-07-22 —] Antigravity — PLAN-126: Require Closed Status for Course Deletion & Unify CourseStatusText to Soft Badge
 - ทำอะไร: implement ตาม PLAN-126 — **§1 (Backend Guard)** เพิ่มการตรวจสอบสถานะใน `CourseService.DeleteCourseAsync` หากสถานะคอร์สไม่ใช่ `Closed` (`Status != 2`) และไม่ใช่กรณีบังคับลบ `force` จะทำการโยน `InvalidOperationException` แจ้งว่าคอร์สต้องถูก Close ก่อนลบเสมอ. **§2 (UI Control)** ปรับ `CourseControls` ใน `CourseDetailPage.tsx` ให้ปุ่ม `Delete Course` ถูก Disable พร้อม Tooltip แจ้งเตือน *"Course must be Closed before it can be deleted"* หากคอร์สอยู่ในสถานะ `Open` หรือ `Draft`. **§3 (Badge Unification)** ปรับ `CourseStatusText` ใน `CourseStatusBadge.tsx` ให้เปลี่ยนจาก `variant="outline"` เป็น `variant="soft"` เป็นค่าเริ่มต้น (`bg-emerald-100 text-emerald-800` ทรงนุ่มไม่มีขอบเส้น) สอดคล้องกับ `StatusBadge` และ `ReadinessBadge`.
 - ไฟล์หลักที่แตะ: `iLearn.Application/Services/CourseService.cs`, `iLearn.Admin.React/src/components/ui/CourseStatusBadge.tsx`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `DOC/PLANS/PLAN-126-course-status-closed-guard-and-status-badge-soft.md` (->DONE), `DOC/AGENT_LOG.md`

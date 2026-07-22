@@ -5,6 +5,7 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { Modal } from '../ui/Modal'
 import { Badge } from '../ui/Badge'
+import { stripGenderPrefix } from '../../lib/format'
 
 export type LearnerSelection = {
   code: string // EId / Employee Code
@@ -22,8 +23,9 @@ type LearnerDirectorySelectorProps = {
 }
 
 function getInitials(name: string) {
-  if (!name) return '?'
-  const parts = name.trim().split(/\s+/)
+  const cleanName = stripGenderPrefix(name)
+  if (!cleanName) return '?'
+  const parts = cleanName.trim().split(/\s+/)
   if (parts.length >= 2) {
     const first = parts[0]
     const last = parts[parts.length - 1]
@@ -31,7 +33,7 @@ function getInitials(name: string) {
       return (first[0] + last[0]).toUpperCase()
     }
   }
-  return name.slice(0, 2).toUpperCase()
+  return cleanName.slice(0, 2).toUpperCase()
 }
 
 export function LearnerDirectorySelector({ 

@@ -54,11 +54,13 @@ namespace iLearn.Application.DTOs
         {
             get
             {
-                var englishName = $"{EnglishFirstName} {EnglishLastName}".Trim();
+                var cleanEnFirst = iLearn.Application.Common.NameHelper.StripGenderPrefix(EnglishFirstName);
+                var englishName = $"{cleanEnFirst} {EnglishLastName}".Trim();
                 if (!string.IsNullOrWhiteSpace(englishName))
                     return englishName;
 
-                return $"{ThaiFirstName} {ThaiLastName}".Trim();
+                var cleanThFirst = iLearn.Application.Common.NameHelper.StripGenderPrefix(ThaiFirstName);
+                return $"{cleanThFirst} {ThaiLastName}".Trim();
             }
         }
     }

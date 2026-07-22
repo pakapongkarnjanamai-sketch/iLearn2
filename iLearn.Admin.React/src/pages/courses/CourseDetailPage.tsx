@@ -163,9 +163,9 @@ export function CourseDetailPage() {
 
   const handleDeleteCourse = async () => {
     if (!(await confirm({
-      title: 'Delete Course',
-      message: 'Are you sure you want to delete this course? This action cannot be undone and will delete all associated versions.',
-      confirmLabel: 'Delete Course',
+      title: 'ยืนยันการลบคอร์ส',
+      message: 'คุณแน่ใจหรือไม่ว่าต้องการลบคอร์สนี้? การดำเนินการนี้ไม่สามารถยกเลิกได้ และจะทำการลบเวอร์ชันทั้งหมดที่เกี่ยวข้อง',
+      confirmLabel: 'ยืนยันการลบคอร์ส',
       danger: true,
     }))) return
     try {
@@ -173,17 +173,17 @@ export function CourseDetailPage() {
         method: 'DELETE'
       })
       if (resp.success) {
-        toast.success(resp.message || 'Course deleted successfully')
+        toast.success(resp.message || 'ลบคอร์สเรียบร้อยแล้ว')
         navigate('/courses')
       }
     } catch (err: any) {
       console.error(err)
-      const errorMsg = err?.message || 'Failed to delete this course.'
-      if (errorMsg.includes('in progress') || errorMsg.includes('currently taking') || errorMsg.includes('learner(s)')) {
+      const errorMsg = err?.message || 'ไม่สามารถลบคอร์สนี้ได้'
+      if (errorMsg.includes('in progress') || errorMsg.includes('currently taking') || errorMsg.includes('learner(s)') || errorMsg.includes('เรียนค้างอยู่') || errorMsg.includes('In Progress')) {
         const forceDelete = await confirm({
-          title: 'Force Delete Course?',
-          message: `${errorMsg}\n\nDo you want to Force Delete this course and automatically clean up all linked enrollments and assignments?`,
-          confirmLabel: 'Force Delete',
+          title: 'บังคับลบคอร์ส (Force Delete)?',
+          message: `${errorMsg}\n\nคุณต้องการบังคับลบคอร์สนี้ (Force Delete) เพื่อเคลียร์ข้อมูลการลงทะเบียนและการมอบหมายงานที่เชื่อมโยงอยู่ทั้งหมดหรือไม่?`,
+          confirmLabel: 'บังคับลบคอร์ส (Force Delete)',
           danger: true,
         })
         if (forceDelete) {
@@ -192,12 +192,12 @@ export function CourseDetailPage() {
               method: 'DELETE'
             })
             if (forceResp.success) {
-              toast.success(forceResp.message || 'Course force-deleted successfully')
+              toast.success(forceResp.message || 'บังคับลบคอร์สเรียบร้อยแล้ว')
               navigate('/courses')
             }
           } catch (forceErr: any) {
             console.error(forceErr)
-            toast.error(forceErr?.message || 'Force delete failed.')
+            toast.error(forceErr?.message || 'การบังคับลบคอร์สล้มเหลว')
           }
         }
       } else {
@@ -1026,7 +1026,7 @@ function CourseControls({
         onClick={onDeleteCourse}
         variant="danger"
         disabled={!isClosed || mutatingStatus}
-        title={!isClosed ? 'Course must be Closed before it can be deleted' : undefined}
+        title={!isClosed ? 'ต้องเปลี่ยนสถานะคอร์สเป็น Closed (ปิดการเรียน) ก่อนจึงจะสามารถลบได้' : undefined}
       >
         Delete Course
       </ControlAction>

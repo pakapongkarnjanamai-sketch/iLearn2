@@ -95,7 +95,7 @@ namespace iLearn.Infrastructure.Services
                         s => new ExternalLearnerDto
                         {
                             Code = s.EId,
-                            Name = $"{s.EnglishFirstName} {s.EnglishLastName}".Trim(),
+                            Name = $"{NameHelper.StripGenderPrefix(s.EnglishFirstName)} {s.EnglishLastName}".Trim(),
                             Division = s.Division,
                             Department = s.Department,
                             Section = s.Section,

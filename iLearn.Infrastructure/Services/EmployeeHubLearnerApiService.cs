@@ -101,7 +101,7 @@ namespace iLearn.Infrastructure.Services
             return new ExternalLearnerDto
             {
                 Code = emp.EmpCode,
-                Name = emp.FullNameEn,
+                Name = NameHelper.StripGenderPrefix(emp.FullNameEn),
                 Section = emp.Section ?? string.Empty,
                 Division = emp.Division ?? string.Empty,
                 Department = emp.Department ?? string.Empty,
@@ -119,7 +119,7 @@ namespace iLearn.Infrastructure.Services
                 {
                     Id = 0,
                     EId = e.EmpCode,
-                    EnglishFirstName = e.FirstNameEn,
+                    EnglishFirstName = NameHelper.StripGenderPrefix(e.FirstNameEn),
                     EnglishLastName = e.LastNameEn,
                     Section = e.Section ?? string.Empty,
                     Division = e.Division ?? string.Empty,
@@ -162,7 +162,7 @@ namespace iLearn.Infrastructure.Services
             {
                 Id = 0,
                 EId = e.EmpCode,
-                EnglishFirstName = e.FirstNameEn,
+                EnglishFirstName = NameHelper.StripGenderPrefix(e.FirstNameEn),
                 EnglishLastName = e.LastNameEn,
                 Section = e.Section ?? string.Empty,
                 Division = e.Division ?? string.Empty,
@@ -187,7 +187,7 @@ namespace iLearn.Infrastructure.Services
                 Id = 0,
                 EId = e.EmpCode,
                 NID = e.Nid ?? string.Empty,
-                EnglishFirstName = e.FirstNameEn,
+                EnglishFirstName = NameHelper.StripGenderPrefix(e.FirstNameEn),
                 EnglishLastName = e.LastNameEn,
                 Division = e.Division ?? string.Empty,
                 Department = e.Department ?? string.Empty,
@@ -298,7 +298,7 @@ namespace iLearn.Infrastructure.Services
                         e => new ExternalLearnerDto
                         {
                             Code = e.EmpCode,
-                            Name = e.FullNameEn,
+                            Name = NameHelper.StripGenderPrefix(e.FullNameEn),
                             Section = e.Section ?? string.Empty,
                             Division = e.Division ?? string.Empty,
                             Department = e.Department ?? string.Empty,
@@ -350,9 +350,9 @@ namespace iLearn.Infrastructure.Services
                             EId = g.First().EmpCode,
                             NID = g.Key,
                             Email = g.First().Email ?? string.Empty,
-                            ThaiFirstName = g.First().FirstNameTh,
+                            ThaiFirstName = NameHelper.StripGenderPrefix(g.First().FirstNameTh),
                             ThaiLastName = g.First().LastNameTh,
-                            EnglishFirstName = g.First().FirstNameEn,
+                            EnglishFirstName = NameHelper.StripGenderPrefix(g.First().FirstNameEn),
                             EnglishLastName = g.First().LastNameEn,
                             Section = g.First().Section ?? string.Empty,
                             Division = g.First().Division ?? string.Empty,

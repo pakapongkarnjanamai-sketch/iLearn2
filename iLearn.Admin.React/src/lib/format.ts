@@ -135,4 +135,11 @@ export const formatRelativeTime = (value: Date | string | null | undefined): str
   return formatDateTime(value)
 }
 
+const GENDER_PREFIX_REGEX = /^(?:นาง\s*สาว|น\.?\s*ส\.?|เด็กชาย|เด็กหญิง|ด\.?\s*ช\.?|ด\.?\s*ญ\.?|นาย|นาง|(?:\b(?:Master|Miss|Mrs|Ms|Mr)\b\.?))\s*/i
 
+export const stripGenderPrefix = (name: string | null | undefined): string => {
+  if (!name) return ''
+  const trimmed = name.trim()
+  const cleaned = trimmed.replace(GENDER_PREFIX_REGEX, '').trim()
+  return cleaned || trimmed
+}
