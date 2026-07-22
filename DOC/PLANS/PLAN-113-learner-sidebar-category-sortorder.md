@@ -1,6 +1,6 @@
 # PLAN-113: learner sidebar เรียงหมวดหมู่ตาม Category.SortOrder (ปิด limitation ของ PLAN-111)
 
-- **Status:** REVIEWED + QA VERIFIED — รอผู้ใช้ยืนยัน deploy PROD
+- **Status:** VERIFIED — deploy PROD สำเร็จผ่าน PLAN-118 (smoke read-only บน PROD ยืนยัน sidebar เรียงลำดับถูกต้อง)
 - **Assigned:** GitHub Copilot (API + learner view — งานเล็ก ทำคนเดียวทั้งสองฝั่ง)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22

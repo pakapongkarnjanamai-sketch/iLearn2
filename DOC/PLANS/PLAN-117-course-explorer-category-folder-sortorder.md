@@ -1,6 +1,6 @@
 # PLAN-117: Course explorer — โชว์ลำดับในชื่อ Category folder + แก้ลำดับได้จาก modal Edit
 
-- **Status:** REVIEWED
+- **Status:** VERIFIED — QA smoke (folder numbering + edit sortOrder + create without sortOrder) + deploy PROD สำเร็จผ่าน PLAN-118
 - **Assigned:** Antigravity Gemini (React ไฟล์เดียว — `CourseListPage.tsx`)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22

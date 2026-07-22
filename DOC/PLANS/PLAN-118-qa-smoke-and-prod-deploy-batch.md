@@ -1,6 +1,6 @@
 # PLAN-118: QA smoke รวบยอด (114/115/116/117 + งานค้าง 110/111) → deploy PROD ทั้งชุด
 
-- **Status:** READY
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot (มี deploy tooling + Playwright)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -67,4 +67,25 @@
 
 ## Implementer Notes
 
-_(เติมโดย implementer)_
+**§A QA smoke — 13/13 ผ่านทั้งหมด (ทำผ่าน Playwright บน `ap-ntc2138-qawb`):**
+- A1 (Categories Edit Properties, category id=80 "EP1"): กด Edit Properties → ฟอร์มเปิดค้าง ไม่มี toast auto-save. แก้ Sort Order 1→3 → Save → refresh → ยืนยัน persist=3 → เปิด Edit อีกครั้งพิมพ์ 99 → Cancel → ค่ายังเป็น 3 (ไม่ save) → แก้กลับเป็น 1 สำเร็จ ปิด loop PLAN-111/115. ทดสอบซ้ำที่ Divisions detail (id=1) → Edit เปิดฟอร์มปกติเช่นกัน ไม่มี phantom submit
+- A2 (`/assignments/275` + `/report`): stat cards Learners=3/Courses=2/Status=In Progress ตรงรูปแบบ Report Summary, ไม่มี Fact Completed/Completion Rate, Created By = "SUJITRA KHAMWONG" + `j2818` บรรทัดรอง, ไม่มีข้อความ "Click a segment/bar..." ทั้ง 2 หน้า
+- A3: คลิก donut chart บน `/assignments/275` → ไม่มีอะไรเกิดขึ้น (tab ยังอยู่ "Courses" เดิม ไม่ filter/navigate); learner `610034` MyLearning sidebar แสดง "1. EP1 (1)" / "2. PLAN-079 SCORM Conformance Test (4)" ตรงลำดับ admin, "ทั้งหมด" ไม่มีเลข, คลิกหมวดกรองได้ปกติ, logout สำเร็จ
+- A4 (`/courses?divisionId=1`): folder ทั้ง 12 แสดงเลขนำหน้าเรียงถูกต้อง (1-12), breadcrumb "Environment & Safety" ไม่มีเลข. Rename "Special knowledge" (id sortOrder 12→13) → Save → เลขอัปเดตเป็น "13." ทันที → แก้กลับเป็น 12 สำเร็จ. สร้าง "PLAN-118-TEST-CATEGORY" แบบไม่กรอก Sort Order → แสดงไม่มีเลขนำหน้า (sortOrder=0) → ลบทิ้งหลังทดสอบสำเร็จ
+- A5: อัปโหลด `SampleSCORM/AllGolfExamples/ContentPackagingSingleSCO_SCORM12.zip` ผ่าน `admin-react/content-library/new` → ContentItem.Name ไม่มี `.zip` ("ContentPackagingSingleSCO_SCORM12"), FileStorage เก็บชื่อพร้อม `.zip` (แสดงในรายการ). Bulk-process ผ่าน Classic Admin (`/admin/ContentItems` → Publish บนแถว draft) → Draft 2→1, Published +1, extract 44 ไฟล์สำเร็จ. SCORM Version resolve เป็น 1.2, Launch Resource = `shared/launchpage.html`. เปิด "Open SCORM Player" → โหลดหน้า launch สำเร็จ (เนื้อหาโชว์ "Not implemented yet" ซึ่งเป็น stub ของตัวอย่าง ADL Content Packaging เอง ไม่ใช่บั๊กระบบ — mechanism การ extract/serve ทำงานถูกต้อง). Unpublish → Delete ทดสอบทิ้งเรียบร้อย
+- console 0 error ทุกหน้าที่แตะทั้ง QA/PROD
+
+**Pre-deploy gate:** รัน `dotnet ef migrations list --connection <PROD connection string>` ตรง ๆ กับ PROD DB (ไม่ใช่ design-time fallback) → ไม่มี `(Pending)` เลยสักตัว ยืนยัน `AddSortOrderToCategory` ขึ้นแล้วจริงจาก PLAN-111 ตามที่ AGENT_LOG บันทึกไว้ → ปลอดภัยไป deploy
+
+**§B Deploy PROD (`ap-ntc2137-prwb`) — ทั้ง 3 ส่วนสำเร็จ:**
+- `deploy-api-prod.ps1` → stamp `20260722123911`, health check `session/me` = 401 OK, `AutoRolledBack=False`
+- `deploy-user-prod.ps1` → stamp `20260722124051`, health check `/iLearn/` = 200 OK, `AutoRolledBack=False`
+- `deploy-admin-react-prod.ps1` → lint+build ผ่าน, robocopy `CopySucceeded=True` (exit code 3 = ปกติ มีไฟล์ข้าม/อัปเดต)
+
+**§C PROD smoke — ผ่านครบ (read-only):**
+- learner `610034` บน PROD: sidebar "1. Category - Test (4)", "ทั้งหมด" ไม่มีเลข — ตรงตาม PLAN-113, logout เรียบร้อย
+- admin PROD: Categories grid คอลัมน์ลำดับปกติ; Course explorer `/courses?divisionId=1` folder มีเลข 1-12 ถูกต้อง; `/assignments/275` stat cards + Created By ชื่อ+Nid ถูกต้อง (Completion 67%, ข้อมูลต่างจาก QA เพราะเป็นคนละ DB); คลิก donut chart → ไม่มีอะไรเกิดขึ้น (ยืนยัน no-op บน PROD ด้วย)
+- console 0 error; ไม่มี write-test บน PROD ตามกติกา
+
+**สรุป:** ทั้ง 13 ข้อของ §A ผ่านหมด → deploy PROD ทั้ง 3 ส่วนสำเร็จ → PROD smoke อ่านอย่างเดียวผ่านครบ. งานค้างจาก PLAN-110 (upload+bulk-process), PLAN-111 (sortOrder ผ่าน UI), PLAN-113 (deploy PROD), PLAN-114/115/116/117 (manual QA) ปิดครบทุกข้อในรอบนี้.
+

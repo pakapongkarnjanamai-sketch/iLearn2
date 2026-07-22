@@ -1,6 +1,6 @@
 # PLAN-116: ยกเลิกคลิก filter บน chart (ต่อจาก PLAN-114) + โชว์เลขลำดับหน้าชื่อหมวดใน learner sidebar
 
-- **Status:** REVIEWED
+- **Status:** VERIFIED — QA smoke (chart no-op + sidebar numbering) + deploy PROD สำเร็จผ่าน PLAN-118
 - **Assigned:** GitHub Copilot (React charts + learner view — งานเล็ก 2 ส่วน)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22

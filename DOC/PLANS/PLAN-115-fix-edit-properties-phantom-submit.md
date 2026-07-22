@@ -1,6 +1,6 @@
 # PLAN-115: แก้ปุ่ม Edit Properties หน้า Master Data detail — phantom form submit ตอนสลับปุ่มเป็น Save
 
-- **Status:** REVIEWED
+- **Status:** VERIFIED — QA smoke (Edit Properties + Cancel + sortOrder round-trip) + deploy PROD สำเร็จผ่าน PLAN-118
 - **Assigned:** Antigravity Gemini (React ล้วน — shared component + หน้าเดียว)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22

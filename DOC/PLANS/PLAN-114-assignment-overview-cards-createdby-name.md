@@ -1,6 +1,6 @@
 # PLAN-114: Assignment detail/report ปรับ Overview — ตัด caption chart, Created By เป็นชื่อ, stat cards แทน Fact
 
-- **Status:** REVIEWED (awaiting deploy + manual QA)
+- **Status:** VERIFIED — QA smoke + deploy PROD สำเร็จผ่าน PLAN-118
 - **Assigned:** GitHub Copilot (backend เล็ก + React หน้าเดียว)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
