@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Claude Code — เขียน PLAN-114: ตัด caption chart + Created By เป็นชื่อ + Overview stat cards (มอบ Copilot)
+- ทำอะไร: ผู้ใช้รีวิว `/assignments/275(+/report)` บน QA ขอ 4 ข้อ. สำรวจ: caption อยู่ใน `AssignmentReportCharts.tsx:93/166` (component ใช้ร่วม 2 หน้า — ลบ 2 บรรทัดจบ, **คงคลิก filter**); `CreatedBy` เป็น Nid ดิบ — มี `ILearnerApiService.GetEmployeesByNidsAsync` resolve ได้อยู่แล้ว; stat tile ต้นแบบอยู่ `AssignmentReportPage.tsx:316`. เขียน PLAN-114: §1 ลบ caption (ข้อยกเว้นเดียวที่อนุญาตแตะไฟล์ Report) §2 `AssignmentDashboardDto` +`createdByName` (additive, lookup ห่อ try/catch ห้ามทำ endpoint ล้ม — กติกา side-effect) + React แสดงชื่อ+Nid รอง §3 ตัด Fact Completed/Completion Rate §4 tiles Learners/Courses/Status แบบ Report Summary + FactGrid ที่เหลือ + donut เดิม
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-114-*.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มีในตัวแผน (แผนระบุ +`createdByName` additive)
+- Verified: — (แผน; อ่าน AssignmentDashboardService/ILearnerApiService/ReportPage tiles/ReportCharts)
+- **ถึง Copilot: ห้ามแตะ `AssignmentHistoryDto` (~314); ตัดแค่ข้อความ hint ห้ามตัด behavior คลิก; React อ่าน `createdByName` แบบ optional กัน deploy skew**
+
 ## [2026-07-22 —] Claude Code — รีวิว PLAN-113 → REVIEWED (commit 646136e) + สมมติฐานใหม่เรื่องปุ่ม Edit Properties
 - ทำอะไร: รีวิว diff ครบ — §1 additive DTO+projection เป๊ะ ไม่แตะ ordering courses; §2 `Object.values().filter(id!==undefined).sort((sortOrder,id))` ถูกต้อง (entry 'all' เป็น raw array ถูกกรองเอง, `data-category` render ค่าเท่าเดิม click/lookup ไม่เปลี่ยน); manual สลับ sortOrder จริงเห็นผล end-to-end ปิด loop PLAN-111. รัน verify เอง: 222/222. **เรื่องปุ่ม Edit Properties ที่ Copilot รายงานว่ากดไม่ติด:** ตรวจโค้ดแล้ว `ControlAction` เป็น `type="button"`+onClick ถูกต้อง — **สมมติฐานที่เข้าเค้ากว่า: กด Edit แล้วปุ่มตำแหน่งเดิมกลายเป็น Save Changes (submit)** ⇒ automation กดซ้ำพิกัดเดิม = save แล้วเด้งกลับ view mode ทันที (อธิบาย toast "Changes saved successfully" ที่รอบ PLAN-111 โทษ SignalR ด้วย) — ต้องพิสูจน์ด้วยตาจริง เสนอ PLAN-114 รอผู้ใช้ตัดสิน
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-113-*.md` (→REVIEWED + Sign-off), `DOC/AGENT_LOG.md`
