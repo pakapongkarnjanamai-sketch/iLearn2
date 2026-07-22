@@ -1,6 +1,6 @@
 # PLAN-108: ตัด DevExtreme ออกจาก learner (แก้อาการหน้าค้าง ~0.5 วิ บน iPad) + feedback ตอนกด
 
-- **Status:** FIXES APPLIED (รอบ 4) — Fix 4/6/7 ทำครบ, Fix 5 ตรวจซ้ำแล้วพบว่าโค้ดทำงานถูกต้องอยู่แล้วในรอบก่อนหน้า (ดู Implementer Notes รอบ 4) — รอ deploy QA + รีวิวรอบใหม่
+- **Status:** REVIEWED รอบ 4 — Fix 1-4, 6, 7 ผ่านครบ · Fix 5 โค้ดถูกอยู่แล้ว (finding รอบ 3 คลาดเคลื่อน) · รอ iPad smoke ก่อน VERIFIED
 - **Assigned:** GitHub Copilot
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-21
