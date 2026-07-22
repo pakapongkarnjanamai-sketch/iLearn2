@@ -1,6 +1,6 @@
 # PLAN-110: เอา `.zip` ออกจากชื่อ content item — เฟสเฉพาะหน้า (ปลอดภัย) + เฟสระยะยาว (แก้ที่ราก)
 
-- **Status:** READY
+- **Status:** REVIEWED
 - **Assigned:** GitHub Copilot
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -104,4 +104,32 @@ Manual (QA):
 
 ## Implementer Notes
 
-_(เติมโดย implementer)_
+ทำครบทั้งเฟส 1 + เฟส 2.1 + 2.2 (2.3 เตรียม SQL ไว้แต่ยังไม่รัน):
+
+- เพิ่ม `ScormUploadValidation.StripArchiveExtension(string?)` (ตัดเฉพาะ suffix `.zip` case-insensitive, ไม่แตะ dot อื่น) — ใช้จุดเดียวทั้ง display-strip และ upload-strip ตามที่ plan อนุญาต (ชื่อเดียวพอ ไม่ต้องแยก 2 helper)
+- **เฟส 1:** `EnrollmentsController.GetPlayerInfoByCourse` → `PlayerContentItemDto.Name = ScormUploadValidation.StripArchiveExtension(contentItem.Name)`
+- **เฟส 2.1:** พบจุด coupling เพิ่มอีก 1 จุดที่ plan ไม่ได้ระบุไว้ — `ContentPublicationService.PublishAsync` (single-item publish path) ก็เช็ค `Path.GetExtension(contentItem.Name)==".zip"` เหมือนกับ bulk-process ที่ `ContentItemsController:967` — แก้ทั้งคู่ให้ใช้ `fileStorage.Name` แทน (grep `GetExtension\(.*\.Name\)` ยืนยันไม่มีจุดอื่นเหลือ — `CourseService.cs:329` ใช้ `file.Name` ของ FileStorage อยู่แล้ว ไม่ต้องแก้)
+- **เฟส 2.2:** `ContentItemsController.Upload` → `ContentItem.Name = ScormUploadValidation.StripArchiveExtension(safeFileName)`; `FileStorage.Name = safeFileName` (เต็ม `.zip`) ไม่แตะ
+- **เฟส 2.3:** เตรียม SQL ไว้ที่ `artifacts/plan110-cleanup-contentitem-zip-suffix.sql` (มี SELECT backup + UPDATE + verify count) — **ยังไม่รัน** ตามลำดับที่ plan กำหนด (ต้องรอ 2.1 ขึ้น PROD ก่อน) _(reviewer ย้ายไฟล์ไป `DOC/PLANS/PLAN-110-cleanup-contentitem-zip-suffix.sql` เพราะ `artifacts/` ถูก gitignore — สคริปต์ที่ต้องรันบน PROD ต้องอยู่ใน version control)_
+- เพิ่ม unit test `ScormUploadValidationTests.StripArchiveExtension_TrimsOnlyTrailingZipSuffix` ครบ 6 case ตามที่ plan ระบุ (`a.zip→a`, `a.ZIP→a`, `a.b.zip→a.b`, `a→a`, `""→""`, `a.zipx→a.zipx`)
+- **นอกเรื่อง (พบระหว่างตรวจ build ไม่เกี่ยวกับ PLAN-110):** commit ก่อนหน้า (ระหว่าง PLAN-091–107) มี regression ที่ทำให้ `iLearn.API`/`iLearn.Tests` build ไม่ผ่านทั้งสองโปรเจกต์อยู่ก่อนแล้ว: (1) `NotificationTypes.DeadlineDigest`/`NotificationRetentionDays` const หายไปจาก `NotificationTypes.cs` ทั้งที่ commit `5d88312` (PLAN-090) เคยเพิ่มไว้ — คืนกลับตามเดิม (2) `DeadlineDigestServiceTests.RecordingNotificationService` ไม่ implement overload 3-param ของ `INotificationService.GetForUserAsync` (ปัญหาเดิมที่ PLAN-101/104 เคยบันทึกไว้เป็น known blocker) — เพิ่ม overload 3-param ที่ delegate เหมือน pattern ใน `EnrollmentsPlayerInfoTests`/`ContentItemsControllerTests`. แก้ทั้งสองจุดเพื่อให้ build/test รันได้จริง (ไม่ใช่ scope ของแผนนี้แต่บล็อกการ verify ทั้งหมด — ทั้งสองเป็นการคืนค่าที่หายไป ไม่ใช่เปลี่ยน logic ใหม่)
+
+**Verified:** `dotnet build iLearn.API` 0 errors, `dotnet build iLearn.Tests` 0 errors, `dotnet test` → **222 passed, 0 failed** (รวม test ใหม่ของแผนนี้)
+
+**ค้างสำหรับรอบถัดไป:** deploy API (เฟส1+2.1+2.2 ไม่มี migration) → QA verify → PROD (รอ user ยืนยัน) → รัน SQL เฟส 2.3 บน QA→verify→PROD ตามลำดับเดิมของแผน
+
+## Reviewer Sign-off (Claude Code, 2026-07-22)
+
+**ผลรีวิว: ✅ ผ่านสะอาด — REVIEWED**
+
+ตรวจแล้วทุกข้อ:
+
+1. **Helper** `StripArchiveExtension` ถูกต้อง: ตัดเฉพาะ suffix `.zip` case-insensitive, null-safe (`name ?? ""`), ไม่ใช้ `GetFileNameWithoutExtension` ตามข้อห้าม — test 6 case ตรงสเปคครบ
+2. **เฟส 1** strip ที่ projection `PlayerContentItemDto.Name` จุดเดียว ครอบทั้ง TOC + summary; `LaunchUrl` มาจาก `contentItem.URL`/`LaunchHref` ไม่โดนกระทบ
+3. **เฟส 2.1** ตรวจ context ทั้ง 2 จุด: bulk-process (`ContentItemsController:969`) — `fileStorage` ถูก null-check ก่อนถึงบรรทัดนั้น; `ContentPublicationService:52` — throw KeyNotFound ก่อนถ้า null. `FileStorage.Name` เป็น non-nullable (`= string.Empty`) ⇒ `Path.GetExtension` ไม่มีทาง NRE. จุดที่ plan ไม่ได้ระบุ (single-item publish) เป็นการแก้ที่**จำเป็น** — ถ้าไม่แก้ item ที่ upload หลัง 2.2 จะ publish เดี่ยวไม่ได้. grep ยืนยันซ้ำ: ไม่เหลือ `GetExtension(contentItem.Name)` ที่ไหนอีก
+4. **เฟส 2.2** strip เฉพาะ `ContentItem.Name`; `FileStorage.Name` คงเต็ม — ถูกลำดับ (2.1 อยู่ใน deploy เดียวกัน จึงไม่มีหน้าต่างที่ item ใหม่ประมวลผลไม่ได้)
+5. **SQL 2.3** ตรวจแล้วถูกต้อง (`LEFT(Name, LEN(Name)-4)` + filter `IsDeleted=0` + backup SELECT + verify count); ยืนยันว่า **ไม่มี unique index บน `ContentItems.Name`** ⇒ strip แล้วชื่อซ้ำกันได้ไม่ 500. ยังไม่รัน — ถูกต้องตาม gate
+6. **นอกเรื่อง 2 จุด = restoration จริง**: git log ยืนยัน const `DeadlineDigest`/`NotificationRetentionDays` ถูกเพิ่มใน `5d88312` (PLAN-090) แล้วหายไปใน `e8191d7` (commit message เป็น docs แต่กวาดโค้ดไปด้วย — recurrence ของอุบัติเหตุ `git add -A` เดิม); ค่า 90 วันตรงกับที่ `DeadlineDigestService:201` ใช้. overload test เป็น pattern เดียวกับ test file อื่น
+7. **Reviewer รัน verify เอง:** `dotnet build iLearn.Tests` 0 errors + `dotnet test` → **222 passed, 0 failed** — ตรงตามที่ implementer อ้าง
+
+**คงค้างก่อน VERIFIED:** deploy API ขึ้น QA + manual check ข้อ 1-3 ใน Verification (Player ไม่มี `.zip`, upload ใหม่, bulk-process) → PROD (รอ user ยืนยัน) → SQL 2.3 QA→PROD

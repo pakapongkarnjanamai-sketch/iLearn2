@@ -289,7 +289,7 @@ namespace iLearn.API.Controllers
                     return new PlayerContentItemDto
                     {
                         Id = contentItem.Id,
-                        Name = contentItem.Name,
+                        Name = ScormUploadValidation.StripArchiveExtension(contentItem.Name),
                         Type = contentItemType,
                         LaunchUrl = !string.IsNullOrEmpty(contentItem.URL) && !string.IsNullOrEmpty(contentItem.LaunchHref)
                             ? _scormService.GetScormUrl(contentItem.URL, contentItem.LaunchHref)

@@ -47,6 +47,20 @@ namespace iLearn.Tests
             Assert.Contains("ZIP archive", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
+        [Theory]
+        [InlineData("a.zip", "a")]
+        [InlineData("a.ZIP", "a")]
+        [InlineData("a.b.zip", "a.b")]
+        [InlineData("a", "a")]
+        [InlineData("", "")]
+        [InlineData("a.zipx", "a.zipx")]
+        public void StripArchiveExtension_TrimsOnlyTrailingZipSuffix(string input, string expected)
+        {
+            var result = ScormUploadValidation.StripArchiveExtension(input);
+
+            Assert.Equal(expected, result);
+        }
+
         private static IFormFile CreateFormFile(string fileName, string contentType, byte[] content)
         {
             var stream = new MemoryStream(content);

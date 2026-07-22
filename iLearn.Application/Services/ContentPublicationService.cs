@@ -47,7 +47,9 @@ namespace iLearn.Application.Services
                 throw new KeyNotFoundException("Associated file not found.");
             }
 
-            var extension = Path.GetExtension(contentItem.Name).ToLowerInvariant();
+            // Use FileStorage.Name (the real uploaded file name) for the extension check,
+            // not ContentItem.Name, which is display-only and may not carry the .zip suffix (PLAN-110).
+            var extension = Path.GetExtension(fileStorage.Name).ToLowerInvariant();
             if (extension == ".zip")
             {
                 var folderName = Guid.NewGuid().ToString();

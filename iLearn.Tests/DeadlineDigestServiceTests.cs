@@ -266,6 +266,9 @@ namespace iLearn.Tests
                 await _db.SaveChangesAsync();
             }
 
+            public Task<NotificationListDto> GetForUserAsync(string userId, bool unreadOnly, int take)
+                => Task.FromResult(new NotificationListDto());
+
             public Task<NotificationListDto> GetForUserAsync(string userId, bool unreadOnly, int take, int skip = 0)
                 => Task.FromResult(new NotificationListDto());
 

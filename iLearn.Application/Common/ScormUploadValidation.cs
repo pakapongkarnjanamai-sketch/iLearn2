@@ -61,6 +61,19 @@ namespace iLearn.Application.Common
             return Path.GetFileName(fileName ?? string.Empty).Trim();
         }
 
+        /// <summary>
+        /// Strips a single trailing ".zip" suffix (case-insensitive) from a display name.
+        /// Used to keep ContentItem.Name clean for display while FileStorage.Name/StoragePath
+        /// retain the real archive extension. Does not touch names with other dots.
+        /// </summary>
+        public static string StripArchiveExtension(string? name)
+        {
+            var value = name ?? string.Empty;
+            return value.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)
+                ? value[..^4]
+                : value;
+        }
+
         private static bool HasZipSignature(IFormFile file)
         {
             using var stream = file.OpenReadStream();

@@ -281,7 +281,7 @@ namespace iLearn.API.Controllers
 
             var contentItem = new ContentItem
             {
-                Name = safeFileName,
+                Name = ScormUploadValidation.StripArchiveExtension(safeFileName),
                 TypeId = typeId,
                 IsActive = false,
                 FileStorageId = savedFile.Id,
@@ -964,7 +964,9 @@ namespace iLearn.API.Controllers
                             continue;
                         }
 
-                        string extension = Path.GetExtension(contentItem.Name).ToLower();
+                        // Use FileStorage.Name (the real uploaded file name) for the extension check,
+                        // not ContentItem.Name, which is display-only and may not carry the .zip suffix (PLAN-110).
+                        string extension = Path.GetExtension(fileStorage.Name).ToLower();
 
                         if (extension == ".zip")
                         {
