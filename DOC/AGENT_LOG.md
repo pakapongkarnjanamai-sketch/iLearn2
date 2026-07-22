@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Claude Code — เขียน PLAN-116: ยกเลิกคลิก filter บน chart + เลขลำดับหน้าชื่อหมวด learner sidebar (มอบ Copilot)
+- ทำอะไร: ผู้ใช้สั่ง (1) ยกเลิกการคลิก filter ที่ PLAN-114 เคยคงไว้ (2) แสดง "ลำดับ" ของ Categories ใน sidebar หน้า MyLearning = option §4 ของ PLAN-111 ที่ยืนยันแล้ว. สำรวจ: จุดคลิกมีแค่ `Pie.onClick`/`Bar.onClick` (legend ไม่ clickable); sidebar มี `cat.sortOrder` พร้อมใช้จาก PLAN-113. เขียน PLAN-116: §1 ตัด `onSelectStatus`/`onSelectCourse` + `cursor="pointer"` ออกจาก chart ทั้ง 2 ตัว + callers 2 ไฟล์ **แต่คง `activeStatus`/`activeCourse` dim logic** (chart ยังสะท้อน filter จาก toolbar); §2 sidebar แสดง `${sortOrder}. ${name}` เฉพาะเมื่อ sortOrder > 0, "ทั้งหมด" ไม่มีเลข
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-116-*.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี API/DB — props ของ StatusDonut/CourseCompletionBars ตัด callback (internal, callers แก้ครบในแผน)
+- Verified: — (แผน; อ่าน ReportCharts ทั้งไฟล์ + renderCategorySidebar)
+- **ถึง Copilot: ห้ามตัด dim logic; ห้ามแตะ filter toolbar เดิม; deploy iLearn.User ขึ้น PROD ต้องพา PLAN-113 ไปด้วย (HEAD เดียวกัน) — PLAN-113 PROD ยังค้างรอผู้ใช้ยืนยันอยู่**
+
 ## [2026-07-22 —] Claude Code — รีวิว PLAN-114 + PLAN-115 → REVIEWED ทั้งคู่ + commit (b4a031d, PLAN-114 ตามมา)
 - ทำอะไร: **PLAN-115** — preventDefault เฉพาะ non-submit ถูกต้อง signature ไม่เปลี่ยน + key ครบ 4 ปุ่ม → commit `b4a031d`. **PLAN-114** — จุดเด่น: Copilot จับได้ว่าแผนชี้ผิดคลาส (controller เรียก `AssignmentService.GetDashboardAsync` ไม่ใช่ `AssignmentDashboardService` — ยืนยันที่ AssignmentsController:77) แล้วเพิ่ม `LookupCreatedByNameAsync` ทั้ง 2 คลาสถูกต้อง; ตรวจลึก `GetEmployeesByNidsAsync` ทั้ง 2 implementation คืน dict `OrdinalIgnoreCase` ⇒ Nid case ไม่มีปัญหา; caption หาย 2 บรรทัด/ tiles ตรง markup Report เป๊ะ/ Created By ชื่อ+Nid รอง fallback ถูก. งาน polish นอกแผนของ Gemini (Escape+scroll-lock) โค้ดถูก ยอมรับโดยจดไว้. รัน verify เอง: 222/222 + lint/build 0 errors
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-114-*.md` + `PLAN-115-*.md` (→REVIEWED + Sign-off), `DOC/AGENT_LOG.md`
