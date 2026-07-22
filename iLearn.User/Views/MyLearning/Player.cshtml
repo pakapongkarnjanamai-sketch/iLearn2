@@ -217,36 +217,16 @@
             white-space: nowrap;
         }
 
-        .course-status-pill {
-            width: fit-content;
-            max-width: 100%;
-            display: inline-flex;
-            align-items: center;
-            border-radius: 999px;
-            padding: 2px 9px;
-            font-size: 0.75rem;
-            line-height: 1.45;
-            flex-shrink: 0;
-        }
-
         .status-muted {
-            background: #f1f5f9;
             color: #475569;
         }
 
         .status-success {
-            background: #eaf7ee;
             color: #1e7e34;
         }
 
         .status-danger {
-            background: #fff1f2;
             color: var(--danger-color);
-        }
-
-        .status-warning {
-            background: #fff8e1;
-            color: #9a6700;
         }
 
         .course-progress-row {
@@ -680,7 +660,7 @@
                 </div>
                 <div class="course-meta-row" id="courseStatusRow">
                     <span class="course-meta-label">สถานะ</span>
-                    <span class="course-status-pill status-muted" id="courseStatusDisplay">-</span>
+                    <span class="course-meta-value status-muted" id="courseStatusDisplay">-</span>
                 </div>
             </div>
             <div class="course-progress-row">
@@ -1045,9 +1025,7 @@
 
             if (data.isCompleted) {
                 setCourseStatusDisplay("เรียนจบแล้ว", "success");
-            } else if (isReadOnly) {
-                setCourseStatusDisplay("ดูอย่างเดียว", "warning");
-            } else {
+            } else if (!isReadOnly) {
                 setCourseStatusDisplay("กำลังเรียน", "muted");
             }
         }
@@ -1505,8 +1483,6 @@
             // ข้อความแจ้งเตือน
             if (currentData.isCompleted) {
                 setCourseStatusDisplay("เรียนจบแล้ว", "success");
-            } else {
-                setCourseStatusDisplay("ดูอย่างเดียว", "warning");
             }
 
             // เคส A: เปิดดูเฉย ๆ ไม่ได้ถูก assign (ไม่มี enrollment) — ไม่มีอะไรให้ติดตาม progress
@@ -1911,7 +1887,7 @@
 
                 scormLog(`📊 Summary: ${passedCount}/${totalContentItems} passed, Completion: ${completionProgress}%`);
                 if (allPassed) {
-                    setCourseStatusDisplay("พร้อมแสดงผล", "success");
+                    setCourseStatusDisplay("เรียนจบแล้ว", "success");
                     $("#btnPreSave").prop("disabled", false);
                     scormLog(`✅ All contentItems PASSED - Save button enabled`);
                 } else {
@@ -1930,8 +1906,6 @@
 
                 if (currentData.isCompleted) {
                     setCourseStatusDisplay("เรียนจบแล้ว", "success");
-                } else {
-                    setCourseStatusDisplay("ดูอย่างเดียว", "warning");
                 }
             }
 
