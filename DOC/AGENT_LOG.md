@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] GitHub Copilot — PLAN-112: deploy Admin React ขึ้น QA + PROD ครบ — ปิดงาน VERIFIED
+- ทำอะไร: PLAN-112 (Overview status donut + courses popup) รีวิวผ่านแล้วแต่ยังไม่ deploy — ทำให้ครบ: **(1)** lint+build local 0 errors **(2)** deploy QA (`tools/deploy-admin-react.ps1`) → smoke ด้วย Playwright ที่ `/assignments/288` (AS-20260713-002): donut legend "Not Started 4 (100%)" ตรงกับ Completion Rate, สลับ tab Learners → ตาราง 4 คอลัมน์ไม่มีคอลัมน์ courses เดิม, ปุ่ม "View courses" เปิด popup แสดงคอร์ส/progress/status/ปุ่ม reset ครบ, ปิด popup ปกติ **(3)** deploy PROD (`tools/deploy-admin-react-prod.ps1`) → smoke ที่ `/assignments/275` (AS-20260702-002, batch มีหลายสถานะจริง): donut แสดง "67% Completion" ตรงกับ Fact Completion Rate 67% ถูกต้อง
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-112-*.md` (→VERIFIED + Deploy Notes), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (React display only, ตามที่แผนระบุ)
+- Verified: lint+build 0 errors, Playwright smoke ทั้ง QA และ PROD ยืนยัน donut/tab-switch/popup ทำงานถูกต้อง ไม่มี console error ที่สังเกตเห็น
+
+
 ## [2026-07-22 —] Claude Code — เขียน PLAN-113: learner sidebar เรียงหมวดตาม SortOrder (มอบ Copilot)
 - ทำอะไร: ผู้ใช้ยืนยันเปิดแผนปิด limitation จาก PLAN-111. วินิจฉัย: `GetCourseCatalog` (EnrollmentsController:153) Include Category อยู่แล้วแต่ DTO ไม่ส่ง sortOrder; sidebar วน `Object.keys()` ที่ key เป็นเลข = JS spec บังคับเรียง ascending ตาม id override ไม่ได้. เขียน PLAN-113: **§1** `LearnerCourseCatalogDto` +`categorySortOrder` (additive) **§2** `organizeCoursesByCategory` เก็บ sortOrder ลง entry + `renderCategorySidebar` เปลี่ยนเป็น `Object.values(...).sort((sortOrder, id))` — `?? 0` กัน deploy skew (User ขึ้นก่อน API → fallback พฤติกรรมเดิม). Manual ข้อ 2 ของแผนให้ admin สลับ sortOrder จริงแล้วดู learner ตาม — ปิด loop manual ที่ค้างของ PLAN-111 ไปด้วย
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-113-*.md` (ใหม่ READY), `DOC/AGENT_LOG.md`

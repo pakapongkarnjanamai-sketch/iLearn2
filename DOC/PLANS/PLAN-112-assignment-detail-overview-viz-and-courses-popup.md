@@ -1,6 +1,6 @@
 # PLAN-112: Assignment detail — Overview มี visualization + ย้าย courses ของ learner ไป popup
 
-- **Status:** REVIEWED
+- **Status:** VERIFIED
 - **Assigned:** Antigravity Gemini (React ล้วน ไฟล์เดียวเป็นหลัก)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -95,3 +95,9 @@ Manual (QA — ใช้ AS-20260713-002 /assignments/288 ที่ผู้ใ�
 5. **Reviewer รัน verify เอง:** `npm run lint` + `npm run build` → 0 errors
 
 **คงค้างก่อน VERIFIED:** deploy Admin React ขึ้น QA + manual ข้อ 1-6 ใน Verification (โดยเฉพาะข้อ 2 คลิก donut→filter และข้อ 4 reset ใน popup แล้วข้อมูล refresh) → PROD รอผู้ใช้ยืนยัน
+
+## Deploy Notes (GitHub Copilot, 2026-07-22)
+
+- **QA:** `tools/deploy-admin-react.ps1` → lint+build 0 errors → deploy สำเร็จ (`ap-ntc2138-qawb`). Smoke ด้วย Playwright ที่ `/assignments/288` (AS-20260713-002): donut render ถูกต้อง (legend "Not Started 4 (100%)" ตรงกับ Completion Rate 0%), สลับไป tab Learners → ตาราง 4 คอลัมน์ (ไม่มี "Assigned Courses & Progress"), ปุ่ม "View courses" เปิด popup แสดงรายการคอร์ส + progress + status + ปุ่ม "Reset this course only" ครบ, ปิด popup ปกติ
+- **PROD:** `tools/deploy-admin-react-prod.ps1` → lint+build 0 errors → deploy สำเร็จ (`ap-ntc2137-prwb`). Smoke ที่ `/assignments/275` (AS-20260702-002): donut แสดง "67% Completion" ตรงกับ Fact "Completion Rate: 67%" — ยืนยัน layout/data ถูกต้องบน batch ที่มีข้อมูลจริงหลายสถานะ
+- **สรุป:** PLAN-112 deploy ครบทั้ง QA + PROD, ไม่มี backend/DB เปลี่ยน (React display only)
