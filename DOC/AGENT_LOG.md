@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Claude Code — เขียน PLAN-113: learner sidebar เรียงหมวดตาม SortOrder (มอบ Copilot)
+- ทำอะไร: ผู้ใช้ยืนยันเปิดแผนปิด limitation จาก PLAN-111. วินิจฉัย: `GetCourseCatalog` (EnrollmentsController:153) Include Category อยู่แล้วแต่ DTO ไม่ส่ง sortOrder; sidebar วน `Object.keys()` ที่ key เป็นเลข = JS spec บังคับเรียง ascending ตาม id override ไม่ได้. เขียน PLAN-113: **§1** `LearnerCourseCatalogDto` +`categorySortOrder` (additive) **§2** `organizeCoursesByCategory` เก็บ sortOrder ลง entry + `renderCategorySidebar` เปลี่ยนเป็น `Object.values(...).sort((sortOrder, id))` — `?? 0` กัน deploy skew (User ขึ้นก่อน API → fallback พฤติกรรมเดิม). Manual ข้อ 2 ของแผนให้ admin สลับ sortOrder จริงแล้วดู learner ตาม — ปิด loop manual ที่ค้างของ PLAN-111 ไปด้วย
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-113-*.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มีในตัวแผน (แผนระบุ +`categorySortOrder` additive, consumer เดียวแก้ในแผนเดียวกัน)
+- Verified: — (แผน; อ่าน GetCourseCatalog + organizeCoursesByCategory/renderCategorySidebar)
+- **ถึง Copilot: ห้ามแตะ ordering ของ courses ใน response (ยัง Code,Title); ห้ามเพิ่มเลขนำหน้าชื่อหมวด (option รอผู้ใช้); "ทั้งหมด" อยู่บนสุดเหมือนเดิม; ไม่มี migration**
+
 ## [2026-07-22 —] Claude Code — รีวิว PLAN-112 → REVIEWED ผ่าน (แก้ข้อเท็จจริง z-index ใน notes)
 - ทำอะไร: รีวิวงาน Gemini — §1 donut reuse `StatusDonut`+`buildStatusData` (มีอยู่แล้วที่ `AssignmentReportCharts.tsx:172`, ไฟล์ Report ไม่ถูกแตะตามข้อห้าม), sync สองทางกับ filter ถูกต้อง; §2 `expandedCodes`/Expand all หายเกลี้ยง, ตาราง 4 คอลัมน์ + `colSpan={4}` ถูก, popup ใช้ memo จาก `groupedLearners` ล่าสุด (ไม่ snapshot) + effect ปิดเองเมื่อ learner หาย, reset รายคอร์สย้ายเข้า popup ครบ. **แก้ข้อเท็จจริง:** notes อ้าง ConfirmDialog z-60 — จริง ๆ `.modal-overlay` = z-50 เท่า popup, ที่ทับได้เพราะ `{confirmDialog}` อยู่หลังใน DOM (pattern เดิมของหน้านี้: confirm Unverified Codes ทับ Add Learners modal ด้วยกลไกเดียวกัน) — behavior ถูก โค้ดไม่ต้องแก้ แต่จดไว้กันคนย้ายตำแหน่ง `{confirmDialog}` ในอนาคต. รัน verify เอง: lint + build 0 errors
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-112-*.md` (→REVIEWED + Sign-off), `DOC/AGENT_LOG.md`
