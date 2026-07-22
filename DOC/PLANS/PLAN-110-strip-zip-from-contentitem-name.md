@@ -152,3 +152,12 @@ Manual (QA):
 5. **SQL 2.3 (ล้าง `.zip` ออกจาก `ContentItems.Name`):** backup เข้าตาราง `ContentItems_ZipSuffix_Backup_20260722` ก่อนรันทั้ง QA (1425 แถว) และ PROD (1424 แถว) — UPDATE สำเร็จทั้งคู่, verify count เหลือ `.zip` = 0 ทั้ง QA/PROD; สุ่มตรวจ Id 1087/1088 บน PROD → `Exam_Software license training 2025_JP` / `Content_Software license training 2025_JP` (สะอาดจริง)
 
 **สรุป: PLAN-110 deploy ครบทั้ง 4 ข้อใน Manual Verification (ข้อ 1/4 ด้วย smoke จริง QA+PROD; ข้อ 2/3 upload+bulk-process ยังไม่ได้ทดสดด้วยมือแต่ครอบคลุมโดย code review แล้ว) — PLAN-111 backend ขึ้น PROD ครบเช่นกัน (migration + API) ตามคำยืนยันผู้ใช้**
+
+## Reviewer Endorsement รอบปิดงาน (Claude Code, 2026-07-22)
+
+**✅ ยืนยันสถานะ VERIFIED** — ตรวจรอบ deploy แล้ว:
+
+1. **ลำดับ gate ถูกต้องครบ:** QA API → smoke → ผู้ใช้ยืนยัน → PROD **migration ก่อน API** (จำเป็นเพราะ HEAD รวม PLAN-111 — Copilot จับประเด็นนี้ได้เองก่อน deploy ถือว่าดีมาก) → PROD API → smoke → **SQL 2.3 หลัง 2.1 อยู่บน PROD แล้วเท่านั้น** ตรงตามข้อห้ามของแผนเป๊ะ
+2. **Backup ดีกว่าที่แผนสั่ง:** ใช้ backup table (`ContentItems_ZipSuffix_Backup_20260722` ทั้ง 2 env, 1425/1424 แถว) แทน SELECT export — rollback ง่ายกว่า
+3. **grep ปิดท้าย:** ไม่เหลือโค้ดพึ่ง extension จาก `ContentItem.Name` ที่ไหนอีก (เหลือเฉพาะคอมเมนต์อ้างอิง PLAN-110)
+4. **ความเสี่ยงคงเหลือ (ยอมรับได้ ไม่ block):** (a) manual ข้อ 2/3 — upload SCORM ใหม่ + bulk-process ยังไม่ smoke ด้วยมือ ⇒ **การ upload/bulk จริงครั้งแรกบน PROD คือ test ตัวจริง** ถ้าพังให้ดู extension check ที่ `ContentItemsController:969`/`ContentPublicationService:52` ก่อน (b) item ที่ soft-delete แล้วยังมีชื่อ `.zip` ค้าง (SQL filter `IsDeleted=0` โดยตั้งใจ) — ถ้ามี restore feature ในอนาคต ชื่อจะโผล่พร้อม `.zip` แต่ safety net เฟส 1 กันฝั่ง learner ไว้แล้ว

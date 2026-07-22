@@ -165,4 +165,13 @@ Manual (QA):
 - **Smoke PROD** (`https://ap-ntc2137-prwb/iLearn/admin-react/master-data/categories`): คอลัมน์ ลำดับ ซ้ายสุด เลข 1,2,3,4… เรียงต้อง, ชื่อไม่มี prefix, 41 records, ไม่มี error
 - **ข้อ 6 (learner sidebar เรียงตามลำดับใหม่):** ยังไม่ได้ทำ — ตาม Limitation ที่ reviewer จดไว้: sidebar learner เรียงตาม categoryId ไม่ใช่ sortOrder — อยู่นอก scope ของแผนนี้ (§4 เป็น option รอผู้ใช้ยืนยัน)
 
-**PLAN-111 ปิดงานสมบูรณ์: API + migration + Admin React ขึ้น QA และ PROD ครบทั้งหมด เหลือเฉพาะ˶ learner sidebar reorder (อยู่นอก scope)**
+**PLAN-111 ปิดงานสมบูรณ์: API + migration + Admin React ขึ้น QA และ PROD ครบทั้งหมด เหลือเฉพาะ learner sidebar reorder (อยู่นอก scope)**
+
+## Reviewer Endorsement รอบปิดงาน (Claude Code, 2026-07-22)
+
+**✅ ยืนยันสถานะ VERIFIED** — ตรวจรอบ deploy แล้ว:
+
+1. **ลำดับ deploy ถูกต้อง:** backup `Categories_Backup_20260722` → `database update` (verify 41/41 + 0 prefix เหลือ) → API PROD → Admin React QA+PROD + smoke ครบ — ตรงกติกา CLAUDE.md (migration ต้องรันคู่ deploy)
+2. **Smoke QA รอบ Admin React ทำได้รัดกุม** — แยกแยะ toast จาก SignalR broadcast ของ admin คนอื่นออกจากผลการทดสอบเอง + ตรวจ DB ยืนยันไม่มี write โดยไม่ตั้งใจ
+3. **ความเสี่ยงคงเหลือ 1 ข้อ (ไม่ block แต่ควรทำ):** manual ข้อ 5 — **ยังไม่มีใครแก้ค่า sortOrder แล้ว save จริง end-to-end** (รอบ smoke เปิดฟอร์มแต่ไม่เปลี่ยนค่า) ทั้งที่นี่คือ feature หลักที่ผู้ใช้ขอ — path ที่เกี่ยว (PUT → `PopulateObject` → ordering) ผ่าน code review แล้ว ความเสี่ยงต่ำ แต่แนะนำผู้ใช้ลองแก้ลำดับ category คู่หนึ่งใน division เดียวกันบน admin จริง 1 ครั้งเพื่อปิด loop
+4. **Limitation เดิมคงอยู่:** learner sidebar เรียงตาม categoryId — ถ้า admin เริ่มปรับลำดับจริง ผู้เรียนจะยังเห็นลำดับเดิม ⇒ ควรเปิดแผนใหม่ (แจ้งผู้ใช้แล้ว รอยืนยัน)

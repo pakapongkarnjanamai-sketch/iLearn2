@@ -2,6 +2,19 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Antigravity — PLAN-112: Assignment detail — Overview status donut visualization + ย้าย courses ของ learner ไป popup modal
+- ทำอะไร: **§1** ปรับ layout ใน `<Card title="Overview">` ของ `AssignmentDetailPage.tsx` เป็น responsive 2 คอลัมน์ (`grid-cols-1 lg:grid-cols-[1fr_auto]`) โดยเพิ่ม `StatusDonut` ขวาของ `FactGrid` ซึ่ง reuse `StatusDonut` + `buildStatusData` จาก `AssignmentReportCharts.tsx` (ไม่แตะ backend); คลิก segment donut จะสลับไป tab Learners + filter ตาม status และ sync donut highlight กับ `learnerStatusFilter`. **§2** ใน Learners tab ตัดคอลัมน์ `Assigned Courses & Progress`, state `expandedCodes` และปุ่ม Expand/Collapse all ออก; ปรับคอลัมน์ `Summary` ให้มี `Badge` แสดงจำนวนคอร์ส และ `AppButton` `"View courses"` สำหรับเปิด popup modal (`z-50`); ภายใน popup render รายการคอร์ส/progress/status พร้อมปุ่ม reset รายคอร์ส (`IconButton` `RotateCcw`) ซึ่งยังคงใช้ `useConfirm` (ConfirmDialog `z-60`) ได้ และ refresh ข้อมูลใน popup สดอัตโนมัติ
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `DOC/PLANS/PLAN-112-assignment-detail-overview-viz-and-courses-popup.md` (→DONE), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (React display เท่านั้น)
+- Verified: `npm run lint` ผ่าน 0 errors, `npm run build` ผ่าน 0 errors (built in 1.62s)
+
+## [2026-07-22 —] Claude Code — รีวิวรอบปิดงาน PLAN-110 + PLAN-111 → ยืนยัน VERIFIED ทั้งคู่
+- ทำอะไร: ตรวจรอบ deploy ของ Copilot ทั้งสองแผน — **ลำดับ gate ถูกต้องครบ**: PLAN-110 รัน SQL 2.3 หลัง 2.1 ขึ้น PROD เท่านั้นตามข้อห้าม; PLAN-111 รัน migration ก่อน deploy API PROD (Copilot จับประเด็น HEAD รวม 2 แผนได้เองก่อน deploy — ป้องกัน Categories 500 ทั้ง PROD); backup เป็น table (`Categories_Backup_20260722`, `ContentItems_ZipSuffix_Backup_20260722` 1425/1424 แถว) ดีกว่าที่แผนสั่ง. grep ปิดท้ายไม่เหลือโค้ดพึ่ง `.zip` จาก `ContentItem.Name`. เติม Reviewer Endorsement ท้ายแผนทั้งสอง
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-110-*.md` + `DOC/PLANS/PLAN-111-*.md` (+Endorsement), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว)
+- Verified: อ่าน deploy notes ทั้งสองแผน + ตรวจลำดับกับ gate ในแผน + grep
+- **ความเสี่ยงคงเหลือที่จดไว้ (ไม่ block):** (110) upload SCORM ใหม่ + bulk-process ยังไม่ smoke ด้วยมือ — การใช้จริงครั้งแรกบน PROD คือ test ตัวจริง; (111) **ยังไม่มีใครแก้ sortOrder แล้ว save จริง end-to-end** — แนะนำผู้ใช้ลองสลับลำดับ category 1 คู่บน admin เพื่อปิด loop; learner sidebar ยังเรียงตาม categoryId (limitation เดิม รอผู้ใช้ยืนยันเปิดแผนใหม่)
+
 ## [2026-07-22 —] GitHub Copilot — PLAN-111: deploy Admin React ขึ้น QA + PROD ครบ — ปิดงานสมบูรณ์
 - ทำอะไร: ส่วนที่เหลือของ PLAN-111 (Admin React) ยังไม่เคย deploy มาก่อน (รอบก่อนหน้าทำแค่ API+migration) — ทำให้ครบตามคำขอผู้ใช้: **(1)** deploy Admin React ขึ้น QA (`tools/deploy-admin-react.ps1`) — lint+build ผ่าน 0 errors **(2)** smoke QA ด้วย Playwright ที่หน้า Categories: คอลัมน์ "ลำดับ" ซ้ายสุดเรียง 1,2,3… ต่อ division ถูกต้อง, ชื่อไม่มีเลขนำหน้า, เปิด detail category "Environment & Safety" เห็น Fact "Sort Order: 1"; ทดลองกด Edit Properties หลายครั้งแล้วตรวจ DB ว่าไม่มีข้อมูลเปลี่ยนแปลงโดยไม่ตั้งใจ — toast "บันทึกสำเร็จ" ที่เห็นระหว่างทดสอบพิสูจน์แล้วว่าเป็น SignalR broadcast `adminactivitycreated` ของ admin คนอื่น ไม่เกี่ยวกับการทดสอบของเรา **(3)** deploy Admin React ขึ้น PROD (`tools/deploy-admin-react-prod.ps1`) — lint+build ผ่าน 0 errors **(4)** smoke PROD ที่หน้า Categories เดียวกัน — คอลัมน์ลำดับ/ชื่อสะอาด/41 records ถูกต้อง ไม่มี error
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-111-*.md` (+Admin React deploy notes, ปิดงานสมบูรณ์), `DOC/AGENT_LOG.md`
