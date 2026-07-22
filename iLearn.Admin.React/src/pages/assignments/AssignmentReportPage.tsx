@@ -349,7 +349,6 @@ export function AssignmentReportPage() {
                     data={statusChartData}
                     completionRate={data.completionRate}
                     activeStatus={statusFilter}
-                    onSelectStatus={(key) => setStatusFilter(key)}
                   />
                 </DetailSubSection>
               </div>
@@ -359,7 +358,6 @@ export function AssignmentReportPage() {
                     <CourseCompletionBars
                       data={courseBarData}
                       activeCourse={courseFilter}
-                      onSelectCourse={(ruleId) => setCourseFilter(ruleId)}
                     />
                   </DetailSubSection>
                 </div>

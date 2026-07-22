@@ -761,10 +761,6 @@ export function AssignmentDetailPage() {
                   data={buildStatusData(assignment.learners)}
                   completionRate={assignment.completionRate}
                   activeStatus={learnerStatusFilter}
-                  onSelectStatus={(statusKey) => {
-                    setActiveDetailTab('learners')
-                    setLearnerStatusFilter(statusKey)
-                  }}
                 />
               </div>
             </div>

@@ -19,10 +19,9 @@ type StatusDonutProps = {
   data: StatusEntry[]
   completionRate: number
   activeStatus?: string
-  onSelectStatus: (statusKey: string) => void
 }
 
-export function StatusDonut({ data, completionRate, activeStatus, onSelectStatus }: StatusDonutProps) {
+export function StatusDonut({ data, completionRate, activeStatus }: StatusDonutProps) {
   const filtered = data.filter(d => d.count > 0)
   if (filtered.length === 0) {
     return <EmptyChart label="No enrollments" />
@@ -50,12 +49,6 @@ export function StatusDonut({ data, completionRate, activeStatus, onSelectStatus
               paddingAngle={2}
               stroke="#fff"
               strokeWidth={2}
-              cursor="pointer"
-              onClick={(_, index) => {
-                const entry = filtered[index]
-                if (!entry) return
-                onSelectStatus(entry.status === activeStatus ? 'All' : entry.status)
-              }}
             >
               {filtered.map((entry) => (
                 <Cell
@@ -107,10 +100,9 @@ type CourseBarEntry = {
 type CourseCompletionBarsProps = {
   data: CourseBarEntry[]
   activeCourse?: 'All' | number
-  onSelectCourse: (ruleId: 'All' | number) => void
 }
 
-export function CourseCompletionBars({ data, activeCourse, onSelectCourse }: CourseCompletionBarsProps) {
+export function CourseCompletionBars({ data, activeCourse }: CourseCompletionBarsProps) {
   if (!data || data.length === 0) {
     return <EmptyChart label="No course data" />
   }
@@ -145,12 +137,6 @@ export function CourseCompletionBars({ data, activeCourse, onSelectCourse }: Cou
             dataKey="pct"
             radius={[0, 4, 4, 0]}
             maxBarSize={20}
-            cursor="pointer"
-            onClick={(payload) => {
-              const entry = (payload as { payload?: CourseBarEntry })?.payload
-              if (!entry) return
-              onSelectCourse(entry.assignmentRuleId === activeCourse ? 'All' : entry.assignmentRuleId)
-            }}
           >
             {sorted.map((entry) => (
               <Cell

@@ -1477,10 +1477,11 @@ else
                 .filter(cat => cat.id !== undefined && String(cat.id) !== 'all')
                 .sort((a, b) => (a.sortOrder - b.sortOrder) || (a.id - b.id))
                 .forEach(cat => {
+                    const categoryLabel = cat.sortOrder > 0 ? `${cat.sortOrder}. ${cat.name}` : cat.name;
                     $menu.append(`
                         <div class="category-menu-item" data-category="${cat.id}">
                             <span class="category-name">
-                                <i class="fas fa-folder me-2"></i>${cat.name}
+                                <i class="fas fa-folder me-2"></i>${categoryLabel}
                             </span>
                             <span class="course-count">${cat.courses.length}</span>
                         </div>

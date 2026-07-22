@@ -1,6 +1,6 @@
 # PLAN-116: ยกเลิกคลิก filter บน chart (ต่อจาก PLAN-114) + โชว์เลขลำดับหน้าชื่อหมวดใน learner sidebar
 
-- **Status:** READY
+- **Status:** REVIEWED
 - **Assigned:** GitHub Copilot (React charts + learner view — งานเล็ก 2 ส่วน)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -67,4 +67,18 @@ Manual (QA):
 
 ## Implementer Notes
 
-_(เติมโดย implementer)_
+- §1: ลบ `onSelectStatus`/`onSelectCourse` props + `cursor="pointer"`/`onClick` ออกจาก `<Pie>`/`<Bar>` ใน `AssignmentReportCharts.tsx`; คง `activeStatus`/`activeCourse` + fillOpacity dim logic ไว้ครบ. ตัด callback prop ที่ 2 callers: `AssignmentDetailPage.tsx` (ลบ logic สลับ `activeDetailTab`→'learners' ไปด้วยเพราะเคยผูกกับ onClick เท่านั้น — toolbar filter เดิม (`learnerStatusFilter` + SegmentedToggle ที่บรรทัด ~842) ยังทำงานปกติ ไม่ได้แตะ) และ `AssignmentReportPage.tsx` (ลบ `onSelectStatus`/`onSelectCourse`, คง `statusFilter`/`courseFilter` toolbar เดิม)
+- §2: `renderCategorySidebar` ใน `MyLearning/Index.cshtml` เพิ่ม `categoryLabel = cat.sortOrder > 0 ? \`${cat.sortOrder}. ${cat.name}\` : cat.name` เฉพาะแถว category (ไม่แตะแถว "ทั้งหมด")
+- Verified: `npm run lint` 0 errors, `npm run build` 0 errors (tsc -b + vite build); `dotnet build iLearn.User\iLearn.User.csproj -o artifacts\verify-user` succeeded 0 errors (74 pre-existing nullable warnings unrelated to this change), artifacts cleaned up
+- Manual QA smoke test (คลิก chart / sidebar เลข) ยังไม่ทำ — รอ deploy QA
+
+## Reviewer Sign-off (Claude Code, 2026-07-22)
+
+**ผลรีวิว: ✅ ผ่าน — REVIEWED**
+
+1. **§1:** props `onSelectStatus`/`onSelectCourse` + `cursor="pointer"`/`onClick` หายครบทั้ง 2 chart; `activeStatus`/`activeCourse` + dim `fillOpacity` คงอยู่; callers 2 ไฟล์ตัด callback สะอาด — detail page ยังส่ง `activeStatus={learnerStatusFilter}` ⇒ donut ยัง dim ตาม toolbar filter ตามสเปค; tooltip ไม่ถูกแตะ
+2. **§2:** `categoryLabel` guard `> 0` ถูกต้อง, "ทั้งหมด" อยู่นอก loop ไม่มีเลข, สอดคล้อง fallback deploy skew ของ PLAN-113
+3. **Reviewer รัน verify เอง:** `npm run lint`/`build` 0 errors + `dotnet build iLearn.User` 0 errors
+
+**คงค้าง: deploy QA (Admin React + iLearn.User) → manual 1-4 → PROD (พา PLAN-113 ไปด้วย — HEAD เดียวกัน) รอผู้ใช้ยืนยัน**
+
