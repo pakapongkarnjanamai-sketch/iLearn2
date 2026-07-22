@@ -176,9 +176,33 @@ export function CourseDetailPage() {
         toast.success(resp.message || 'Course deleted successfully')
         navigate('/courses')
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      toast.error('Failed to delete this course. It may have active assignments or enrolled learners.')
+      const errorMsg = err?.message || 'Failed to delete this course.'
+      if (errorMsg.includes('in progress') || errorMsg.includes('currently taking') || errorMsg.includes('learner(s)')) {
+        const forceDelete = await confirm({
+          title: 'Force Delete Course?',
+          message: `${errorMsg}\n\nDo you want to Force Delete this course and automatically clean up all linked enrollments and assignments?`,
+          confirmLabel: 'Force Delete',
+          danger: true,
+        })
+        if (forceDelete) {
+          try {
+            const forceResp = await fetchWithAccessControl<{ success: boolean; message: string }>(`Courses/${id}?force=true`, {
+              method: 'DELETE'
+            })
+            if (forceResp.success) {
+              toast.success(forceResp.message || 'Course force-deleted successfully')
+              navigate('/courses')
+            }
+          } catch (forceErr: any) {
+            console.error(forceErr)
+            toast.error(forceErr?.message || 'Force delete failed.')
+          }
+        }
+      } else {
+        toast.error(errorMsg)
+      }
     }
   }
   const [data, setData] = useState<CourseDashboardData | null>(null)
@@ -997,7 +1021,13 @@ function CourseControls({
       >
         Revert to Draft
       </ControlAction>
-      <ControlAction icon={Trash2} onClick={onDeleteCourse} variant="danger">
+      <ControlAction
+        icon={Trash2}
+        onClick={onDeleteCourse}
+        variant="danger"
+        disabled={!isClosed || mutatingStatus}
+        title={!isClosed ? 'Course must be Closed before it can be deleted' : undefined}
+      >
         Delete Course
       </ControlAction>
     </ControlsSidebar>

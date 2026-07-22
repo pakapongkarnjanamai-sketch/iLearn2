@@ -2,6 +2,18 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Antigravity — PLAN-126: Require Closed Status for Course Deletion & Unify CourseStatusText to Soft Badge
+- ทำอะไร: implement ตาม PLAN-126 — **§1 (Backend Guard)** เพิ่มการตรวจสอบสถานะใน `CourseService.DeleteCourseAsync` หากสถานะคอร์สไม่ใช่ `Closed` (`Status != 2`) และไม่ใช่กรณีบังคับลบ `force` จะทำการโยน `InvalidOperationException` แจ้งว่าคอร์สต้องถูก Close ก่อนลบเสมอ. **§2 (UI Control)** ปรับ `CourseControls` ใน `CourseDetailPage.tsx` ให้ปุ่ม `Delete Course` ถูก Disable พร้อม Tooltip แจ้งเตือน *"Course must be Closed before it can be deleted"* หากคอร์สอยู่ในสถานะ `Open` หรือ `Draft`. **§3 (Badge Unification)** ปรับ `CourseStatusText` ใน `CourseStatusBadge.tsx` ให้เปลี่ยนจาก `variant="outline"` เป็น `variant="soft"` เป็นค่าเริ่มต้น (`bg-emerald-100 text-emerald-800` ทรงนุ่มไม่มีขอบเส้น) สอดคล้องกับ `StatusBadge` และ `ReadinessBadge`.
+- ไฟล์หลักที่แตะ: `iLearn.Application/Services/CourseService.cs`, `iLearn.Admin.React/src/components/ui/CourseStatusBadge.tsx`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `DOC/PLANS/PLAN-126-course-status-closed-guard-and-status-badge-soft.md` (->DONE), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: `npm run lint` ผ่าน 0 errors, `npm run build` ผ่าน 0 errors (built in 1.75s), `dotnet test` ผ่าน 222/222 tests (0 failures)
+
+## [2026-07-22 —] Antigravity — PLAN-125: Fix Course Deletion FK Constraint, Force Delete Option & Detailed Reporting + Cleanup Course 969
+- ทำอะไร: implement ตาม PLAN-125 — **§1 (Backend)** แก้บั๊ก `CourseService.DeleteCourseAsync` เมื่อสั่งลบ `FileStorage` ถาวรแล้วติด SQL Server Foreign Key Violation `FK_ContentItems_FileStorages_FileStorageId` โดยทำการปลด `r.FileStorageId = null` บน `ContentItem` ก่อนทำการ Soft-Delete. เพิ่มพารามิเตอร์ `force` รองรับ Force Delete เคลียร์ `Enrollments` ที่ค้างอยู่เพื่อความสะดวกในการลบคอร์สในคลิกเดียวโดยไม่ต้องตามไปลบหน้าอื่น. เพิ่มการลบตารางกลาง `AssignmentCourse`. **§2 (Controller & React)** ปรับ `CoursesController.cs` และ `CourseDetailPage.tsx` ให้ส่งและแสดงผล Error Message จาก Backend แบบเจาะจงชัดเจนบน `toast.error` พร้อมเพิ่ม Popover ยืนยัน Force Delete เมื่อมีผู้เรียนเรียนค้างอยู่. **§3 (Cleanup 969)** ทำการลบคอร์ส 969 (`PLAN-079-TEST-01 SCORM 1.2 Learn`) ออกจากระบบเรียบร้อยแล้ว (ส่วนคอร์ส 507 ถูก Soft-Delete ไปก่อนหน้านี้แล้ว).
+- ไฟล์หลักที่แตะ: `iLearn.Application/Interfaces/Services/ICourseService.cs`, `iLearn.Application/Services/CourseService.cs`, `iLearn.API/Controllers/CoursesController.cs`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Tests/CoursesCrudControllerTests.cs`, `DOC/PLANS/PLAN-125-fix-course-deletion-fk-constraint-and-cleanup-969.md` (->DONE), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: `DELETE api/Courses/{id}?force={bool}` รองรับ query string `force` (default `false`)
+- Verified: `npm run lint` ผ่าน 0 errors, `npm run build` ผ่าน 0 errors (built in 1.47s), `dotnet test` ผ่าน 222/222 tests (0 failures), Execute deletion script สำหรับ Course 969 สำเร็จ 100%
+
 ## [2026-07-22 —] Antigravity — Deploy Admin React to PROD (PLAN-119..124 batch)
 - ทำอะไร: รัน `tools/deploy-admin-react-prod.ps1` สั่ง lint + build production bundle (ใช้ `.env.production`) และ copy static assets ลง PROD server (`\\ap-ntc2137-prwb\wwwroot\iLearn\admin-react`) สำเร็จ (`CopySucceeded: True`, Robocopy exit code 3). รวมการอัปเดตของ PLAN-119 ถึง PLAN-124 (ReadinessBadge soft fill, Folder edit action button, LearnerDirectorySelector unified layout, BulkAssign category filters & group tree).
 - ไฟล์หลักที่แตะ: `tools/deploy-admin-react-prod.ps1`, `DOC/AGENT_LOG.md`

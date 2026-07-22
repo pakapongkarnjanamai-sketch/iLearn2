@@ -172,7 +172,7 @@ namespace iLearn.Tests
             public Task<CourseDto> CreateCourseWithScormAsync(CourseCreateDto model) => throw new NotSupportedException();
             public Task<CourseDto> UpdateCourseAsync(int id, CourseCreateDto model) => throw new NotSupportedException();
             public Task<bool> UpdateCourseStatusAsync(int id, bool isActive) => throw new NotSupportedException();
-            public Task DeleteCourseAsync(int id) => throw new NotSupportedException();
+            public Task DeleteCourseAsync(int id, bool force = false) => throw new NotSupportedException();
             public Task<CourseStatusResultDto> UpdateCourseStatusAsync(int id, CourseStatus status) => throw new NotSupportedException();
             public Task<CourseStatusImpactDto> GetCourseStatusImpactAsync(int id) => throw new NotSupportedException();
             public Task<List<CourseLearnerDto>> GetCourseLearnersAsync(int courseId) => throw new NotSupportedException();

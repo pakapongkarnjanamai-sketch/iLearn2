@@ -1,4 +1,4 @@
-﻿using iLearn.Application.Common;
+using iLearn.Application.Common;
 using iLearn.Application.DTOs;
 using iLearn.Application.Interfaces;
 using iLearn.Application.Interfaces.Repositories;
@@ -29,6 +29,7 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<LearningLog> _learningLogRepository;
         private readonly IGenericRepository<Assignment> _assignmentRepository;
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepository;
+        private readonly IGenericRepository<AssignmentCourse> _assignmentCourseRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILearnerApiService _learnerApiService;
         private readonly IAdminActivityService _adminActivityService;
@@ -47,6 +48,7 @@ namespace iLearn.Application.Services
             IGenericRepository<LearningLog> learningLogRepository,
             IGenericRepository<Assignment> assignmentRepository,
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepository,
+            IGenericRepository<AssignmentCourse> assignmentCourseRepository,
             IScormService scormService,
             IUnitOfWork unitOfWork,
             ILearnerApiService learnerApiService,
@@ -64,6 +66,7 @@ namespace iLearn.Application.Services
             _learningLogRepository = learningLogRepository;
             _assignmentRepository = assignmentRepository;
             _enrollmentAssignmentRepository = enrollmentAssignmentRepository;
+            _assignmentCourseRepository = assignmentCourseRepository;
 
             _contentItemRepository = contentItemRepository;
             _fileStorageRepository = fileStorageRepository;
@@ -272,11 +275,17 @@ namespace iLearn.Application.Services
             return course.ToDto();
         }
 
-        public async Task DeleteCourseAsync(int id)
+        public async Task DeleteCourseAsync(int id, bool force = false)
         {
             var course = await _courseRepo.GetByIdAsync(id);
             if (course == null)
                 throw new KeyNotFoundException($"Course with ID {id} was not found.");
+
+            // ── Guard: Course must be Closed before it can be deleted ──────────
+            if (course.Status != CourseStatus.Closed && !force)
+                throw new InvalidOperationException(
+                    "Cannot delete this course because it is not Closed. Please close the course first before deleting."
+                );
 
             // ── Guard: prevent deletion if active learners exist ──────────────
             // นับเฉพาะ Enrollment ที่: ยังไม่จบ + เคยเปิดเรียน + มี Progress จริง (> 0)
@@ -284,13 +293,24 @@ namespace iLearn.Application.Services
             var inProgressCount = await _enrollmentRepository.CountAsync(
                 e => e.CourseId == id && !e.IsCompleted && e.StartDate != null && e.Progress > 0
             );
-            if (inProgressCount > 0)
+            if (inProgressCount > 0 && !force)
                 throw new InvalidOperationException(
-                    $"Cannot delete this course because {inProgressCount} learner(s) are currently in progress."
+                    $"Cannot delete this course because {inProgressCount} learner(s) are currently taking the course (In Progress). Use Force Delete to override and clean up all active enrollments."
                 );
 
-            // ── รวบรวม ContentItem + FileStorage ที่ต้องจัดการ ────────────
-            var assignments = await _assignmentRepository.GetAsync(a => a.CourseId == id);
+            // ── หากสั่ง Force Delete: ทำการ Soft-delete Enrollments ทั้งหมดของคอร์สนี้ ──
+            if (force)
+            {
+                var allEnrollments = await _enrollmentRepository.GetAsync(e => e.CourseId == id);
+                foreach (var e in allEnrollments)
+                    await _enrollmentRepository.DeleteAsync(e);
+            }
+
+            // ── รวบรวม ContentItem + FileStorage + Assignments ที่ต้องจัดการ ────────────
+            var assignments = await _assignmentRepository.GetAsync(
+                a => a.CourseId == id || a.AssignmentCourses.Any(ac => ac.CourseId == id),
+                includeProperties: "AssignmentCourses"
+            );
             var versions    = await _courseVersionRepository.GetAsync(v => v.CourseId == id);
             var versionIds  = versions.Select(v => v.Id).ToList();
 
@@ -335,9 +355,28 @@ namespace iLearn.Application.Services
 
             // ── Soft Delete: Course, Version, CourseContentItem, ContentItem, Assignment ──
             // ── Hard Delete: FileStorage (bytes) + SCORM folders ────────────────────
-            // Soft-delete Assignments
+            // Soft-delete Assignments & AssignmentCourses
             foreach (var a in assignments)
-                await _assignmentRepository.DeleteAsync(a);
+            {
+                if (a.AssignmentCourses != null && a.AssignmentCourses.Any())
+                {
+                    var linksForCourse = a.AssignmentCourses.Where(ac => ac.CourseId == id).ToList();
+                    foreach (var link in linksForCourse)
+                    {
+                        await _assignmentCourseRepository.DeleteAsync(link);
+                    }
+
+                    var remainingActiveLinks = a.AssignmentCourses.Where(ac => ac.CourseId != id && !ac.IsDeleted).ToList();
+                    if (!remainingActiveLinks.Any() || a.CourseId == id)
+                    {
+                        await _assignmentRepository.DeleteAsync(a);
+                    }
+                }
+                else
+                {
+                    await _assignmentRepository.DeleteAsync(a);
+                }
+            }
 
             // Soft-delete CourseContentItems (linking table)
             foreach (var cr in courseContentItems)
@@ -347,9 +386,16 @@ namespace iLearn.Application.Services
             foreach (var v in versions)
                 await _courseVersionRepository.DeleteAsync(v);
 
-            // Soft-delete ContentItems (LearningLog.ContentItemId ยังอ้างอิงได้)
+            // Soft-delete ContentItems (Unlink FileStorageId so DB FK constraint on FileStorage allows hard deletion)
             foreach (var r in contentItemsToSoftDel)
+            {
+                if (r.FileStorageId.HasValue && fileStoragesToHardDel.Any(f => f.Id == r.FileStorageId.Value))
+                {
+                    r.FileStorageId = null;
+                    await _contentItemRepository.UpdateAsync(r);
+                }
                 await _contentItemRepository.DeleteAsync(r);
+            }
 
             // Hard-delete FileStorage — ลบ binary data จริง ไม่มี FK จากที่ไหนอ้างอิงมา
             foreach (var f in fileStoragesToHardDel)

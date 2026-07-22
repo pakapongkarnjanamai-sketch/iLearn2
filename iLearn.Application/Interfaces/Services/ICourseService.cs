@@ -23,7 +23,7 @@ namespace iLearn.Application.Interfaces.Services
         Task<CourseStatusImpactDto> GetCourseStatusImpactAsync(int id);
 
         // Delete Operations
-        Task DeleteCourseAsync(int id);
+        Task DeleteCourseAsync(int id, bool force = false);
 
         // Dashboard / Aggregation Operations
         Task<List<CourseLearnerDto>> GetCourseLearnersAsync(int courseId);

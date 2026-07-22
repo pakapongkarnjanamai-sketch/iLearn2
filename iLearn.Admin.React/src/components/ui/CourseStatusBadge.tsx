@@ -1,4 +1,4 @@
-import { Badge } from './Badge'
+import { Badge, type BadgeVariant } from './Badge'
 
 export type CourseStatusTone = 'success' | 'warning' | 'danger' | 'neutral'
 
@@ -39,12 +39,13 @@ export function CourseStatusBadge({ status, statusCode }: CourseStatusBadgeProps
 type CourseStatusTextProps = {
   status: string | null | undefined
   statusCode?: number | null
+  variant?: BadgeVariant
 }
 
-export function CourseStatusText({ status, statusCode }: CourseStatusTextProps) {
+export function CourseStatusText({ status, statusCode, variant = 'soft' }: CourseStatusTextProps) {
   const text = status?.trim() || '-'
   return (
-    <Badge variant="outline" tone={getCourseStatusTone(status, statusCode)}>
+    <Badge variant={variant} tone={getCourseStatusTone(status, statusCode)}>
       {text}
     </Badge>
   )

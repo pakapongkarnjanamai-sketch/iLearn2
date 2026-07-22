@@ -1,4 +1,4 @@
-﻿using DevExtreme.AspNet.Data;
+using DevExtreme.AspNet.Data;
 using DevExtreme.AspNet.Mvc;
 using iLearn.Application.Common;
 using iLearn.Application.DTOs;
@@ -189,11 +189,11 @@ namespace iLearn.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, [FromQuery] bool force = false)
         {
             try
             {
-                await _courseService.DeleteCourseAsync(id);
+                await _courseService.DeleteCourseAsync(id, force);
                 return Ok(new ApiResponse<object>
                 {
                     Success = true,
@@ -221,8 +221,8 @@ namespace iLearn.API.Controllers
                 return StatusCode(500, new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "An internal server error occurred.",
-                    ErrorCode = ex.Message
+                    Message = $"Unable to delete course: {ex.Message}",
+                    ErrorCode = ex.GetType().Name
                 });
             }
         }
