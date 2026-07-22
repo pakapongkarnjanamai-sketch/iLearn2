@@ -385,6 +385,9 @@ iLearn.User/wwwroot/**
 !iLearn.User/wwwroot/css/user-theme.css
 !iLearn.User/wwwroot/js/
 !iLearn.User/wwwroot/js/site.js
+!iLearn.User/wwwroot/apple-touch-icon-180.png
+!iLearn.User/wwwroot/apple-touch-icon.png
+!iLearn.User/wwwroot/apple-touch-icon-precomposed.png
 
 # Backup / scratch files
 *.bak

@@ -1,6 +1,6 @@
 # PLAN-119: ปุ่มเข้าสู่ระบบเป็นสีขาว + apple-touch-icon สำหรับ Add to Home Screen บน iPad
 
-- **Status:** READY
+- **Status:** DEPLOYED (รอ manual QA บน iPad จริง ตามข้อ 4)
 - **Assigned:** GitHub Copilot (iLearn.User ล้วน — CSS + asset + layout head)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -96,4 +96,16 @@ Manual (QA):
 
 ## Implementer Notes
 
-_(เติมโดย implementer)_
+- ทำตามแผนทุกข้อ: §1 `.btn-login`/`:hover` เปลี่ยนเป็นพื้นขาว+border+text `--brand-color`, hover ใช้ `--brand-lighter`/`--brand-dark` (ยืนยันตัวแปรมีจริงใน `user-theme.css`) — ไม่แตะ markup/JS อื่น
+- §2 gen `apple-touch-icon.png` (180×180, 1140 bytes) ด้วย PowerShell script ในแผนตรงตัว — พื้นเต็มจัตุรัส ไม่มีมุมโปร่งใส
+- เพิ่ม `<link rel="apple-touch-icon">` + `<meta apple-mobile-web-app-title>` ใต้ favicon เดิมใน `_DevExtremeLayout.cshtml` (layout เดียวของแอป) — **ไม่มี** `asp-append-version` ตามสเปค
+- `.gitignore`: เพิ่ม `!iLearn.User/wwwroot/apple-touch-icon.png` ต่อจาก precedent เดิม (`site.js`/`user-theme.css`) — ยืนยันด้วย `git check-ignore -v` ว่าไฟล์ไม่ถูก ignore แล้ว
+- Verified: `dotnet build iLearn.User -o artifacts\verify-user` → Build succeeded, 0 Error(s); ลบ artifacts แล้ว
+- **ค้าง (ต้อง manual):** ข้อ 4 ใน Verification (Add to Home Screen จริงบน iPad) ต้องรอผู้ใช้ทดสอบหลัง deploy QA — ถ้าเคย add ไว้ก่อนต้องลบ icon เก่าออกจากหน้าจอโฮมก่อน add ใหม่ (iOS cache ต่อ URL)
+
+## Deployment Notes
+
+- **QA:** deploy `iLearn.User` สำเร็จด้วย `tools/deploy-user.ps1` stamp `_user_deploy_20260722131045`; health check `https://ap-ntc2138-qawb/iLearn/` = HTTP 200, `AutoRolledBack=False`.
+- **PROD:** deploy `iLearn.User` สำเร็จด้วย `tools/deploy-user-prod.ps1` stamp `_user_deploy_20260722131157`; health check `https://ap-ntc2137-prwb/iLearn/` = HTTP 200, `AutoRolledBack=False`.
+- Smoke หลัง deploy ทั้ง QA/PROD: root page มี `<link rel="apple-touch-icon" sizes="180x180" href="/iLearn/apple-touch-icon.png">`; `/iLearn/apple-touch-icon.png` = HTTP 200, `image/png`.
+- **คงเหลือ:** ทดสอบ Add to Home Screen ด้วย iPad จริงทั้งการแสดงไอคอนและชื่อ `iLearn`; ต้องลบ shortcut เก่าก่อน add ใหม่เพื่อหลีกเลี่ยง iOS icon cache.

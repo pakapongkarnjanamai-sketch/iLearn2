@@ -559,14 +559,16 @@ export function VersionDetailPage() {
                               </td>
                               <td className="px-3 py-2">
                                 {launchUrl ? (
-                                  <button
+                                  <AppButton
+                                    variant="secondary"
+                                    size="sm"
+                                    icon={ExternalLink}
                                     onClick={() => handleOpenPlayer(item.id)}
                                     disabled={openingPlayerId === item.id}
-                                    className="inline-flex items-center gap-1.5 rounded border border-indigo-100 px-2 py-1 text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                    loading={openingPlayerId === item.id}
                                   >
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                    {openingPlayerId === item.id ? 'Opening...' : 'Open SCORM Player'}
-                                  </button>
+                                    Open SCORM Player
+                                  </AppButton>
                                 ) : (
                                   <span className="text-xs font-semibold text-slate-400">Unavailable</span>
                                 )}

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState, useMemo } from 'react'
 import type { ReactNode } from 'react'
-import { ChevronDown, Filter, RotateCcw, Search, X } from 'lucide-react'
+import { ChevronDown, RotateCcw, Search, X } from 'lucide-react'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { Modal } from '../ui/Modal'
+import { Badge } from '../ui/Badge'
 
 export type LearnerSelection = {
   code: string // EId / Employee Code
@@ -370,184 +371,175 @@ export function LearnerDirectorySelector({
   }
 
   return (
-    <div className="flex flex-col gap-4 min-h-0 flex-1">
-      
-      {/* Search Grid Workspace with left filters panel */}
-      <div className="flex gap-4 min-h-0 flex-1 items-stretch w-full min-w-0">
+    <>
+      <div className="flex-1 flex flex-col md:flex-row border border-slate-200 rounded-lg bg-white overflow-hidden min-h-0">
         
-        {/* Left Column: FILTERS Cascading panel */}
-        <div className="w-60 max-[1440px]:w-52 shrink-0 bg-white border border-slate-200 rounded-lg p-4 flex flex-col gap-3.5 text-xs font-semibold shadow-2xs">
-          <div className="flex items-center gap-1.5 border-b border-slate-100 pb-2 mb-0.5">
-            <Filter className="h-4 w-4 text-indigo-500" />
-            <span className="text-slate-800 font-extrabold uppercase tracking-wider text-xxs">Filters</span>
+        {/* Left Rail: FILTERS Cascading panel */}
+        <div className="w-full md:w-60 max-[1440px]:md:w-52 shrink-0 border-b md:border-b-0 md:border-r border-slate-200 bg-slate-50/50 p-2 flex flex-col gap-2.5 overflow-y-auto custom-scrollbar min-h-0 text-xs font-semibold">
+          <div className="px-2 py-1 text-xxs font-bold text-slate-400 uppercase tracking-wider select-none">
+            Filters
           </div>
 
           {/* Division Select */}
           <div className="space-y-1">
-            <label className="block text-xxs font-extrabold text-slate-400 uppercase">Division</label>
+            <label className="block text-xxs font-bold text-slate-400 uppercase">Division</label>
             <div className="relative">
               <select
                 value={selectedDiv}
                 onChange={e => { setSelectedDiv(e.target.value); setPageIndex(0) }}
-                className="w-full appearance-none px-2.5 py-2 pr-8 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 cursor-pointer transition"
+                className="w-full appearance-none px-2 py-1.5 pr-7 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 cursor-pointer transition text-xs font-medium"
               >
                 <option value="">All Divisions</option>
                 {divisions.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
             </div>
           </div>
 
           {/* Department Select */}
           <div className="space-y-1">
-            <label className="block text-xxs font-extrabold text-slate-400 uppercase">Department</label>
+            <label className="block text-xxs font-bold text-slate-400 uppercase">Department</label>
             <div className="relative">
               <select
                 value={selectedDept}
                 onChange={e => { setSelectedDept(e.target.value); setPageIndex(0) }}
                 disabled={!selectedDiv}
-                className="w-full appearance-none px-2.5 py-2 pr-8 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed transition"
+                className="w-full appearance-none px-2 py-1.5 pr-7 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed transition text-xs font-medium"
               >
                 <option value="">{selectedDiv ? 'All Departments' : 'Select Division first'}</option>
                 {departments.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
             </div>
           </div>
 
           {/* Section Select */}
           <div className="space-y-1">
-            <label className="block text-xxs font-extrabold text-slate-400 uppercase">Section</label>
+            <label className="block text-xxs font-bold text-slate-400 uppercase">Section</label>
             <div className="relative">
               <select
                 value={selectedSec}
                 onChange={e => { setSelectedSec(e.target.value); setPageIndex(0) }}
                 disabled={!selectedDept}
-                className="w-full appearance-none px-2.5 py-2 pr-8 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed transition"
+                className="w-full appearance-none px-2 py-1.5 pr-7 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed transition text-xs font-medium"
               >
                 <option value="">{selectedDept ? 'All Sections' : 'Select Department first'}</option>
                 {sections.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
             </div>
           </div>
 
           {/* Position Select */}
           <div className="space-y-1">
-            <label className="block text-xxs font-extrabold text-slate-400 uppercase">Position</label>
+            <label className="block text-xxs font-bold text-slate-400 uppercase">Position</label>
             <div className="relative">
               <select
                 value={selectedPos}
                 onChange={e => { setSelectedPos(e.target.value); setPageIndex(0) }}
-                className="w-full appearance-none px-2.5 py-2 pr-8 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 cursor-pointer transition"
+                className="w-full appearance-none px-2 py-1.5 pr-7 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 cursor-pointer transition text-xs font-medium"
               >
                 <option value="">All Positions</option>
                 {positions.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
             </div>
           </div>
 
           <button
             type="button"
             onClick={handleClearFilters}
-            className="mt-2 w-full py-2 border border-slate-200 hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300 text-slate-600 font-bold rounded flex items-center justify-center gap-1.5 transition cursor-pointer"
+            className="mt-1 w-full py-1.5 border border-slate-200 hover:bg-slate-100 hover:text-slate-800 text-slate-600 font-bold rounded flex items-center justify-center gap-1.5 transition cursor-pointer text-xs"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
+            <RotateCcw className="h-3 w-3" />
             <span>Clear Filters</span>
           </button>
         </div>
 
-        {/* Right Column: Interactive Table Grid with Unified Search Bar */}
-        <div className="flex-1 min-w-0 flex flex-col border border-slate-200 rounded-lg bg-white overflow-hidden min-h-0 shadow-2xs">
+        {/* Right Area: Search Bar & Table Grid */}
+        <div className="flex-1 min-w-0 flex flex-col min-h-0 bg-white">
           
-          <div className="px-4 py-3 short:py-2 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row gap-3 sm:items-center justify-between shrink-0 select-none">
-            <div className="flex flex-wrap items-center gap-3">
-              {headerLeft}
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-xs text-slate-700 uppercase tracking-wider">Learner Directory</span>
-                <span className="bg-indigo-50 text-blue-700 border border-indigo-100 px-2.5 py-0.5 text-xxs font-extrabold rounded-full shadow-3xs shrink-0">
-                  {totalCount} learner(s)
-                </span>
-              </div>
+          <div className="p-2 border-b border-slate-100 flex items-center gap-2 shrink-0 select-none">
+            {headerLeft}
 
-              {/* Active-filter chips inline */}
-              {(selectedDiv || selectedDept || selectedSec || selectedPos) && (
-                <div className="flex flex-wrap items-center gap-1.5 ml-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Filters:</span>
-                  {selectedDiv && (
-                    <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
-                      <span>Div: {selectedDiv}</span>
-                      <button
-                        type="button"
-                        onClick={() => { setSelectedDiv(''); setSelectedDept(''); setSelectedSec(''); setPageIndex(0) }}
-                        className="hover:text-red-500 transition cursor-pointer"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  )}
-                  {selectedDept && (
-                    <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
-                      <span>Dept: {selectedDept}</span>
-                      <button
-                        type="button"
-                        onClick={() => { setSelectedDept(''); setSelectedSec(''); setPageIndex(0) }}
-                        className="hover:text-red-500 transition cursor-pointer"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  )}
-                  {selectedSec && (
-                    <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
-                      <span>Sec: {selectedSec}</span>
-                      <button
-                        type="button"
-                        onClick={() => { setSelectedSec(''); setPageIndex(0) }}
-                        className="hover:text-red-500 transition cursor-pointer"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  )}
-                  {selectedPos && (
-                    <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
-                      <span>Pos: {selectedPos}</span>
-                      <button
-                        type="button"
-                        onClick={() => { setSelectedPos(''); setPageIndex(0) }}
-                        className="hover:text-red-500 transition cursor-pointer"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Premium Global Search Box */}
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
+            {/* Global Search Box */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search Name or Employee ID (EId)..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-lg text-xs font-semibold placeholder:text-slate-400 bg-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition shadow-3xs"
+                className="w-full pl-9 pr-8 py-1.5 border border-slate-200 rounded-md text-xs font-semibold placeholder:text-slate-400 bg-white focus:outline-none focus:border-indigo-500"
               />
               {searchTerm && (
                 <button
                   type="button"
                   onClick={() => setSearchTerm('')}
-                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
+
+            <Badge tone="neutral">{totalCount}</Badge>
           </div>
+
+          {/* Active-filter chips conditional second row */}
+          {(selectedDiv || selectedDept || selectedSec || selectedPos) && (
+            <div className="px-2 py-1.5 border-b border-slate-100 flex flex-wrap items-center gap-1.5 bg-slate-50/30 text-xs shrink-0 select-none">
+              <span className="text-[10px] font-bold text-slate-400 uppercase">Filters:</span>
+              {selectedDiv && (
+                <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
+                  <span>Div: {selectedDiv}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedDiv(''); setSelectedDept(''); setSelectedSec(''); setPageIndex(0) }}
+                    className="hover:text-red-500 transition cursor-pointer"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              {selectedDept && (
+                <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
+                  <span>Dept: {selectedDept}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedDept(''); setSelectedSec(''); setPageIndex(0) }}
+                    className="hover:text-red-500 transition cursor-pointer"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              {selectedSec && (
+                <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
+                  <span>Sec: {selectedSec}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedSec(''); setPageIndex(0) }}
+                    className="hover:text-red-500 transition cursor-pointer"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              {selectedPos && (
+                <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
+                  <span>Pos: {selectedPos}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedPos(''); setPageIndex(0) }}
+                    className="hover:text-red-500 transition cursor-pointer"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
 
           {isPageAllSelected && totalCount > learners.length && (
             <div className="px-4 py-2 bg-indigo-50 text-indigo-700 border-b border-indigo-100 flex items-center justify-between text-xs shrink-0 select-none animate-fade-in">
@@ -664,9 +656,9 @@ export function LearnerDirectorySelector({
               )}
 
               <div className="flex items-center gap-2">
-                <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-0.5 text-xxs font-extrabold rounded-full shadow-3xs shrink-0">
+                <Badge tone="neutral" variant="soft" size="xxs">
                   Selected: {selectedLearners.length}
-                </span>
+                </Badge>
                 
                 {selectedLearners.length > 0 && (
                   <>
@@ -753,7 +745,7 @@ export function LearnerDirectorySelector({
           </div>
         </div>
       </Modal>
-
-    </div>
+    </>
   )
 }
+

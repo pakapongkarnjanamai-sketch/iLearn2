@@ -2,6 +2,72 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Antigravity — PLAN-124: LearnerGroupListPage folder edit action
+- ทำอะไร: implement ตาม PLAN-124 — เพิ่มปุ่มแก้ไขโฟลเดอร์ (`Edit3`) ในคอลัมน์ `Actions` ของตาราง Learner Group Explorer (`LearnerGroupListPage.tsx`) สำหรับรายการประเภท `FOLDER`. เพิ่ม Edit Folder Modal สำหรับแก้ไขชื่อโฟลเดอร์ (Folder Name), คำอธิบาย (Description) และ Division (กรณี SuperAdmin) ยิง `PUT api/LearnerGroupCategories/{id}` และสั่งโหลดข้อมูลไดเรกทอรีใหม่สำเร็จทันที.
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`, `DOC/PLANS/PLAN-124-learner-group-folder-edit-action.md` (->DONE), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (ใช้งาน PUT endpoint เดิมของ LearnerGroupCategoriesController)
+- Verified: `npm run lint` ผ่าน 0 errors, `npm run build` ผ่าน 0 errors (built in 1.31s)
+
+## [2026-07-22 —] Antigravity — PLAN-123: ReadinessBadge variant="soft" unification + UI inline CSS cleanup
+- ทำอะไร: implement ตาม PLAN-123 — **§1** ปรับ `Badge.tsx` ให้ `export type BadgeVariant` และปรับ `ReadinessBadge.tsx` ให้รองรับ prop `variant` โดยมีค่าดีฟอลต์เป็น `'soft'` เพื่อให้ป้ายสถานะ `Published` / `Not Ready` แสดงผลเป็นแบบสีทึบนุ่ม (`bg-emerald-100 text-emerald-800`) รูปทรงสอดคล้องกับ `StatusBadge` บนการ์ดฝั่ง Overview ในหน้าเดียวกัน. **§2** ปรับปุ่ม "Open SCORM Player" ในตาราง `Current Content` ของ `VersionDetailPage.tsx` จาก raw `<button>` มาใช้ `<AppButton variant="secondary" size="sm" icon={ExternalLink}>`. **§3** ปรับ hardcoded `<span>` category path และ count pill ให้ใช้ `<Badge>` ใน `LearnerGroupEditorPage.tsx`, `LearnerGroupDetailPage.tsx` และ `LearnerDirectorySelector.tsx`.
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/Badge.tsx`, `iLearn.Admin.React/src/components/ui/ReadinessBadge.tsx`, `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupEditorPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `iLearn.Admin.React/src/components/shared/LearnerDirectorySelector.tsx`, `DOC/PLANS/PLAN-123-readiness-badge-variant-soft-and-ui-cleanup.md` (->DONE), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (UI visual refactor)
+- Verified: `npm run lint` ผ่าน 0 errors, `npm run build` ผ่าน 0 errors (built in 1.25s)
+
+## [2026-07-22 —] Antigravity — PLAN-122: LearnerDirectorySelector unified compact layout + เก็บ findings PLAN-121
+- ทำอะไร: implement ตาม PLAN-122 ครบทั้ง 2 ส่วน — **§1** ปรับโครงสร้าง JSX/className ของ shared `LearnerDirectorySelector.tsx` จาก 2 การ์ดแยกกัน (`gap-4` + `p-4`) เป็น unified container เดียว `flex-1 flex flex-col md:flex-row border border-slate-200 rounded-lg bg-white overflow-hidden min-h-0` รูปแบบเดียวกับโหมด Group. เปลี่ยน rail ซ้ายเป็น `w-full md:w-60 bg-slate-50/50 border-r p-2` หัวข้อ `Filters` สไตล์เดียวกับ Group Folders. ยุบ header ฝั่งขวาเหลือแถบ search กะทัดรัด `p-2 border-b` พร้อม `<Badge tone="neutral">{totalCount}</Badge>` และย้าย active filter chips ไปแสดงในแถวที่ 2 แบบมีเงื่อนไขเมื่อมี filter ทำงาน. **§2** เก็บ findings PLAN-121 ใน `BulkAssignPage.tsx`: ปรับ `categoryName` บน group card จาก `<span>` เป็น `<Badge tone="neutral" variant="soft">` และปรับ `loadLookups` ให้ยิง API 4 เส้นพร้อมกันแบบขนานด้วย `Promise.all`.
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/shared/LearnerDirectorySelector.tsx`, `iLearn.Admin.React/src/pages/assignments/BulkAssignPage.tsx`, `DOC/PLANS/PLAN-122-learner-directory-unified-compact-layout.md` (->DONE), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (visual refactor + `Promise.all` optimization)
+- Verified: `npm run lint` ผ่าน 0 errors, `npm run build` ผ่าน 0 errors (built in 6.94s)
+
+## [2026-07-22 —] Claude Code — รีวิว PLAN-122 → REVIEWED (ผู้ใช้ deploy แล้ว; ปิด findings 1-2 ของ PLAN-121)
+- ทำอะไร: ตรวจ diff 2 ไฟล์ — §1 `LearnerDirectorySelector` เปลี่ยนเฉพาะ className/JSX จริง logic ไม่ถูกแตะ, unified container ตรงสเปค, root div→fragment ตรวจ callers ทั้ง 3 แล้ว wrapper เหมือนกันหมด (`flex-1 flex flex-col min-h-0`) layout เทียบเท่า ไม่มีกรอบซ้อน, chips filter คง span เดิม (interactive chip มีปุ่ม X — เกินขีด `Badge` ไม่นับ violation ใหม่); §2 `Promise.all` + `categoryName` Badge soft ปิด findings 1-2 ของ PLAN-121 (finding 3 tree highlight ยังค้าง รอแผนแยก). รัน lint+build เอง 0 errors. Visual smoke QA ผ่าน browser ไม่ได้ (per-action approval) — ผู้ใช้เห็นหน้าจริงแล้ว
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-122-*.md` (→REVIEWED + Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว)
+- Verified: `npm run lint` + `npm run build` โดย reviewer เอง = 0 errors; ตรวจ call sites 3 หน้าแบบ static
+- **คงค้าง: manual smoke 3 callers (Assignment Detail modal Add Learners / Learner Group Detail modal Add Members / Learner Group Editor tab Directory Search) — และ working tree มีงาน PLAN-119/120/121/122 ยังไม่ commit เลย ควร commit เป็นชุด ๆ ก่อนงานถัดไป**
+
+## [2026-07-22 —] Claude Code — เขียน PLAN-122: LearnerDirectorySelector unified compact layout แบบโหมด Group + เก็บ findings 121 (มอบ Gemini)
+- ทำอะไร: ผู้ใช้ดู QA หลัง PLAN-121 แล้วชอบดีไซน์โหมด Group (กล่องเดียว rail แนบใน) — ขอให้โหมด Individual เป็นรูปแบบเดียวกันเพื่อลดช่องว่าง. วินิจฉัย: `LearnerDirectorySelector` เป็น 2 การ์ดแยก (`gap-4` + FILTERS card `p-4` + header ใหญ่ 2 บรรทัด) และเป็น shared component มี 4 callers (BulkAssign/AssignmentDetail/LearnerGroupDetail/LearnerGroupEditor) ⇒ ตั้งใจ restyle ที่ component ให้ได้ผลทุกหน้า. เขียน PLAN-122: §1 unified container (rail `bg-slate-50/50 border-r p-2` + แถบ search `p-2` + Badge ตัวนับ + chips เป็นแถวมีเงื่อนไข — className/JSX ล้วน ห้ามแตะ logic) §2 เก็บ findings 121: categoryName → `Badge soft` + `loadLookups` → `Promise.all` (finding tree highlight ยังไม่ทำ — ต้องแตะ AppTreeView รอแผนแยก)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-122-learner-directory-unified-compact-layout.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (visual refactor)
+- Verified: — (แผน; อ่าน LearnerDirectorySelector ทั้งไฟล์ + grep callers 4 จุด)
+- **ถึง Gemini: ห้ามแตะ logic/props ของ selector (className+โครง JSX เท่านั้น); ห้ามแก้ caller อื่น 3 หน้า — layout ใหม่ต้องมาจาก component เอง; manual QA ต้องไล่ครบ 4 callers กันกรอบซ้อน**
+
+## [2026-07-22 —] Claude Code — รีวิว PLAN-121 → REVIEWED (3 minor findings ไม่ block)
+- ทำอะไร: ตรวจ `BulkAssignPage.tsx` เทียบสเปคครบ — §1 filter ∩ search + mirror ถูก (ยืนยัน `LookupCourseDto.cs` มีจริง), §2 subtree recursion/นับรวมลูก/fallback ไม่มี category ถูกต้อง, §3 toggle แถวคงที่จุดเดียว, payload validate/BulkAssign ไม่เปลี่ยน, shared components ไม่ถูกแตะ (diff มีไฟล์เดียว). รัน lint+build เอง 0 errors. Findings minor: (1) categoryName pill บน group card เป็น span hand-rolled — ต้องเป็น `Badge tone="neutral" variant="soft"` ตามกติกา (2) `loadLookups` 4 fetch sequential ควร `Promise.all` (3) tree highlight รีเซ็ตเมื่อสลับโหมดแต่ filter ค้าง (ติด internal state ของ `AppTreeView` — นอก scope). เติม Reviewer Sign-off ในแผน
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-121-*.md` (→REVIEWED + Sign-off), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (รีวิว)
+- Verified: `npm run lint` + `npm run build` โดย reviewer เอง = 0 errors
+- **คงค้าง: deploy QA (`tools/deploy-admin-react.ps1`) + manual smoke ตาม Verification ข้อ 1-4 ของแผน (รอผู้ใช้สั่ง) — findings 3 ข้อเก็บรวมในแผนถัดไปได้ ไม่ต้อง hotfix**
+
+## [2026-07-22 —] Antigravity — PLAN-121: Bulk Assign wizard UX (category filter + learner-group tree + แก้ toggle ขยับ)
+- ทำอะไร: implement ตาม PLAN-121 ใน `BulkAssignPage.tsx` — **§1** เพิ่ม `CategoryLookup` mirror DTO + โหลด `Categories/lookup`. เพิ่ม `<select>` Category filter ใน Syllabus Catalog panel (`All Categories`, `Uncategorized` เมื่อมีคอร์สไร้หมวด, และหมวดหมู่เรียงตาม `sortOrder` มี prefix `${sortOrder}. ` เมื่อ `sortOrder > 0`) พร้อมนับจำนวนคอร์สที่ยังไม่เลือก. เพิ่ม muted text แสดงชื่อหมวดหมู่ในการ์ดคอร์สเมื่ออยู่โหมด `All Categories`. Filter กรองแบบ `category ∩ text search`. **§2** เพิ่ม `LearnerGroupCategoryLookup` mirror DTO + โหลด `LearnerGroupCategories`. ปรับ Layout โหมด Group เป็น 2 คอลัมน์ด้วย `AppTreeView` ด้านซ้าย กรองกลุ่มตาม subtree recursively และนับจำนวนกลุ่มรวม subtree. มี fallback เป็น list เดิมเมื่อไม่มี category. แสดง `categoryName` badge บน group card. **§3** ยก `renderModeToggle()` (`Group | Individual`) ออกมาไว้ในแถวคงที่ด้านบนสุดของ Target Scope step (`Target audience:`) ป้องกันตำแหน่งปุ่มกระโดดเมื่อสลับโหมด.
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/BulkAssignPage.tsx`, `DOC/PLANS/PLAN-121-bulk-assign-ux-category-filter-group-tree-toggle-fix.md` (->DONE), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (mirror ตาม backend DTO เดิม)
+- Verified: `npm run lint` ผ่าน 0 errors, `npm run build` ผ่าน 0 errors (built in 7.02s)
+
+## [2026-07-22 —] Claude Code — เขียน PLAN-121: Bulk Assign wizard UX (category filter + learner-group tree + แก้ toggle ขยับ) (มอบ Gemini)
+- ทำอะไร: ผู้ใช้รีวิว `/admin-react/assignments/bulk` ขอ 3 ข้อ. สำรวจ: (1) `Assignments/lookup-courses` ส่ง `categoryId`/`divisionId` อยู่แล้วแต่ mirror `LookupCourse` ไม่มี field — ใช้ `Categories/lookup` เอาชื่อ (division-scoped ตรงกัน) ⇒ React ล้วน (2) learner groups มี category tree ครบ (`LearnerGroupCategories` + `categoryId/categoryName` ใน `LearnerGroupDto`) + shared `AppTreeView` ใช้ซ้ำได้ (3) root cause toggle ขยับ: `renderModeToggle()` render คนละ container ตามโหมด (group panel header vs `headerLeft` ของ `LearnerDirectorySelector`) ⇒ ยกออกมาเป็นแถวคงที่ของ step. เขียน PLAN-121: §1 category dropdown filter (∩ search, นับคอร์ส, Uncategorized เฉพาะเมื่อมี) §2 โหมด Group เป็น 2 คอลัมน์ tree (subtree filter) + fallback list เดิมเมื่อไม่มี category §3 toggle แถวคงที่ — ห้ามแตะ backend/shared components/submit payload
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-121-bulk-assign-ux-category-filter-group-tree-toggle-fix.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (mirror ตามของจริง)
+- Verified: — (แผน; อ่าน BulkAssignPage/AssignmentsController/LearnerGroupsController/LearnerGroupCategoriesController/CategoriesController/LearnerGroupListPage/AppTreeView/SegmentedToggle/LearnerDirectorySelector)
+- **ถึง Gemini: ไฟล์เดียว `BulkAssignPage.tsx`; ห้ามแก้ `LearnerDirectorySelector`/`AppTreeView`/`SegmentedToggle`; payload validate/BulkAssign ห้ามเปลี่ยนแม้แต่ field เดียว; ทดสอบ `?groupId=`/`?courseId=` pre-select ด้วย**
+
+## [2026-07-22 —] GitHub Copilot — PLAN-120: ปุ่ม login กลับสีแบรนด์ + cache-busted apple-touch-icon fallback + deploy QA/PROD
+- ทำอะไร: ผู้ใช้ขอเปลี่ยนปุ่ม "เข้าสู่ระบบ" จากพื้นขาวกลับเป็นพื้นเขียวตัวอักษรขาว และแจ้งว่า iPad shortcut ยังไม่ขึ้นไอคอน. แก้ `Home/Index.cshtml` ให้ `.btn-login` พื้น `var(--brand-color)`/ตัว `#fff`, hover `var(--brand-dark)`/ตัวขาว. เพิ่ม app-scoped icon URL ใหม่ `apple-touch-icon-180.png` + `apple-touch-icon-precomposed.png` (สำเนา PNG 180x180 เดิม) และปรับ `_DevExtremeLayout.cshtml` ให้ชี้ URL ใหม่ก่อน fallback เดิมโดยไม่มี query string. เพิ่ม `.gitignore` re-include สำหรับไฟล์ใหม่. เพิ่ม best-effort root icon sync ใน `tools/deploy-user*.ps1`; smoke พบ site-root `/apple-touch-icon*.png` ยังตอบ 401 ทั้ง QA/PROD จึงถือว่า final fix ใช้ app-scoped cache-busted URL เป็นหลัก
+- ไฟล์หลักที่แตะ: `iLearn.User/Views/Home/Index.cshtml`, `iLearn.User/Views/Shared/_DevExtremeLayout.cshtml`, `iLearn.User/wwwroot/apple-touch-icon-{180,precomposed}.png`, `.gitignore`, `tools/deploy-user.ps1`, `tools/deploy-user-prod.ps1`, `DOC/PLANS/PLAN-120-login-button-brand-and-root-apple-touch-icon-fallback.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (CSS + static assets + layout head + deploy wrapper fallback)
+- Verified: local `dotnet build iLearn.User` 0 errors; deploy script parser 0 errors. QA final stamp `_user_deploy_20260722132157` health 200, PROD final stamp `_user_deploy_20260722132250` health 200, both `AutoRolledBack=False`. QA/PROD smoke: page has `apple-touch-icon-180` + `precomposed` links, login button CSS is green/white, `/iLearn/apple-touch-icon-180.png`, `/iLearn/apple-touch-icon-precomposed.png`, `/iLearn/apple-touch-icon.png` all return 200 `image/png`
+- **คงค้าง:** manual iPad QA: ลบ shortcut เก่าก่อน แล้ว Add to Home Screen ใหม่เพื่อให้ Safari อ่าน URL ใหม่ `apple-touch-icon-180.png`
+
+## [2026-07-22 —] GitHub Copilot — PLAN-119: deploy iLearn.User ขึ้น QA + PROD สำเร็จ; รอ iPad manual QA
+- ทำอะไร: deploy `iLearn.User` ตามคำสั่งผู้ใช้ผ่าน side-by-side scripts. QA: `tools/deploy-user.ps1` → stamp `_user_deploy_20260722131045`, root health check `https://ap-ntc2138-qawb/iLearn/` = HTTP 200 attempt 1/5. PROD: `tools/deploy-user-prod.ps1` → stamp `_user_deploy_20260722131157`, root health check `https://ap-ntc2137-prwb/iLearn/` = HTTP 200 attempt 1/5. ทั้งคู่ `AutoRolledBack=False`. Smoke หลัง deploy ทั้ง QA/PROD ยืนยัน root markup มี apple-touch-icon link ชี้ `/iLearn/apple-touch-icon.png` และ asset ตอบ HTTP 200 `image/png`.
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-119-login-button-white-and-apple-touch-icon.md` (→DEPLOYED + deployment notes), `DOC/AGENT_LOG.md` — ไม่มีโค้ดใหม่
+- Contract ที่เปลี่ยน: ไม่มี (deploy static asset/CSS/layout ตาม PLAN-119)
+- Verified: QA/PROD root HTTP 200; icon URL HTTP 200 `image/png`; deployment health checks ผ่านทั้งคู่
+- **คงค้าง:** manual QA บน iPad จริง: ลบ shortcut เดิมก่อน แล้ว Safari → Add to Home Screen ต้องเห็นไอคอน iL สีแบรนด์และชื่อ `iLearn` (iOS cache icon ตาม URL)
+
 ## [2026-07-22 —] Claude Code — เขียน PLAN-119: ปุ่มเข้าสู่ระบบสีขาว + apple-touch-icon แก้ Add to Home Screen บน iPad (มอบ Copilot)
 - ทำอะไร: ผู้ใช้ขอ 2 ข้อ. วินิจฉัย: (1) `.btn-login` พื้นแบรนด์บนการ์ดขาว → เปลี่ยนขาวต้องมี border สีแบรนด์กันกลืน (2) **root cause ไอคอน:** iOS ใช้ `apple-touch-icon` PNG เท่านั้น (ไม่รองรับ SVG) — แอปมีแค่ favicon.svg/ico ไม่มี `<link apple-touch-icon>` และ host ใต้ `/iLearn/` ทำให้ Safari probe root ไม่เจอ → fallback screenshot. เขียน PLAN-119: §1 CSS ปุ่มขาว+ขอบแบรนด์+hover brand-lighter (ไม่แตะ markup/JS PLAN-108) §2 gen `apple-touch-icon.png` 180×180 จากดีไซน์ favicon.svg (พื้นเต็มจัตุรัสห้ามมุมโปร่งใส — iOS mask เอง; ให้ script System.Drawing ในแผน) + `<link>` ใน `_DevExtremeLayout` (**ห้าม asp-append-version** — iOS บางรุ่นไม่โหลด icon มี query string) + ตรวจ .gitignore re-include
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-119-*.md` (ใหม่ READY), `DOC/AGENT_LOG.md`

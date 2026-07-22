@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Badge, type BadgeTone } from './Badge'
+import { Badge, type BadgeTone, type BadgeVariant } from './Badge'
 
 type ContentReadinessInput = {
   source: 'upload' | 'library'
@@ -18,6 +18,7 @@ type ReadinessBadgeProps = {
   ready?: boolean
   label?: ReactNode
   tone?: BadgeTone
+  variant?: BadgeVariant
   size?: 'xs' | 'xxs'
 }
 
@@ -39,12 +40,12 @@ export function getContentReadinessBadgeModel(item: ContentReadinessInput): Read
   return { label: 'Published', tone: 'success', ready: true }
 }
 
-export function ReadinessBadge({ ready = false, label, tone, size = 'xs' }: ReadinessBadgeProps) {
+export function ReadinessBadge({ ready = false, label, tone, variant = 'soft', size = 'xs' }: ReadinessBadgeProps) {
   const resolvedTone = tone ?? (ready ? 'info' : 'neutral')
   const resolvedLabel = label ?? (ready ? 'Ready' : 'Not Ready')
 
   return (
-    <Badge variant="outline" tone={resolvedTone} size={size}>
+    <Badge variant={variant} tone={resolvedTone} size={size}>
       {resolvedLabel}
     </Badge>
   )

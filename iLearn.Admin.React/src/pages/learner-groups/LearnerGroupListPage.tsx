@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowRightLeft,
   ArrowUpRight,
   ChevronLeft,
+  Edit3,
   Folder,
   FolderPlus,
   Info,
@@ -39,6 +40,7 @@ type CategoryLookup = {
   id: number
   name: string
   description?: string | null
+  divisionId?: number | null
   parentId?: number | null
   depth?: number
   childCount?: number
@@ -134,6 +136,12 @@ export function LearnerGroupListPage() {
   const [newFolderDesc, setNewFolderDesc] = useState('')
   const [newFolderDivisionId, setNewFolderDivisionId] = useState<number | ''>('')
   const [creatingFolder, setCreatingFolder] = useState(false)
+
+  const [editingFolder, setEditingFolder] = useState<CategoryLookup | null>(null)
+  const [editFolderName, setEditFolderName] = useState('')
+  const [editFolderDesc, setEditFolderDesc] = useState('')
+  const [editFolderDivisionId, setEditFolderDivisionId] = useState<number | ''>('')
+  const [updatingFolder, setUpdatingFolder] = useState(false)
 
   const [movingGroup, setMovingGroup] = useState<GroupDto | null>(null)
   const [relocateCategoryId, setRelocateCategoryId] = useState<number>(0)
@@ -422,6 +430,51 @@ export function LearnerGroupListPage() {
     setIsNewFolderOpen(true)
   }, [])
 
+  const handleOpenEditFolder = useCallback((folder: CategoryLookup) => {
+    setEditingFolder(folder)
+    setEditFolderName(folder.name)
+    setEditFolderDesc(folder.description ?? '')
+    setEditFolderDivisionId(folder.divisionId ?? '')
+  }, [])
+
+  const handleUpdateFolder = useCallback(async (event: FormEvent) => {
+    event.preventDefault()
+    if (!editingFolder) return
+
+    const normalizedName = editFolderName.trim()
+    if (!normalizedName) {
+      toast.error('Folder name is required')
+      return
+    }
+
+    setUpdatingFolder(true)
+    try {
+      const response = await fetchWithAccessControl<ApiEnvelope<void>>(`LearnerGroupCategories/${editingFolder.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: normalizedName,
+          description: editFolderDesc.trim() || null,
+          parentId: editingFolder.parentId ?? null,
+          divisionId: isSuperAdmin && editingFolder.parentId == null && editFolderDivisionId !== '' ? Number(editFolderDivisionId) : (editingFolder.divisionId ?? null),
+        }),
+      })
+
+      if (response.success === false) {
+        throw new Error(response.message || 'Failed to update folder')
+      }
+
+      toast.success(`Folder "${normalizedName}" updated successfully`)
+      setEditingFolder(null)
+      await loadData()
+    } catch (error) {
+      console.error(error)
+      toast.error(getApiErrorText(error, 'Failed to update folder'))
+    } finally {
+      setUpdatingFolder(false)
+    }
+  }, [editFolderDesc, editFolderDivisionId, editFolderName, editingFolder, isSuperAdmin, loadData])
+
 
   const handleDeleteFolder = useCallback(async (folder: CategoryLookup) => {
     const hasChildren = (folder.childCount ?? 0) > 0
@@ -609,14 +662,24 @@ export function LearnerGroupListPage() {
       render: item => (
         <div className="flex items-center justify-center gap-1.5" onClick={event => event.stopPropagation()}>
           {item.isFolder ? (
-            <IconButton
-              type="button"
-              onClick={() => void handleDeleteFolder(item.original as CategoryLookup)}
-              icon={Trash2}
-              tone="danger"
-              size="sm"
-              title="Delete Folder"
-            />
+            <>
+              <IconButton
+                type="button"
+                onClick={() => handleOpenEditFolder(item.original as CategoryLookup)}
+                icon={Edit3}
+                tone="primary"
+                size="sm"
+                title="Edit Folder"
+              />
+              <IconButton
+                type="button"
+                onClick={() => void handleDeleteFolder(item.original as CategoryLookup)}
+                icon={Trash2}
+                tone="danger"
+                size="sm"
+                title="Delete Folder"
+              />
+            </>
           ) : (
             <>
               <IconButton
@@ -649,7 +712,7 @@ export function LearnerGroupListPage() {
         </div>
       ),
     },
-  ], [getDivisionName, handleDeleteFolder, handleDeleteGroup, handleOpenItem, handleOpenMove])
+  ], [getDivisionName, handleDeleteFolder, handleDeleteGroup, handleOpenEditFolder, handleOpenItem, handleOpenMove])
 
   return (
     <>
@@ -781,6 +844,98 @@ export function LearnerGroupListPage() {
                 className="px-4 py-2 text-xs font-bold shadow-3xs"
               >
                 Create Folder
+              </AppButton>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {editingFolder && (
+        <div className="modal-overlay" onClick={() => setEditingFolder(null)}>
+          <form
+            className="modal-window"
+            onClick={event => event.stopPropagation()}
+            onSubmit={handleUpdateFolder}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
+              <div className="flex items-center gap-2">
+                <Edit3 className="h-5 w-5 text-indigo-500" />
+                <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">Edit Folder</h3>
+              </div>
+              <IconButton
+                type="button"
+                onClick={() => setEditingFolder(null)}
+                icon={X}
+                title="Close"
+                tone="neutral"
+              />
+            </div>
+
+            <div className="px-6 py-4 space-y-3">
+              {isSuperAdmin && editingFolder.parentId == null && (
+                <div className="space-y-1">
+                  <label htmlFor="editFolderDivisionId" className="wiz-label">
+                    Division (แผนก)
+                  </label>
+                  <select
+                    id="editFolderDivisionId"
+                    value={editFolderDivisionId}
+                    onChange={event =>
+                      setEditFolderDivisionId(event.target.value === '' ? '' : Number(event.target.value))
+                    }
+                    className="wiz-input"
+                  >
+                    <option value="">Global / ไม่ระบุแผนก</option>
+                    {divisions.map(div => (
+                      <option key={div.id} value={div.id}>
+                        {div.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label htmlFor="editFolderName" className="wiz-label">Folder Name <span className="text-red-500">*</span></label>
+                <input
+                  id="editFolderName"
+                  type="text"
+                  autoFocus
+                  value={editFolderName}
+                  onChange={event => setEditFolderName(event.target.value)}
+                  className="wiz-input"
+                  placeholder="e.g. Finance & Accounting"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="editFolderDesc" className="wiz-label">Description (Optional)</label>
+                <textarea
+                  id="editFolderDesc"
+                  value={editFolderDesc}
+                  onChange={event => setEditFolderDesc(event.target.value)}
+                  rows={3}
+                  className="wiz-input resize-none"
+                  placeholder="Short note for admins"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+              <AppButton
+                variant="ghost"
+                onClick={() => setEditingFolder(null)}
+              >
+                Cancel
+              </AppButton>
+              <AppButton
+                type="submit"
+                variant="primary"
+                loading={updatingFolder}
+                disabled={updatingFolder || !editFolderName.trim()}
+                className="px-4 py-2 text-xs font-bold shadow-3xs"
+              >
+                Save Changes
               </AppButton>
             </div>
           </form>

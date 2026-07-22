@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 export type BadgeTone = 'success' | 'info' | 'warning' | 'danger' | 'neutral'
 
-type BadgeVariant = 'soft' | 'outline' | 'tag'
+export type BadgeVariant = 'soft' | 'outline' | 'tag'
 
 type BadgeSize = 'xs' | 'xxs'
 

@@ -15,19 +15,43 @@ import { Badge } from '../../components/ui/Badge'
 import { IconButton } from '../../components/ui/IconButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
+import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
 
+// Mirrors LookupCourseDto (iLearn.Application/DTOs/LookupCourseDto.cs)
 type LookupCourse = {
   id: number
   code: string
   title: string
   courseTypeName?: string
+  categoryId?: number | null
+  divisionId?: number | null
 }
 
+// Mirrors CategoryDto via GET Categories/lookup (iLearn.API/Controllers/CategoriesController.cs)
+type CategoryLookup = {
+  id: number
+  name: string
+  divisionId?: number | null
+  sortOrder: number
+}
+
+// Mirrors LearnerGroupDto (iLearn.Application/DTOs/LearnerGroupDto.cs)
 type LearnerGroupLookup = {
   id: number
   name: string
   memberCount: number
+  categoryId?: number | null
+  categoryName?: string | null
+}
+
+// Mirrors LearnerGroupCategoryDto via GET LearnerGroupCategories (iLearn.API/Controllers/LearnerGroupCategoriesController.cs)
+type LearnerGroupCategoryLookup = {
+  id: number
+  name: string
+  parentId?: number | null
+  depth?: number
+  learnerGroupCount?: number
 }
 
 type ConflictItem = {
@@ -55,7 +79,13 @@ export function BulkAssignPage() {
 
   // System options state
   const [courses, setCourses] = useState<LookupCourse[]>([])
+  const [categories, setCategories] = useState<CategoryLookup[]>([])
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all')
+
   const [groups, setGroups] = useState<LearnerGroupLookup[]>([])
+  const [groupCategories, setGroupCategories] = useState<LearnerGroupCategoryLookup[]>([])
+  const [selectedGroupCategoryId, setSelectedGroupCategoryId] = useState<number>(0)
+
   const [loadingLookups, setLoadingLookups] = useState(true)
 
   // Selection states
@@ -86,37 +116,151 @@ export function BulkAssignPage() {
     courses.filter(c => !selectedCourseIds.includes(c.id))
   ), [courses, selectedCourseIds])
 
+  const categoryMap = useMemo(() => {
+    const map = new Map<number, CategoryLookup>()
+    for (const cat of categories) {
+      map.set(cat.id, cat)
+    }
+    return map
+  }, [categories])
+
+  const hasUncategorizedCourses = useMemo(() => (
+    availableCourses.some(c => c.categoryId == null)
+  ), [availableCourses])
+
   const visibleAvailableCourses = useMemo(() => {
+    let result = availableCourses
+
+    if (selectedCategoryFilter === 'uncategorized') {
+      result = result.filter(c => c.categoryId == null)
+    } else if (selectedCategoryFilter !== 'all') {
+      const catId = Number(selectedCategoryFilter)
+      result = result.filter(c => c.categoryId === catId)
+    }
+
     const q = courseSearch.trim().toLowerCase()
-    if (!q) return availableCourses
-    return availableCourses.filter(c => 
-      c.title.toLowerCase().includes(q) || 
-      c.code.toLowerCase().includes(q)
-    )
-  }, [availableCourses, courseSearch])
+    if (q) {
+      result = result.filter(c => 
+        c.title.toLowerCase().includes(q) || 
+        c.code.toLowerCase().includes(q)
+      )
+    }
+
+    return result
+  }, [availableCourses, selectedCategoryFilter, courseSearch])
 
   const selectedCourses = useMemo(() => (
     courses.filter(c => selectedCourseIds.includes(c.id))
   ), [courses, selectedCourseIds])
 
+  // Learner group category subtree mapping
+  const categorySubtreeMap = useMemo(() => {
+    const childrenMap = new Map<number, number[]>()
+    for (const cat of groupCategories) {
+      const pId = cat.parentId ?? 0
+      const list = childrenMap.get(pId) || []
+      list.push(cat.id)
+      childrenMap.set(pId, list)
+    }
+
+    const subtreeMap = new Map<number, Set<number>>()
+    const getSubtree = (catId: number): Set<number> => {
+      if (subtreeMap.has(catId)) return subtreeMap.get(catId)!
+      const set = new Set<number>([catId])
+      const children = childrenMap.get(catId) || []
+      for (const childId of children) {
+        const childSet = getSubtree(childId)
+        childSet.forEach(id => set.add(id))
+      }
+      subtreeMap.set(catId, set)
+      return set
+    }
+
+    for (const cat of groupCategories) {
+      getSubtree(cat.id)
+    }
+    return subtreeMap
+  }, [groupCategories])
+
+  const groupCategoryTreeNodes = useMemo<TreeViewNode[]>(() => {
+    if (groupCategories.length === 0) return []
+
+    const sortByNameAsc = (a: LearnerGroupCategoryLookup, b: LearnerGroupCategoryLookup) => 
+      a.name.localeCompare(b.name)
+
+    const byParentMap = new Map<number, LearnerGroupCategoryLookup[]>()
+    for (const cat of groupCategories) {
+      const pId = cat.parentId ?? 0
+      const list = byParentMap.get(pId) || []
+      list.push(cat)
+      byParentMap.set(pId, list)
+    }
+    byParentMap.forEach(list => list.sort(sortByNameAsc))
+
+    const toNode = (cat: LearnerGroupCategoryLookup): TreeViewNode => {
+      const children = byParentMap.get(cat.id) ?? []
+      const subtreeIds = categorySubtreeMap.get(cat.id)
+      const count = groups.filter(g => g.categoryId != null && subtreeIds?.has(g.categoryId)).length
+      return {
+        id: `group-cat-${cat.id}`,
+        text: `${cat.name} (${count})`,
+        categoryId: cat.id,
+        items: children.map(toNode),
+      }
+    }
+
+    const roots = byParentMap.get(0) ?? []
+
+    return [
+      {
+        id: 'group-cat-root',
+        text: `All Groups (${groups.length})`,
+        isRoot: true,
+        categoryId: 0,
+        items: roots.map(toNode),
+      }
+    ]
+  }, [groupCategories, groups, categorySubtreeMap])
+
   const filteredGroups = useMemo(() => {
+    let result = groups
+
+    if (selectedGroupCategoryId > 0) {
+      const validCatIds = categorySubtreeMap.get(selectedGroupCategoryId)
+      if (validCatIds) {
+        result = result.filter(g => g.categoryId != null && validCatIds.has(g.categoryId))
+      }
+    }
+
     const q = groupSearch.trim().toLowerCase()
-    if (!q) return groups
-    return groups.filter(g => g.name.toLowerCase().includes(q))
-  }, [groups, groupSearch])
+    if (q) {
+      result = result.filter(g => g.name.toLowerCase().includes(q))
+    }
+
+    return result
+  }, [groups, selectedGroupCategoryId, groupSearch, categorySubtreeMap])
 
   const loadLookups = useCallback(async () => {
     setLoadingLookups(true)
     try {
-      // Fetch open courses lookup
-      const coursesData = await fetchWithAccessControl<any>('Assignments/lookup-courses')
+      const [coursesData, categoriesData, groupsData, groupCatData] = await Promise.all([
+        fetchWithAccessControl<any>('Assignments/lookup-courses'),
+        fetchWithAccessControl<any>('Categories/lookup'),
+        fetchWithAccessControl<any>('LearnerGroups'),
+        fetchWithAccessControl<any>('LearnerGroupCategories')
+      ])
+
       const coursesList = Array.isArray(coursesData) ? coursesData : (coursesData.data || [])
       setCourses(coursesList)
 
-      // Fetch Learner Groups
-      const groupsData = await fetchWithAccessControl<any>('LearnerGroups')
+      const categoriesList = Array.isArray(categoriesData) ? categoriesData : (categoriesData.data || [])
+      setCategories(categoriesList)
+
       const groupsList = Array.isArray(groupsData) ? groupsData : (groupsData.data || [])
       setGroups(groupsList)
+
+      const groupCatList = Array.isArray(groupCatData) ? groupCatData : (groupCatData.data || [])
+      setGroupCategories(groupCatList)
 
       // Pre-select from query search params if present
       if (queryCourseId) {
@@ -265,20 +409,44 @@ export function BulkAssignPage() {
             <Badge tone="neutral">{availableCourses.length}</Badge>
           </div>
           
-          <div className="p-1.5 border-b border-slate-100 shrink-0 select-none">
-            <input
-              type="text"
-              placeholder="Search catalog by title or code..."
-              value={courseSearch}
-              onChange={e => setCourseSearch(e.target.value)}
-              className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded bg-white focus:outline-none focus:border-indigo-500"
-            />
+          <div className="p-1.5 border-b border-slate-100 shrink-0 select-none flex flex-col sm:flex-row gap-1.5">
+            <select
+              value={selectedCategoryFilter}
+              onChange={e => setSelectedCategoryFilter(e.target.value)}
+              className="px-2 py-1.5 text-xs border border-slate-200 rounded bg-white focus:outline-none focus:border-indigo-500 font-medium text-slate-700 max-w-full sm:max-w-[180px] truncate cursor-pointer"
+            >
+              <option value="all">All Categories ({availableCourses.length})</option>
+              {hasUncategorizedCourses && (
+                <option value="uncategorized">
+                  Uncategorized ({availableCourses.filter(c => c.categoryId == null).length})
+                </option>
+              )}
+              {categories.map(cat => {
+                const count = availableCourses.filter(c => c.categoryId === cat.id).length
+                const labelName = cat.sortOrder > 0 ? `${cat.sortOrder}. ${cat.name}` : cat.name
+                return (
+                  <option key={cat.id} value={cat.id}>
+                    {labelName} ({count})
+                  </option>
+                )
+              })}
+            </select>
+
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Search catalog by title or code..."
+                value={courseSearch}
+                onChange={e => setCourseSearch(e.target.value)}
+                className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded bg-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
           </div>
           
           <div className="flex-1 overflow-y-auto custom-scrollbar p-1.5 space-y-1.5 min-h-0">
             {visibleAvailableCourses.length === 0 ? (
               <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400 py-12 text-center select-none">
-                {courseSearch ? 'No matching courses found' : 'All courses selected'}
+                {courseSearch || selectedCategoryFilter !== 'all' ? 'No matching courses found' : 'All courses selected'}
               </div>
             ) : (
               visibleAvailableCourses.map(c => (
@@ -289,7 +457,14 @@ export function BulkAssignPage() {
                 >
                   <div className="flex flex-col min-w-0 pr-2">
                     <span className="text-slate-855 font-bold text-sm leading-tight truncate">{c.title}</span>
-                    <span className="text-slate-400 font-mono text-xs mt-0.5 font-bold">{c.code}</span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-slate-400 font-mono text-xs font-bold">{c.code}</span>
+                      {selectedCategoryFilter === 'all' && c.categoryId != null && categoryMap.has(c.categoryId) && (
+                        <span className="text-xxs text-slate-400 font-medium truncate">
+                          • {categoryMap.get(c.categoryId)?.name}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <span className="h-5 w-5 shrink-0 rounded border border-slate-300 flex items-center justify-center text-slate-400 group-hover:border-blue-500 group-hover:bg-indigo-50/5 transition">
                     <Plus className="h-3 w-3" />
@@ -351,62 +526,86 @@ export function BulkAssignPage() {
   )
 
   const renderTargetScopeStep = () => (
-    <div className="flex flex-col gap-4 flex-1 min-h-0">
+    <div className="flex flex-col gap-3 flex-1 min-h-0">
+
+      {/* Fixed top row for Mode Toggle */}
+      <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg p-2 shrink-0 select-none">
+        <div className="flex items-center gap-2 pl-1">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Target audience:</span>
+        </div>
+        {renderModeToggle()}
+      </div>
 
       {/* Dual-panel content */}
       {targetMode === 'group' ? (
-        <div className="flex-1 flex flex-col border border-slate-200 rounded bg-white min-h-0">
-          <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
-            <div className="flex items-center gap-3">
-              {renderModeToggle()}
-              <span className="font-bold text-xs text-slate-500 uppercase tracking-wide">Available Learner Groups</span>
-            </div>
-            <Badge tone="neutral">{groups.length}</Badge>
-          </div>
-
-          <div className="p-2 border-b border-slate-100 shrink-0">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search groups..."
-                value={groupSearch}
-                onChange={e => setGroupSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:border-indigo-500"
+        <div className="flex-1 flex flex-col md:flex-row border border-slate-200 rounded-lg bg-white min-h-0 overflow-hidden">
+          {/* Left Rail: Category Tree */}
+          {groupCategories.length > 0 && (
+            <div className="w-full md:w-60 border-b md:border-b-0 md:border-r border-slate-200 bg-slate-50/50 p-2 flex flex-col shrink-0 min-h-0 overflow-y-auto custom-scrollbar">
+              <div className="px-2 py-1 mb-1 text-xxs font-bold text-slate-400 uppercase tracking-wider select-none">
+                Group Folders
+              </div>
+              <AppTreeView
+                items={groupCategoryTreeNodes}
+                onItemClick={event => setSelectedGroupCategoryId(event.itemData.categoryId ?? 0)}
               />
             </div>
-          </div>
+          )}
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1 min-h-0">
-            {filteredGroups.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-sm text-slate-400 py-12 text-center select-none">
-                {groupSearch ? 'No matching groups' : 'No groups available'}
+          {/* Right Area: Group Search & List */}
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="p-2 border-b border-slate-100 shrink-0 flex items-center justify-between gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search groups..."
+                  value={groupSearch}
+                  onChange={e => setGroupSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-1.5 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:border-indigo-500"
+                />
               </div>
-            ) : (
-              filteredGroups.map(g => (
-                <div
-                  key={g.id}
-                  onClick={() => setSelectedGroupId(g.id)}
-                  className={`p-3 rounded-md border cursor-pointer transition flex items-center justify-between group ${
-                    selectedGroupId === g.id
-                      ? 'border-indigo-300 bg-indigo-50/50 ring-1 ring-indigo-200'
-                      : 'border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/20'
-                  }`}
-                >
-                  <div className="flex flex-col min-w-0 pr-2">
-                    <span className="text-sm font-semibold text-slate-800 leading-tight truncate">{g.name}</span>
-                    <span className="text-xs text-slate-400 mt-0.5">{g.memberCount} members</span>
-                  </div>
-                  <div className={`h-5 w-5 shrink-0 rounded-full border-2 flex items-center justify-center transition ${
-                    selectedGroupId === g.id
-                      ? 'border-indigo-500 bg-indigo-500'
-                      : 'border-slate-300 group-hover:border-indigo-400'
-                  }`}>
-                    {selectedGroupId === g.id && <Check className="h-3 w-3 text-white" />}
-                  </div>
+              <Badge tone="neutral">{filteredGroups.length}</Badge>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1 min-h-0">
+              {filteredGroups.length === 0 ? (
+                <div className="flex h-full items-center justify-center text-sm text-slate-400 py-12 text-center select-none">
+                  {groupSearch || selectedGroupCategoryId > 0 ? 'No matching groups' : 'No groups available'}
                 </div>
-              ))
-            )}
+              ) : (
+                filteredGroups.map(g => (
+                  <div
+                    key={g.id}
+                    onClick={() => setSelectedGroupId(g.id)}
+                    className={`p-3 rounded-md border cursor-pointer transition flex items-center justify-between group ${
+                      selectedGroupId === g.id
+                        ? 'border-indigo-300 bg-indigo-50/50 ring-1 ring-indigo-200'
+                        : 'border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/20'
+                    }`}
+                  >
+                    <div className="flex flex-col min-w-0 pr-2">
+                      <span className="text-sm font-semibold text-slate-800 leading-tight truncate">{g.name}</span>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-slate-400">{g.memberCount} members</span>
+                        {g.categoryName && (
+                          <Badge tone="neutral" variant="soft">
+                            {g.categoryName}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className={`h-5 w-5 shrink-0 rounded-full border-2 flex items-center justify-center transition ${
+                      selectedGroupId === g.id
+                        ? 'border-indigo-500 bg-indigo-500'
+                        : 'border-slate-300 group-hover:border-indigo-400'
+                    }`}>
+                      {selectedGroupId === g.id && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       ) : (
@@ -414,7 +613,6 @@ export function BulkAssignPage() {
           <LearnerDirectorySelector
             selectedLearners={selectedLearners}
             onChange={setSelectedLearners}
-            headerLeft={renderModeToggle()}
           />
         </div>
       )}
@@ -602,3 +800,4 @@ export function BulkAssignPage() {
     </>
   )
 }
+

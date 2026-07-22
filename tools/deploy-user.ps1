@@ -58,4 +58,28 @@ if ($Rollback) {
     $params.Rollback = $true
 }
 
+function Sync-RootAppleTouchIcon {
+    param([Parameter(Mandatory)][string]$DeployRoot)
+
+    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+    $iconSource = Join-Path $repoRoot 'iLearn.User\wwwroot\apple-touch-icon.png'
+    if (-not (Test-Path -LiteralPath $iconSource)) {
+        throw "apple-touch-icon source not found: $iconSource"
+    }
+
+    $siteRoot = Split-Path -Path $DeployRoot -Parent
+    foreach ($fileName in @('apple-touch-icon.png', 'apple-touch-icon-precomposed.png')) {
+        $targetPath = Join-Path $siteRoot $fileName
+        if ($PSCmdlet.ShouldProcess($targetPath, 'Sync iOS home-screen icon fallback')) {
+            Copy-Item -LiteralPath $iconSource -Destination $targetPath -Force
+        }
+    }
+
+    Write-Host "Synced root iOS icon fallbacks to $siteRoot" -ForegroundColor DarkGray
+}
+
 & (Join-Path $PSScriptRoot 'deploy-side-by-side.ps1') @params -WhatIf:$WhatIfPreference
+
+if (-not $Rollback) {
+    Sync-RootAppleTouchIcon -DeployRoot $params.DeployRoot
+}

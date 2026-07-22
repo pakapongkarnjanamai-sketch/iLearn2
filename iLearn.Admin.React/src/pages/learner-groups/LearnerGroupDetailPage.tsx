@@ -12,6 +12,7 @@ import {
   FolderOpen,
 } from 'lucide-react'
 import { AppButton } from '../../components/ui/AppButton'
+import { Badge } from '../../components/ui/Badge'
 import { IconButton } from '../../components/ui/IconButton'
 import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { LoadingState } from '../../components/ui/LoadingState'
@@ -288,9 +289,9 @@ export function LearnerGroupDetailPage() {
           <div className="px-5 py-4 bg-slate-50 flex flex-col gap-3 select-none">
             <div className="flex items-center gap-1.5 text-xs">
               <span className="text-slate-400 font-bold uppercase text-xxs">Selected:</span>
-              <span className="bg-indigo-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded font-extrabold truncate flex-1">
+              <Badge tone="neutral" variant="soft" className="truncate flex-1 font-bold">
                 {tempCategoryPath}
-              </span>
+              </Badge>
             </div>
 
             <div className="flex justify-end gap-2">
