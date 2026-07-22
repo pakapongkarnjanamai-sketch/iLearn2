@@ -1,6 +1,6 @@
 # PLAN-122: LearnerDirectorySelector — จัด layout แบบเดียวกับโหมด Group (unified container ลดช่องว่าง) + เก็บ findings PLAN-121
 
-- **Status:** REVIEWED — deploy แล้วโดยผู้ใช้ (2026-07-22); คงค้าง manual smoke callers อีก 3 จุด (ข้อ 3 ใน Verification)
+- **Status:** VERIFIED
 - **Assigned:** Antigravity Gemini (React 2 ไฟล์ — `LearnerDirectorySelector.tsx` + `BulkAssignPage.tsx`)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -79,4 +79,10 @@ Manual (dev หรือ QA):
 - §2 ✓ `Promise.all` 4 เส้นใน try/catch เดิม (toast เดียว), `categoryName` → `Badge tone="neutral" variant="soft"` — **ปิด findings 1-2 ของ PLAN-121**; finding 3 (tree highlight reset ใน `AppTreeView`) ยังค้างตามแผน รอแผนแยก
 
 **คงค้าง:** ผู้ใช้ deploy แล้ว + เห็นหน้า bulk แล้ว — เหลือ manual smoke callers อีก 3 จุดกัน layout เพี้ยน: Assignment Detail (modal Add Learners tab picker), Learner Group Detail (modal Add Members), Learner Group Editor (tab Directory Search)
+
+## Verification Closure (PLAN-130, 2026-07-22)
+
+- ปิด manual smoke callers ครบทั้ง 3 จุดใน QA แล้ว
+- ยืนยันไม่มีกรอบซ้อน, layout กล่องเดียว, และ interaction หลัก (cascade/search/infinite scroll/select/Review/Clear) ปกติหลัง deploy
+- ไม่พบ console error ในหน้าที่ smoke
 

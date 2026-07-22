@@ -1,6 +1,6 @@
 # PLAN-121: Bulk Assign wizard UX — Category filter ใน Choose Courses + Learner-group tree ใน Target Scope + แก้ toggle ขยับตำแหน่ง
 
-- **Status:** REVIEWED — รอ deploy QA + manual smoke (ข้อ 1-4 ใน Verification)
+- **Status:** VERIFIED
 - **Assigned:** Antigravity Gemini (React ไฟล์เดียวเป็นหลัก — `BulkAssignPage.tsx`)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -100,4 +100,10 @@ Manual (dev หรือ QA — `/admin-react/assignments/bulk`):
 3. สลับโหมด Individual↔Group แล้ว highlight ใน `AppTreeView` รีเซ็ต (internal state) แต่ filter ยังค้างตาม `selectedGroupCategoryId` — แก้ต้องเพิ่ม controlled-selection prop ใน shared component (นอก scope แผนนี้ จดไว้เผื่อแผนหน้า)
 
 **คงค้าง:** deploy QA (`tools/deploy-admin-react.ps1`) + manual smoke ตาม Verification ข้อ 1-4 — แล้วค่อยพิจารณา PROD
+
+## Verification Closure (PLAN-130, 2026-07-22)
+
+- ปิด smoke ค้างแล้วใน PLAN-130: Assignment Detail modal Add Learners, Learner Group Detail modal Add Members, และ Learner Group Editor tab Directory Search
+- ยืนยัน unified layout กล่องเดียว, cascade filters, search, infinite scroll, และ select/Review/Clear ทำงานครบ
+- ยืนยัน bulk-assign regression หลัก: category filter step 1 และ tree + toggle step 2 ทำงานหลัง deploy QA
 

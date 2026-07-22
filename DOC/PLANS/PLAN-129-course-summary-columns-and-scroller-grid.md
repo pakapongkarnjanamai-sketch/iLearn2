@@ -1,6 +1,6 @@
 # PLAN-129: Course Summary Report - Add #, Type, Division Columns, Single Completion Rate & Scroller Grid
 
-- **Status**: DONE
+- **Status**: VERIFIED
 - **Assigned**: Antigravity (Gemini)
 - **Created**: 2026-07-22
 - **Completed**: 2026-07-22
@@ -29,6 +29,7 @@
   - ปรับปรุงกรอบตารางด้วย `max-h-[600px] overflow-auto custom-scrollbar` และหัวตารางแบบ `sticky top-0 z-10 shadow-xs` เหมือนหน้า `/assignments`
   - อัปเดตการ Export CSV ให้ครอบคลุมทุกคอลัมน์ใหม่
 - ผ่านการทดสอบ `npm run lint`, `npm run build` และ `dotnet test` (242/242 tests 100%)
+- Smoke + deploy verification ปิดแล้วใน PLAN-130 (QA + PROD): ยืนยันคอลัมน์ `#`/`Division`/`Type`, ไม่มี `Avg Progress`, KPI เป็น `Overall Completion Rate`, ตารางอยู่ในกรอบ `max-h` และ header sticky
 
 ## Verification
 
