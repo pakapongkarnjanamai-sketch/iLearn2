@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Claude Code — เขียน PLAN-118: QA smoke รวบยอด + เก็บงานค้าง + gate deploy PROD ทั้งชุด (มอบ Copilot)
+- ทำอะไร: ผู้ใช้ deploy QA แล้ว (Admin React 114-117 + API 114 + User 116) สั่ง smoke → PROD + เก็บงานค้าง. Inventory งานค้างจาก sign-off ทุกแผน: PLAN-110 manual 2/3 (upload+bulk ไม่เคย smoke), PLAN-111 แก้ sortOrder ผ่าน UI (ถูกบั๊ก 115 บัง), PLAN-113 PROD, manual ของ 114-117. เขียน PLAN-118: **§A** QA smoke 13 ข้อเรียงลำดับ (A1 = Edit Properties ก่อน — ปิด 2 loop; A5 = upload/bulk ของ 110) **§B** deploy PROD 3 ชิ้น (API/User/Admin React — ไม่มี migration ใหม่; เจอ pending migration ไม่คาดคิด = หยุด) **§C** PROD smoke read-only (รวม verification 113 ซ้ำบน PROD). กติกา: ข้อไหน fail หยุดทั้งแผน ห้ามแก้โค้ดเอง, write-test ต้อง revert, จบแล้วอัปเดต status ทุกแผนเป็น VERIFIED ตามจริง
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-118-*.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (แผน smoke/deploy)
+- Verified: — (แผน; รวบจาก sign-off 110-117)
+- **ถึง Copilot: ผู้ใช้อนุมัติ PROD ล่วงหน้าแล้ว**แต่มีเงื่อนไข QA ต้องผ่านครบ 13 ข้อ**; PROD ห้าม write-test; จด stamp ทุก deploy**
+
 ## [2026-07-22 —] Claude Code — รีวิว PLAN-116 + PLAN-117 → REVIEWED ทั้งคู่ + commit (5f4389d + PLAN-117 ตามมา)
 - ทำอะไร: **PLAN-116** — callback/cursor หายครบ 2 chart + 2 callers, dim logic คงอยู่ (detail ยังส่ง `activeStatus` ⇒ sync กับ toolbar), sidebar label guard `>0` ถูกต้อง "ทั้งหมด" ไม่มีเลข. **PLAN-117** — mirror type + comparator `?? 0`, สลับ sort เฉพาะรายการ category (Uncategorized push หลัง sort พร้อม sortOrder 0), prefix เฉพาะ folder row (breadcrumb ใช้ `category.name` ตรง — สะอาด), Edit modal required+disabled สองชั้น ค่าเริ่มถูก, Create modal optional ส่ง field เฉพาะเมื่อกรอก. รัน verify เอง: lint + React build + iLearn.User build 0 errors ครบ
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-116-*.md` + `PLAN-117-*.md` (→REVIEWED + Sign-off), `DOC/AGENT_LOG.md`
