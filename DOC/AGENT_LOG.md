@@ -2,6 +2,15 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] GitHub Copilot — PLAN-113: implement + deploy QA + smoke test สลับ sortOrder จริง — รอ PROD
+- ทำอะไร: implement ตามแผน — **§1** `LearnerCourseCatalogDto` +`CategorySortOrder` (additive), `EnrollmentsController.GetCourseCatalog` projection เพิ่ม `CategorySortOrder = c.Category?.SortOrder ?? 0` **§2** `organizeCoursesByCategory` เก็บ sortOrder ต่อ category entry, `renderCategorySidebar` เปลี่ยนจาก `Object.keys().forEach` เป็น `Object.values().filter(...).sort((sortOrder, id))`. Build+test: 0 errors, 222/222 ผ่าน. Deploy QA (API stamp `_deploy_20260722105526` + User stamp `_user_deploy_20260722105719`). **Manual test ตัวจริงตามแผน:** login learner 610034 เห็น sidebar เรียง EP1(1) ก่อน PLAN-079(2) ตรงกับ admin grid → เรียก PUT CategoriesCRUD สลับ sortOrder สองหมวดจริงผ่าน browser session admin → refresh learner → sidebar สลับตามทันที → สลับกลับคืนค่าเดิมหลังทดสอบ — ปิด loop manual ที่ค้างจาก PLAN-111 ด้วย. ระหว่างทางพิมพ์ category id ผิด 1 ครั้ง (แก้ sortOrder ของ "Special knowledge" id=81 แทน PLAN-079) — ตรวจพบและ revert เป็น 12 ทันทีก่อนไปแก้ id ที่ถูกต้อง (82)
+- ไฟล์หลักที่แตะ: `iLearn.Application/DTOs/LearnerCourseCatalogDto.cs`, `iLearn.API/Controllers/EnrollmentsController.cs`, `iLearn.User/Views/MyLearning/Index.cshtml`, `DOC/PLANS/PLAN-113-*.md` (→QA VERIFIED + Implementer Notes), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: `LearnerCourseCatalogDto` +`CategorySortOrder` (int, additive) — consumer เดียวคือ `MyLearning/Index.cshtml` แก้ในคอมมิทเดียวกัน ไม่มี migration
+- Verified: `dotnet build iLearn.Tests` 0 errors, `dotnet test` 222/222 ผ่าน, Playwright smoke QA ครบ manual ข้อ 1-3 รวมการสลับ sortOrder จริงแล้วดู sidebar เปลี่ยนตาม
+- **สังเกตนอก scope:** ปุ่ม "Edit Properties" บนหน้า Category Detail (Admin React) กดแล้วไม่เปิดฟอร์มที่มองเห็นได้ — ใช้ direct API PUT แทนสำหรับ manual test นี้ ควรมีคนตรวจ UI ปุ่มนี้แยกต่างหาก
+- **คงค้าง:** deploy PROD รอผู้ใช้ยืนยัน (ตาม Deploy note ของแผน)
+
+
 ## [2026-07-22 —] GitHub Copilot — PLAN-112: deploy Admin React ขึ้น QA + PROD ครบ — ปิดงาน VERIFIED
 - ทำอะไร: PLAN-112 (Overview status donut + courses popup) รีวิวผ่านแล้วแต่ยังไม่ deploy — ทำให้ครบ: **(1)** lint+build local 0 errors **(2)** deploy QA (`tools/deploy-admin-react.ps1`) → smoke ด้วย Playwright ที่ `/assignments/288` (AS-20260713-002): donut legend "Not Started 4 (100%)" ตรงกับ Completion Rate, สลับ tab Learners → ตาราง 4 คอลัมน์ไม่มีคอลัมน์ courses เดิม, ปุ่ม "View courses" เปิด popup แสดงคอร์ส/progress/status/ปุ่ม reset ครบ, ปิด popup ปกติ **(3)** deploy PROD (`tools/deploy-admin-react-prod.ps1`) → smoke ที่ `/assignments/275` (AS-20260702-002, batch มีหลายสถานะจริง): donut แสดง "67% Completion" ตรงกับ Fact Completion Rate 67% ถูกต้อง
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-112-*.md` (→VERIFIED + Deploy Notes), `DOC/AGENT_LOG.md`

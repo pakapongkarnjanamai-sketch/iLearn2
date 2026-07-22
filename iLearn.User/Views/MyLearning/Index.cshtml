@@ -1450,6 +1450,7 @@ else
                     categorizedCourses[catId] = {
                         id: catId,
                         name: catName,
+                        sortOrder: course.categorySortOrder ?? 0,
                         courses: []
                     };
                 }
@@ -1471,20 +1472,20 @@ else
                     <span class="course-count">${allCoursesData.length}</span>
                 </div>
             `);
-            // Individual Categories
-            Object.keys(categorizedCourses).forEach(catId => {
-                if (catId === 'all') return;
-
-                const cat = categorizedCourses[catId];
-                $menu.append(`
-                    <div class="category-menu-item" data-category="${catId}">
-                        <span class="category-name">
-                            <i class="fas fa-folder me-2"></i>${cat.name}
-                        </span>
-                        <span class="course-count">${cat.courses.length}</span>
-                    </div>
-                `);
-            });
+            // Individual Categories — เรียงตาม (sortOrder, id) เพื่อสะท้อนลำดับที่ admin ตั้งไว้
+            Object.values(categorizedCourses)
+                .filter(cat => cat.id !== undefined && String(cat.id) !== 'all')
+                .sort((a, b) => (a.sortOrder - b.sortOrder) || (a.id - b.id))
+                .forEach(cat => {
+                    $menu.append(`
+                        <div class="category-menu-item" data-category="${cat.id}">
+                            <span class="category-name">
+                                <i class="fas fa-folder me-2"></i>${cat.name}
+                            </span>
+                            <span class="course-count">${cat.courses.length}</span>
+                        </div>
+                    `);
+                });
             // Click Event
             $menu.off('click.category').on('click.category', '.category-menu-item', function() {
                 const categoryId = $(this).data('category');

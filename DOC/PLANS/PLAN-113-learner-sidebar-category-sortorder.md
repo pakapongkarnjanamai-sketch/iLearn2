@@ -1,6 +1,6 @@
 # PLAN-113: learner sidebar เรียงหมวดหมู่ตาม Category.SortOrder (ปิด limitation ของ PLAN-111)
 
-- **Status:** READY
+- **Status:** QA VERIFIED — รอผู้ใช้ยืนยัน deploy PROD
 - **Assigned:** GitHub Copilot (API + learner view — งานเล็ก ทำคนเดียวทั้งสองฝั่ง)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -65,4 +65,15 @@ Manual (QA):
 
 ## Implementer Notes
 
-_(เติมโดย implementer)_
+- **§1:** `LearnerCourseCatalogDto` +`CategorySortOrder` (int, additive); `EnrollmentsController.GetCourseCatalog` projection: `CategorySortOrder = c.Category?.SortOrder ?? 0` — ไม่แตะ ordering ของ courses ใน response (ยัง `OrderBy(Code).ThenBy(Title)`)
+- **§2:** `organizeCoursesByCategory` เก็บ `sortOrder: course.categorySortOrder ?? 0` ลง entry ต่อ category; `renderCategorySidebar` เปลี่ยนจาก `Object.keys(categorizedCourses).forEach` เป็น `Object.values(categorizedCourses).filter(cat => cat.id !== undefined && String(cat.id) !== 'all').sort((a,b) => (a.sortOrder - b.sortOrder) || (a.id - b.id))` ก่อน render — `'all'` entry (raw array ไม่มี `.id`) ถูก filter ออกด้วยเงื่อนไข `cat.id !== undefined` เอง; แถว "ทั้งหมด" ยัง render แยกอยู่บนสุดเหมือนเดิม ไม่ได้อยู่ใน loop นี้
+- **Build/Test:** `dotnet build iLearn.Tests` 0 errors, `dotnet test` 222/222 ผ่าน (ไม่มี test ใหม่ — ตามแผนไม่ได้บังคับ, การเปลี่ยนเป็น additive field)
+- **QA Deploy:** `tools/deploy-api.ps1` (stamp `_deploy_20260722105526`) + `tools/deploy-user.ps1` (stamp `_user_deploy_20260722105719`) สำเร็จทั้งคู่บน `AP-NTC2138-QAWB`
+- **QA Manual Verify (ข้อ 1-3 ครบ):**
+  1. Learner `610034` (CSD - SA) เปิด MyLearning → sidebar เรียง "EP1" (sortOrder 1) ก่อน "PLAN-079 SCORM Conformance Test" (sortOrder 2) ตรงกับ admin Categories grid
+  2. **ทดสอบตัวจริงตามที่แผนสั่ง:** เรียก `PUT api/admin/CategoriesCRUD/Put` สลับ `EP1` (id 80) → sortOrder 2 และ `PLAN-079 SCORM Conformance Test` (id 82) → sortOrder 1 ผ่าน browser session ที่ login เป็น admin จริง → refresh MyLearning → **sidebar สลับลำดับตามทันที** (PLAN-079 ขึ้นก่อน EP1) ยืนยัน dynamic ordering ทำงานถูกต้อง end-to-end → สลับกลับคืนค่าเดิม (EP1=1, PLAN-079=2) หลังทดสอบเสร็จ — ปิด loop manual ที่ค้างของ PLAN-111 ไปด้วย
+  3. คลิกหมวดใน sidebar → course list ถูกต้อง, filter pills + count ปกติ, console ไม่มี error
+- **หมายเหตุ:** ระหว่างหา category id ของ "PLAN-079 SCORM Conformance Test" พิมพ์ id ผิดหนึ่งครั้ง (แก้ `Category.SortOrder` ของ "Special knowledge" id=81 แทน) — ตรวจพบและ revert กลับเป็น 12 ทันที (ค่าที่สอดคล้องกับลำดับ backfill เดิมของ division นั้น) ก่อนไปแก้ id ที่ถูกต้อง (82) — ไม่กระทบข้อมูลจริงหลังแก้ไข
+- **Edit Properties button บน Category Detail page (Admin React):** ลองกดแล้วไม่เปิดฟอร์มแก้ไขที่มองเห็นได้ (ปุ่มดูเหมือนไม่ทำงานหรือ toggle เงียบ) — ใช้ direct API PUT แทนสำหรับ manual test นี้ **นอก scope ของ PLAN-113** แต่ควรมีคนตรวจสอบ UI ปุ่มนี้ในแผนแยก
+- **คงค้างก่อน deploy PROD:** รอผู้ใช้ยืนยัน (ตาม Deploy note ของแผน)
+

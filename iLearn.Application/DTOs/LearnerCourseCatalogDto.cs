@@ -10,6 +10,7 @@ namespace iLearn.Application.DTOs
         public string Title { get; set; } = string.Empty;
         public int CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
+        public int CategorySortOrder { get; set; }
         public int CourseTypeId { get; set; }
         public string CourseTypeName { get; set; } = string.Empty;
         public string? CoverImageUrl { get; set; }

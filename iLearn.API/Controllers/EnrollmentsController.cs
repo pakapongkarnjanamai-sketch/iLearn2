@@ -187,6 +187,7 @@ namespace iLearn.API.Controllers
                     Title = c.Title,
                     CategoryId = c.CategoryId,
                     CategoryName = c.Category?.Name ?? "ไม่ระบุหมวดหมู่",
+                    CategorySortOrder = c.Category?.SortOrder ?? 0,
                     CourseTypeId = c.CourseTypeId,
                     CourseTypeName = c.CourseType?.Name ?? "ไม่ระบุประเภท",
                     CoverImageUrl = null
