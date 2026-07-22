@@ -2,6 +2,12 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Antigravity — Deploy Admin React to PROD (PLAN-119..124 batch)
+- ทำอะไร: รัน `tools/deploy-admin-react-prod.ps1` สั่ง lint + build production bundle (ใช้ `.env.production`) และ copy static assets ลง PROD server (`\\ap-ntc2137-prwb\wwwroot\iLearn\admin-react`) สำเร็จ (`CopySucceeded: True`, Robocopy exit code 3). รวมการอัปเดตของ PLAN-119 ถึง PLAN-124 (ReadinessBadge soft fill, Folder edit action button, LearnerDirectorySelector unified layout, BulkAssign category filters & group tree).
+- ไฟล์หลักที่แตะ: `tools/deploy-admin-react-prod.ps1`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: Deploy PROD สำเร็จ 0 errors (built in 1.25s)
+
 ## [2026-07-22 —] Antigravity — PLAN-124: LearnerGroupListPage folder edit action
 - ทำอะไร: implement ตาม PLAN-124 — เพิ่มปุ่มแก้ไขโฟลเดอร์ (`Edit3`) ในคอลัมน์ `Actions` ของตาราง Learner Group Explorer (`LearnerGroupListPage.tsx`) สำหรับรายการประเภท `FOLDER`. เพิ่ม Edit Folder Modal สำหรับแก้ไขชื่อโฟลเดอร์ (Folder Name), คำอธิบาย (Description) และ Division (กรณี SuperAdmin) ยิง `PUT api/LearnerGroupCategories/{id}` และสั่งโหลดข้อมูลไดเรกทอรีใหม่สำเร็จทันที.
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupListPage.tsx`, `DOC/PLANS/PLAN-124-learner-group-folder-edit-action.md` (->DONE), `DOC/AGENT_LOG.md`
