@@ -2,6 +2,19 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] Claude Code — เขียน PLAN-115: root cause ปุ่ม Edit Properties = phantom form submit (มอบ Gemini)
+- ทำอะไร: ผู้ใช้ยืนยันปุ่มเสียจริงด้วยมือ → วินิจฉัยเจอ root cause จากโค้ด: `MasterDataDetailPage` ครอบหน้าใน `<form>` และ sidebar สลับปุ่ม Edit (type=button) ↔ Save Changes (type=submit) ที่**ตำแหน่งเดียวกัน** ⇒ คลิก Edit → React flush re-render sync ภายใน click dispatch → DOM node เดิมถูก reuse กลายเป็น type=submit → เบราว์เซอร์ประเมิน default action **หลัง** handler จบจาก attribute ปัจจุบัน = **form submit ทันที** → handleSave PUT ค่าเดิม + toast + setIsEditing(false) เด้งกลับ view mode ในพริบตา. **ไขปริศนาเก่าด้วย: toast "Changes saved successfully" ตอน QA smoke PLAN-111 ที่ถูกโทษว่าเป็น SignalR ของ admin อื่น — จริง ๆ คือหน้า save ตัวเอง** (ค่าเดิมทับค่าเดิม DB จึงไม่เปลี่ยน). grep ยืนยัน pattern นี้มีที่เดียว. เขียน PLAN-115: §1 `ControlAction` preventDefault เมื่อ type≠submit (แก้ที่ราก shared) §2 ใส่ `key` แยก identity ปุ่มสองโหมด (กันอีกชั้น) §3 หลัง fix ให้ทดสอบแก้ sortOrder ผ่าน UI จริง — ปิด loop PLAN-111 ที่ค้างมาตลอด
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-115-*.md` (ใหม่ READY), `DOC/AGENT_LOG.md` (+ซ่อมบรรทัด header ที่ entry ก่อนหน้าเผลอลบ)
+- Contract ที่เปลี่ยน: ไม่มี (แผน; fix เป็น behavior ฝั่ง React)
+- Verified: — (แผน; อ่าน ControlsSidebar/MasterDataDetailPage + grep pattern ทุก type="submit")
+- **ถึง Gemini: ห้ามเปลี่ยน signature `onClick` ที่ callers เห็น; ปุ่ม submit ห้าม preventDefault; ทำตาม §1+§2 ทั้งคู่. หมายเหตุ: งาน UX polish (Escape/scroll-lock) ที่ทำไปโดยไม่มีแผน — ครั้งหน้าให้จดลง Implementer Notes ของแผนที่เกี่ยว (PLAN-112) หรือรอแผนใหม่ตามกติกา อย่าทำงานนอกแผนเงียบ ๆ**
+
+## [2026-07-22 —] Antigravity — UX/UI Polish & Keyboard Accessibility ใน AssignmentDetailPage.tsx
+- ทำอะไร: เพิ่ม `useEffect` สำหรับจัดการ **Keyboard Navigation (`Escape` key)** เพื่อปิด Learner Courses Popup Modal และทำการ **Scroll-Lock (`document.body.style.overflow = 'hidden'`)** ป้องกันไม่ให้หน้าหลังเลื่อนขณะเปิดดูรายชื่อคอร์สใน Popup
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (React UX/a11y เท่านั้น)
+- Verified: `npm run lint` ผ่าน 0 errors, `npm run build` ผ่าน 0 errors (built in 2.12s)
+
 ## [2026-07-22 —] Claude Code — เขียน PLAN-114: ตัด caption chart + Created By เป็นชื่อ + Overview stat cards (มอบ Copilot)
 - ทำอะไร: ผู้ใช้รีวิว `/assignments/275(+/report)` บน QA ขอ 4 ข้อ. สำรวจ: caption อยู่ใน `AssignmentReportCharts.tsx:93/166` (component ใช้ร่วม 2 หน้า — ลบ 2 บรรทัดจบ, **คงคลิก filter**); `CreatedBy` เป็น Nid ดิบ — มี `ILearnerApiService.GetEmployeesByNidsAsync` resolve ได้อยู่แล้ว; stat tile ต้นแบบอยู่ `AssignmentReportPage.tsx:316`. เขียน PLAN-114: §1 ลบ caption (ข้อยกเว้นเดียวที่อนุญาตแตะไฟล์ Report) §2 `AssignmentDashboardDto` +`createdByName` (additive, lookup ห่อ try/catch ห้ามทำ endpoint ล้ม — กติกา side-effect) + React แสดงชื่อ+Nid รอง §3 ตัด Fact Completed/Completion Rate §4 tiles Learners/Courses/Status แบบ Report Summary + FactGrid ที่เหลือ + donut เดิม
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-114-*.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
