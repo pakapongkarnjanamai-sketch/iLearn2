@@ -1036,11 +1036,14 @@ namespace iLearn.Application.Services
                 })
                 .ToList();
 
+            var createdByName = await LookupCreatedByNameAsync(mainAssignment.CreatedBy);
+
             return new AssignmentDashboardDto
             {
                 AssignmentNo = mainAssignment.AssignmentNo ?? string.Empty,
                 Description = mainAssignment.Description ?? string.Empty,
                 CreatedBy = mainAssignment.CreatedBy,
+                CreatedByName = createdByName,
                 StartDate = mainAssignment.StartDate,
                 DueDate = mainAssignment.DueDate,
                 TotalEmployees = learnersByCode.Count,
@@ -1058,6 +1061,26 @@ namespace iLearn.Application.Services
                 Courses = courseSummaries,
                 Learners = learners,
             };
+        }
+
+        private async Task<string?> LookupCreatedByNameAsync(string? createdByNid)
+        {
+            if (string.IsNullOrWhiteSpace(createdByNid)) return null;
+
+            try
+            {
+                var result = await _learnerApiService.GetEmployeesByNidsAsync(new[] { createdByNid });
+                if (result.TryGetValue(createdByNid, out var employee))
+                {
+                    var fullName = employee.FullName;
+                    return string.IsNullOrWhiteSpace(fullName) ? null : fullName;
+                }
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private async Task<List<AssignmentGanttTaskDto>> BuildGanttTasksAsync(

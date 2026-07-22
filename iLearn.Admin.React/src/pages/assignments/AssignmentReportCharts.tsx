@@ -90,7 +90,6 @@ export function StatusDonut({ data, completionRate, activeStatus, onSelectStatus
           )
         })}
       </ul>
-      <p className="text-xxs text-slate-400">Click a segment to filter the table</p>
     </div>
   )
 }
@@ -163,7 +162,6 @@ export function CourseCompletionBars({ data, activeCourse, onSelectCourse }: Cou
           </Bar>
         </BarChart>
       </ResponsiveContainer>
-      <p className="text-xxs text-slate-400 text-center">Click a bar to filter the table</p>
     </div>
   )
 }

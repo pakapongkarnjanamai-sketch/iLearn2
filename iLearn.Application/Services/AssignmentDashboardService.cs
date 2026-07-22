@@ -129,11 +129,14 @@ namespace iLearn.Application.Services
 
             bool hasDeletedCourse = courseSummaries.Any(c => c.IsCourseDeleted);
 
+            var createdByName = await LookupCreatedByNameAsync(mainRule.CreatedBy);
+
             return new AssignmentDashboardDto
             {
                 AssignmentNo     = mainRule.AssignmentNo ?? string.Empty,
                 Description      = mainRule.Description ?? string.Empty,
                 CreatedBy        = mainRule.CreatedBy,
+                CreatedByName    = createdByName,
                 StartDate        = mainRule.StartDate,
                 DueDate          = mainRule.DueDate,
                 TotalEmployees   = uniqueLearnersCount,
@@ -324,6 +327,26 @@ namespace iLearn.Application.Services
                     ? string.Join(", ", deletedCourses.Select(c => c!.Title ?? "Unknown"))
                     : null
             };
+        }
+
+        private async Task<string?> LookupCreatedByNameAsync(string? createdByNid)
+        {
+            if (string.IsNullOrWhiteSpace(createdByNid)) return null;
+
+            try
+            {
+                var result = await _learnerApiService.GetEmployeesByNidsAsync(new[] { createdByNid });
+                if (result.TryGetValue(createdByNid, out var employee))
+                {
+                    var fullName = employee.FullName;
+                    return string.IsNullOrWhiteSpace(fullName) ? null : fullName;
+                }
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private async Task<Dictionary<string, string>> LookupLearnerNamesAsync(List<string> codes)

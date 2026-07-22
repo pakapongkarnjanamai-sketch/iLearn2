@@ -31,7 +31,7 @@ import { LearnerDirectorySelector, type LearnerSelection } from '../../component
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
-import { formatDate, formatPercent } from '../../lib/format'
+import { formatDate } from '../../lib/format'
 import { LEARNER_STATUS_KEYS, learnerStatusLabel } from '../../lib/learnerStatus'
 import { DetailTabs } from '../../components/ui/DetailTabs'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
@@ -41,6 +41,7 @@ type AssignmentDetail = {
   assignmentNo: string
   description: string
   createdBy?: string | null
+  createdByName?: string | null
   startDate: string | null
   dueDate: string | null
   totalEmployees: number
@@ -158,8 +159,27 @@ export function AssignmentDetailPage() {
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(new Set())
   const [bulkWorking, setBulkWorking] = useState<'reset' | 'remove' | null>(null)
 
-  // Learner course popup modal
+  // Learner course popup modal & keydown / body overflow listener
   const [courseModalCode, setCourseModalCode] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!courseModalCode) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setCourseModalCode(null)
+      }
+    }
+
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = originalOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [courseModalCode])
 
   const groupedLearners = useMemo<GroupedLearner[]>(() => {
     if (!assignment?.learners) return []
@@ -697,36 +717,45 @@ export function AssignmentDetailPage() {
         <main className="space-y-6">
           <Card icon={FileBarChart} title="Overview" bodyClassName="p-5">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 items-center">
-              <FactGrid className="pt-2">
-                <Fact label="Learners" valueClassName="font-bold text-slate-800">
-                  {assignment.totalEmployees}
-                </Fact>
-                <Fact label="Completed" valueClassName="font-bold text-slate-800">
-                  {assignment.chartData.completed}
-                </Fact>
-                <Fact label="Completion Rate" valueClassName="font-bold text-slate-800">
-                  {formatPercent(assignment.completionRate)}
-                </Fact>
-                <Fact label="Status">
-                  <StatusBadge>{assignmentStatus}</StatusBadge>
-                </Fact>
-                <Fact label="Start Date" valueClassName="font-semibold">
-                  {formatDate(assignment.startDate)}
-                </Fact>
-                <Fact label="Due Date" valueClassName="font-semibold">
-                  {formatDate(assignment.dueDate)}
-                </Fact>
-                {assignment.createdBy && (
-                  <Fact label="Created By" valueClassName="font-semibold">
-                    {assignment.createdBy}
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
+                    <div className="text-[10px] font-extrabold text-slate-400 uppercase">Learners</div>
+                    <div className="text-lg font-bold text-slate-800 tabular-nums mt-0.5">{assignment.totalEmployees}</div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
+                    <div className="text-[10px] font-extrabold text-slate-400 uppercase">Courses</div>
+                    <div className="text-lg font-bold text-slate-800 tabular-nums mt-0.5">{assignment.totalCourses}</div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
+                    <div className="text-[10px] font-extrabold text-slate-400 uppercase">Status</div>
+                    <div className="mt-1 flex justify-center">
+                      <StatusBadge>{assignmentStatus}</StatusBadge>
+                    </div>
+                  </div>
+                </div>
+                <FactGrid className="pt-2">
+                  <Fact label="Start Date" valueClassName="font-semibold">
+                    {formatDate(assignment.startDate)}
                   </Fact>
-                )}
-                {assignment.learnerGroupName && (
-                  <Fact label="Learner Group" colSpan="full" valueClassName="font-semibold">
-                    {assignment.learnerGroupName}
+                  <Fact label="Due Date" valueClassName="font-semibold">
+                    {formatDate(assignment.dueDate)}
                   </Fact>
-                )}
-              </FactGrid>
+                  {assignment.createdBy && (
+                    <Fact label="Created By" valueClassName="font-semibold">
+                      {assignment.createdByName ?? assignment.createdBy}
+                      {assignment.createdByName && (
+                        <span className="block text-xxs font-mono text-slate-400">{assignment.createdBy}</span>
+                      )}
+                    </Fact>
+                  )}
+                  {assignment.learnerGroupName && (
+                    <Fact label="Learner Group" colSpan="full" valueClassName="font-semibold">
+                      {assignment.learnerGroupName}
+                    </Fact>
+                  )}
+                </FactGrid>
+              </div>
               <div className="w-full lg:w-[280px] shrink-0 border-t lg:border-t-0 lg:border-l border-slate-100 pt-4 lg:pt-0 lg:pl-6">
                 <StatusDonut
                   data={buildStatusData(assignment.learners)}

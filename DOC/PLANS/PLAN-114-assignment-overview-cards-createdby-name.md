@@ -1,6 +1,6 @@
 # PLAN-114: Assignment detail/report ปรับ Overview — ตัด caption chart, Created By เป็นชื่อ, stat cards แทน Fact
 
-- **Status:** READY
+- **Status:** REVIEWED (awaiting deploy + manual QA)
 - **Assigned:** GitHub Copilot (backend เล็ก + React หน้าเดียว)
 - **Reviewer:** Claude Code
 - **สร้างเมื่อ:** 2026-07-22
@@ -81,4 +81,25 @@ Manual (QA — `/assignments/275` + `/assignments/275/report` + `/assignments/28
 
 ## Implementer Notes
 
-_(เติมโดย implementer)_
+- **สำคัญ ต่างจากที่แผนวินิจฉัย:** endpoint `GET Assignments/dashboard/{id}` จริง ๆ เรียก `IAssignmentService.GetDashboardAsync` → `AssignmentService.BuildAssignmentDashboardAsync` (`iLearn.Application/Services/AssignmentService.cs:825`) **ไม่ใช่** `AssignmentDashboardService.GetDashboardAsync` ที่แผนอ้างถึง (บรรทัด ~136) — สองคลาสนี้ implement `AssignmentDashboardDto` แยกกันคนละที่ (`AssignmentDashboardService` ถูกใช้จาก `CourseAssignmentService`/`EnrollmentService` เท่านั้น ไม่ใช่ path ที่ controller เรียกตรง). เพิ่ม `LookupCreatedByNameAsync` (ห่อ try/catch, คืน `null` เมื่อ error/ไม่พบ) **ทั้งสองคลาส** เพื่อความสอดคล้อง แม้ path หลักที่ใช้จริงคือ `AssignmentService.cs`
+- §1: ลบ 2 caption ใน `AssignmentReportCharts.tsx` (`StatusDonut` + `CourseCompletionBars`) ตามแผน คลิก filter ยังทำงานเหมือนเดิม (ไม่ได้แตะ onClick handlers)
+- §2: `AssignmentDashboardDto` +`CreatedByName` (additive); React `AssignmentDetailPage.tsx` แสดง `createdByName ?? createdBy` เป็นหลัก + `createdBy` (Nid) เป็นบรรทัดรอง `text-xxs font-mono text-slate-400` เมื่อมีชื่อ. **ไม่แก้ `AssignmentReportPage.tsx`** — หน้า Report ไม่เคยแสดง Created By เลย (grep ยืนยันไม่มี `createdBy` ใน type/markup) จึงไม่มีอะไรให้ mirror เพิ่ม
+- §3: ลบ `<Fact label="Completed">` และ `<Fact label="Completion Rate">` ออกจาก Overview แล้ว
+- §4: เพิ่ม stat tiles Learners/Courses/Status (markup เหมือน `AssignmentReportPage.tsx:316-330` เป๊ะ — ไม่ได้ extract เป็น shared component เพราะแผนอนุญาตแบบ optional และ scope เล็กพอที่จะ copy ตรง ๆ โดยไม่เพิ่มความเสี่ยง) เหนือ `FactGrid` ที่เหลือ (Start/Due/Created By/Learner Group); donut ยังอยู่ขวาเหมือนเดิม
+- ลบ import `formatPercent` ที่ไม่ใช้แล้วใน `AssignmentDetailPage.tsx` (lint จะ error ถ้าไม่ลบ)
+- Verified: `dotnet build iLearn.Tests` 0 errors, `dotnet test` 222/222 ผ่าน, `npm run lint` + `npm run build` 0 errors
+- **คงค้าง:** ยังไม่ deploy QA/PROD, ยังไม่ manual test ตามข้อ 1-5 ของแผน — รอ reviewer/ผู้ใช้
+
+## Reviewer Sign-off (Claude Code, 2026-07-22)
+
+**ผลรีวิว: ✅ ผ่าน — REVIEWED**
+
+1. **การเบี่ยงจากแผนที่สำคัญและถูกต้อง:** Copilot จับได้ว่าแผนวินิจฉัยผิดคลาส — controller เรียก `AssignmentService.GetDashboardAsync` (ยืนยันที่ `AssignmentsController:77`) ไม่ใช่ `AssignmentDashboardService` ที่แผนชี้; การเพิ่ม `LookupCreatedByNameAsync` **ทั้งสองคลาส** เป็นการตัดสินใจที่ถูก (กัน consumer อื่นของ dashboard DTO เพี้ยน) — reviewer ขอโทษที่แผนชี้พลาด
+2. **§2 ตรวจลึก:** `GetEmployeesByNidsAsync` ทั้ง 2 implementation (`EmployeeHub`/`LearnerApiService`) คืน dictionary แบบ `StringComparer.OrdinalIgnoreCase` ⇒ Nid ตัวเล็ก/ใหญ่ (`j2818` vs `J2818`) ไม่มีปัญหา `TryGetValue`; helper null-safe + try/catch ตามกติกา side-effect; `FullName` ว่าง → null → React fallback แสดง Nid
+3. **§1** caption หาย 2 บรรทัด onClick handlers ไม่ถูกแตะ; **§3** Fact + import `formatPercent` ถูกถอนสะอาด; **§4** tiles markup ตรงกับ `AssignmentReportPage:316` ทุก class, Courses (`totalCourses`) เพิ่มใหม่, Status เป็น `StatusBadge`, FactGrid เหลือ Start/Due/Created By/Learner Group ตามแผน
+4. **Created By UI:** ชื่อเป็นหลัก + Nid `text-xxs font-mono` รอง, ไม่มีชื่อ → Nid เดิม — ตรงสเปค; Report page ไม่มี Created By จริง (grep ยืนยันตามที่ implementer อ้าง)
+5. **หมายเหตุ:** ไฟล์ `AssignmentDetailPage.tsx` มีงาน polish นอกแผนของ Gemini ติดมาด้วย (Escape ปิด popup + scroll-lock) — โค้ดถูกต้อง (cleanup คืน `overflow` เดิม + ถอด listener) ยอมรับเข้า commit เดียวกันโดยจดไว้; ตักเตือนเรื่อง process แล้วใน AGENT_LOG
+6. **Reviewer รัน verify เอง:** `dotnet test` 222/222 + `npm run lint`/`build` 0 errors
+
+**คงค้าง: deploy API + Admin React ขึ้น QA → manual 1-5 → PROD รอผู้ใช้ยืนยัน** (deploy รวม PLAN-115 ได้)
+
