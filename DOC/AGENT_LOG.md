@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-22 —] GitHub Copilot — Deploy QA รวม PLAN-114/115/116/117 (API + Admin React + User) — สำเร็จทั้งหมด
+- ทำอะไร: commit โค้ด PLAN-116 + PLAN-117 ที่ค้างอยู่ใน working tree (`5f4389d`, `b311687`) แล้ว verify: backend `dotnet build iLearn.Tests` 0 errors + `dotnet test` 222/222 ผ่าน, frontend `npm run lint` + `npm run build` 0 errors. Deploy ขึ้น QA ทั้ง 3 ส่วน: **(1)** `tools/deploy-api.ps1` (PLAN-114 backend `CreatedByName`) → stamp `_deploy_20260722114706`, health check `session/me` = 401 OK **(2)** `tools/deploy-admin-react.ps1` (PLAN-114/115/116/117 UI) → robocopy สำเร็จ **(3)** `tools/deploy-user.ps1` (PLAN-116 `MyLearning/Index.cshtml` sidebar sort number) → stamp `_user_deploy_20260722114854`, health check `/iLearn/` = 200 OK
+- ไฟล์หลักที่แตะ: ไม่มีโค้ดใหม่ (deploy งานที่มีอยู่แล้วในแผน 114-117), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (deploy เท่านั้น)
+- Verified: health check ทั้ง 3 บริการ = OK (401/200 ตามที่คาด), build/test/lint ทุกฝั่งผ่านก่อน deploy
+- **คงค้าง:** manual QA smoke ยังไม่ทำ (chart ไม่มี click filter, sidebar เลขลำดับ MyLearning, Course Explorer category folder เลขลำดับ + edit modal, Assignment Detail stat tiles/Created By) — PROD ทั้งหมดยังรอผู้ใช้ยืนยัน
+
 ## [2026-07-22 —] Claude Code — เขียน PLAN-118: QA smoke รวบยอด + เก็บงานค้าง + gate deploy PROD ทั้งชุด (มอบ Copilot)
 - ทำอะไร: ผู้ใช้ deploy QA แล้ว (Admin React 114-117 + API 114 + User 116) สั่ง smoke → PROD + เก็บงานค้าง. Inventory งานค้างจาก sign-off ทุกแผน: PLAN-110 manual 2/3 (upload+bulk ไม่เคย smoke), PLAN-111 แก้ sortOrder ผ่าน UI (ถูกบั๊ก 115 บัง), PLAN-113 PROD, manual ของ 114-117. เขียน PLAN-118: **§A** QA smoke 13 ข้อเรียงลำดับ (A1 = Edit Properties ก่อน — ปิด 2 loop; A5 = upload/bulk ของ 110) **§B** deploy PROD 3 ชิ้น (API/User/Admin React — ไม่มี migration ใหม่; เจอ pending migration ไม่คาดคิด = หยุด) **§C** PROD smoke read-only (รวม verification 113 ซ้ำบน PROD). กติกา: ข้อไหน fail หยุดทั้งแผน ห้ามแก้โค้ดเอง, write-test ต้อง revert, จบแล้วอัปเดต status ทุกแผนเป็น VERIFIED ตามจริง
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-118-*.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
