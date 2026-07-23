@@ -1,6 +1,6 @@
 # PLAN-145 — Learner Group Summary Report
 
-- **สถานะ:** DONE
+- **สถานะ:** VERIFIED
 - **Assigned:** GitHub Copilot (GPT)
 - **วันที่:** 2026-07-23
 - **หน้าที่กระทบ:** `/admin-react/reports/learner-groups`, `/admin-react/reports/assignments`
@@ -40,3 +40,11 @@ Response shape:
 - Completion/overdue นับจาก visible enrollments ของสมาชิกในกลุ่ม และใช้ effective schedule จาก report projection เดิม
 - Assignment count นับ assignment batch ที่ผูก `LearnerGroupId` กับกลุ่มนั้น โดย distinct ตาม `AssignmentNo`
 - Assignment report เดิม `/reports/assignments` ยังอยู่ใน Report Hub; งานนี้เพิ่ม Learner Group report เป็นหน้าคู่กัน
+
+## Reviewer Notes (Claude Code, 2026-07-23)
+
+- **ผ่าน — VERIFIED.** รีวิว diff ครบทุกไฟล์ + รัน verification ซ้ำเอง: `npm run lint` ✓, `npm run build` ✓ (chunk-size warning เดิม), `dotnet test` **279/279** ✓
+- Division scope ทำที่ `LearnerGroup.DivisionId` + assignment scope ซ้ำที่ `assignment.DivisionId` ตามแผน; enrollment/progress/overdue ใช้ `BuildVisibleEnrollmentRowsQuery` (effective dates ตาม PLAN-086) ถูกต้อง
+- Assignment count นับ distinct `AssignmentNo` โดยมี fallback `assignment:{Id}` กันเลขว่าง — สอดคล้อง batch key ของ PLAN-143
+- Frontend: route ครอบ `<Remount>` ✓, labels เข้า dictionary สองภาษาครบ ✓, type mirror comment ครบ ✓, scroll loading ตามมาตรฐาน PLAN-144 ✓
+- ข้อสังเกตเล็ก (ไม่ block): แถวตารางใช้ label `filterToDate` ("ถึง") เป็น prefix ของ due date — อ่านแปลกเล็กน้อย ควรใช้คีย์ dueDate ตรง ๆ ถ้าแตะไฟล์นี้รอบหน้า

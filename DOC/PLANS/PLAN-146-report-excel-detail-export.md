@@ -1,6 +1,6 @@
 # PLAN-146 — Excel Export รายคน + Date Filter สำหรับ Assignment / Learner Group Reports
 
-- **สถานะ:** DONE
+- **สถานะ:** VERIFIED
 - **Assigned:** GitHub Copilot (GPT)
 - **วันที่:** 2026-07-23
 - **ต่อยอดจาก:** PLAN-143 (Assignment Summary Report), PLAN-145 (Learner Group Summary Report)
@@ -111,3 +111,11 @@ Remove-Item -Recurse -Force artifacts\verify-test
   - `dotnet build .\iLearn.Tests\iLearn.Tests.csproj -o .\artifacts\verify-test` ✓ (warnings เดิม)
   - `dotnet test .\artifacts\verify-test\iLearn.Tests.dll` → **279/279 passed** ✓
   - Cleaned `artifacts\verify-test` and `artifacts\verify-plan146-focused`
+
+## Reviewer Notes (Claude Code, 2026-07-23)
+
+- **ผ่าน — VERIFIED.** รีวิว diff ครบทุกไฟล์ + รัน verification ซ้ำเอง: `npm run lint` ✓, `npm run build` ✓, `dotnet test` **279/279** ✓
+- กติกาข้อมูลสำคัญครบทุกข้อ: detail rows ใช้ effective start/due dates ผ่าน `BuildVisibleEnrollmentRowsQuery` (มี test ยืนยัน link → ค่า link), date filter ตีความที่ effective due date เกณฑ์เดียวกันทั้ง Summary/Detail (`IsDueDateInRange` + `ApplyAssignmentExportDetailCounts` recompute ยอด summary จาก detail ให้สอดคล้อง), เวลาใช้ `IDateTime.Now` จาก controller, ไม่มี `FileStorage.Data` ใน query, ClosedXML 0.105.0 (ไม่ใช่ EPPlus), fixed column widths (ไม่ใช้ `AdjustToContents`)
+- จุดเสี่ยงที่ตรวจเจาะ: fallback `AssignmentNo` — summary ใช้ `"Assignment {Id}"` (ReportService:389) ตรงกับ `BuildAssignmentDisplayNo` ฝั่ง detail ⇒ lookup ใน `ApplyAssignmentExportDetailCounts` จับคู่ถูก; `Labels.Status` ครอบ status keys จริงครบทั้ง Batch/Learner (`Completed/Upcoming/Expired/InProgress/Overdue/NotStarted`)
+- Binary endpoints ไม่ใช้ envelope ตามแผน; frontend fetch blob + `filenameFromContentDisposition` + `downloadBlob` ถูกต้อง, ปุ่ม Export Excel ใช้ `AppButton loading` ตาม conventions, CSV เดิมคงไว้, date filter มีผลทั้งตารางบนจอและ query ที่ส่งให้ export
+- ข้อสังเกต (ไม่ block): Excel export ไม่สน status filter/search บนจอ — ตรงตามแผน (filter สถานะอยู่นอก scope); manual เปิดไฟล์ Excel จริงยังไม่ได้ทำในรอบรีวิว (workbook ถูก validate ผ่าน ClosedXML round-trip ใน tests แล้ว) — แนะนำผู้ใช้ลองกด Export บน QA หลัง deploy
