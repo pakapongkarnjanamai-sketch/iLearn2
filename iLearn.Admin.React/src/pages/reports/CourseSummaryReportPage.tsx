@@ -1,20 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import {
-  BookOpen,
   Download,
   ArrowUpDown,
-  ArrowLeft,
-  Users,
-  CheckCircle2,
-  AlertTriangle,
+  Info,
   Percent,
   Layers,
-  HelpCircle,
-  Info,
 } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
-import { SectionHeader } from '../../components/ui/SectionHeader'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { Badge } from '../../components/ui/Badge'
@@ -70,7 +62,7 @@ export function CourseSummaryReportPage() {
 
   useEffect(() => {
     setVisibleRows(DETAIL_TABLE_CHUNK_SIZE)
-  }, [search])
+  }, [search, sortKey, sortOrder])
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -87,31 +79,6 @@ export function CourseSummaryReportPage() {
     }
     return sortOrder === 'asc' ? ' ▲' : ' ▼'
   }
-
-  const summaryStats = useMemo(() => {
-    if (!data || data.rows.length === 0) {
-      return {
-        totalCourses: 0,
-        totalEnrolled: 0,
-        totalCompleted: 0,
-        totalOverdue: 0,
-        avgCompletionRate: 0,
-      }
-    }
-    const totalCourses = data.rows.length
-    const totalEnrolled = data.rows.reduce((acc, r) => acc + r.enrolledLearners, 0)
-    const totalCompleted = data.rows.reduce((acc, r) => acc + r.completedCount, 0)
-    const totalOverdue = data.rows.reduce((acc, r) => acc + r.overdueCount, 0)
-    const avgCompletionRate = totalEnrolled > 0 ? (totalCompleted / totalEnrolled) * 100 : 0
-
-    return {
-      totalCourses,
-      totalEnrolled,
-      totalCompleted,
-      totalOverdue,
-      avgCompletionRate,
-    }
-  }, [data])
 
   const sortedRows = useMemo(() => {
     if (!data) return []
@@ -145,6 +112,14 @@ export function CourseSummaryReportPage() {
     () => filteredRows.slice(0, visibleRows),
     [filteredRows, visibleRows]
   )
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    const threshold = target.scrollHeight - target.scrollTop - target.clientHeight
+    if (threshold <= 60 && visibleRows < filteredRows.length) {
+      setVisibleRows((prev) => prev + DETAIL_TABLE_CHUNK_SIZE)
+    }
+  }
 
   const handleExportCsv = () => {
     if (!data || data.rows.length === 0) {
@@ -197,114 +172,9 @@ export function CourseSummaryReportPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header with Navigation & Help Guide Action */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-2">
-          <Link
-            to="/reports"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 w-fit transition-colors"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Back to Report Hub</span>
-          </Link>
-          <SectionHeader icon={BookOpen}>Course Completion Summary</SectionHeader>
-        </div>
-
-        <AppButton
-          onClick={() => setIsHelpModalOpen(true)}
-          icon={HelpCircle}
-          variant="secondary"
-          size="sm"
-        >
-          Metrics Guide
-        </AppButton>
-      </div>
-
-      {/* KPI Summary Grid */}
-      <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card bodyClassName="p-4 flex flex-col gap-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-              Total Courses
-            </span>
-            <Layers className="h-4 w-4 text-slate-400" aria-hidden="true" />
-          </div>
-          <div className="text-2xl font-extrabold text-slate-800 tabular-nums leading-tight mt-1">
-            {formatNumber(summaryStats.totalCourses)}
-          </div>
-          <span className="text-xxs text-slate-400 font-medium">Catalog courses</span>
-        </Card>
-
-        <Card bodyClassName="p-4 flex flex-col gap-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-              Enrolled Learners
-            </span>
-            <Users className="h-4 w-4 text-blue-500" aria-hidden="true" />
-          </div>
-          <div className="text-2xl font-extrabold text-slate-800 tabular-nums leading-tight mt-1">
-            {formatNumber(summaryStats.totalEnrolled)}
-          </div>
-          <span className="text-xxs text-slate-400 font-medium">Cumulative enrollments</span>
-        </Card>
-
-        <Card bodyClassName="p-4 flex flex-col gap-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-              Completed
-            </span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-hidden="true" />
-          </div>
-          <div className="text-2xl font-extrabold text-emerald-600 tabular-nums leading-tight mt-1">
-            {formatNumber(summaryStats.totalCompleted)}
-          </div>
-          <span className="text-xxs text-emerald-600 font-medium">Finished completions</span>
-        </Card>
-
-        <Card bodyClassName="p-4 flex flex-col gap-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-              Overdue Count
-            </span>
-            <AlertTriangle
-              className={`h-4 w-4 ${summaryStats.totalOverdue > 0 ? 'text-rose-500' : 'text-slate-400'}`}
-              aria-hidden="true"
-            />
-          </div>
-          <div
-            className={`text-2xl font-extrabold tabular-nums leading-tight mt-1 ${
-              summaryStats.totalOverdue > 0 ? 'text-rose-600' : 'text-slate-800'
-            }`}
-          >
-            {formatNumber(summaryStats.totalOverdue)}
-          </div>
-          <span className="text-xxs text-rose-600 font-semibold">
-            {summaryStats.totalOverdue > 0 ? 'Action required' : 'Zero overdue'}
-          </span>
-        </Card>
-
-        <Card bodyClassName="p-4 flex flex-col gap-1">
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setIsHelpModalOpen(true)}
-              className="flex items-center gap-1 text-xxs font-extrabold text-slate-400 hover:text-indigo-600 uppercase tracking-wider text-left transition-colors"
-            >
-              <span>Overall Completion Rate</span>
-              <Info className="h-3 w-3 text-indigo-400" />
-            </button>
-            <Percent className="h-4 w-4 text-indigo-500" aria-hidden="true" />
-          </div>
-          <div className="text-2xl font-extrabold text-indigo-600 tabular-nums leading-tight mt-1">
-            {formatPercent(summaryStats.avgCompletionRate)}
-          </div>
-          <span className="text-xxs text-indigo-600 font-medium">Weighted completion</span>
-        </Card>
-      </section>
-
       {/* Courses Performance List with Scroller Grid */}
       <Card
-        title="Courses Performance List"
+        title="Course Completion Summary"
         actions={
           data.rows.length > 0 && (
             <AppButton
@@ -326,8 +196,11 @@ export function CourseSummaryReportPage() {
           />
         </div>
 
-        {/* Scroller Grid container with max-height and custom scrollbar */}
-        <div className="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar">
+        {/* Scroller Grid container with max-height, custom scrollbar, and infinite scroll handler */}
+        <div
+          onScroll={handleScroll}
+          className="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar"
+        >
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs select-none sticky top-0 z-10 shadow-xs">
@@ -469,15 +342,18 @@ export function CourseSummaryReportPage() {
           </table>
         </div>
 
-        {filteredRows.length > visibleCourseRows.length && (
-          <div className="border-t border-slate-100 p-3 text-center">
-            <AppButton
-              variant="secondary"
-              size="sm"
-              onClick={() => setVisibleRows((v) => v + DETAIL_TABLE_CHUNK_SIZE)}
-            >
-              Load more
-            </AppButton>
+        {/* Footer showing row count & infinite scroll status */}
+        {filteredRows.length > 0 && (
+          <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-2.5 text-xs text-slate-500 font-medium flex items-center justify-between">
+            <span>
+              Showing <strong className="text-slate-800 tabular-nums">{visibleCourseRows.length}</strong> of{' '}
+              <strong className="text-slate-800 tabular-nums">{filteredRows.length}</strong> courses
+            </span>
+            {visibleCourseRows.length < filteredRows.length && (
+              <span className="text-xxs text-indigo-600 font-semibold flex items-center gap-1">
+                Scroll down to load more
+              </span>
+            )}
           </div>
         )}
       </Card>
@@ -512,7 +388,7 @@ export function CourseSummaryReportPage() {
               <span>Overall Completion Rate — อัตราเรียนสำเร็จรวมภาพรวม</span>
             </div>
             <p className="text-slate-600">
-              คือตัวเลขการ์ดสรุปบนหัวหน้า แสดงอัตราการเรียนสำเร็จรวมของทุกคอร์สในระบบเปรียบเทียบกับจำนวนผู้เรียนที่ถูกลงทะเบียนทั้งหมด
+              แสดงอัตราการเรียนสำเร็จรวมของทุกคอร์สในระบบเปรียบเทียบกับจำนวนผู้เรียนที่ถูกลงทะเบียนทั้งหมด
             </p>
           </div>
 
@@ -558,3 +434,4 @@ export function CourseSummaryReportPage() {
     </div>
   )
 }
+

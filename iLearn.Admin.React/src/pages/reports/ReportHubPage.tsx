@@ -8,37 +8,41 @@ export function ReportHubPage() {
   const reports = [
     {
       title: 'Compliance & Overdue Report',
-      description: 'Monitor division and department compliance rates, target completion goals, and view granular overdue enrollment details.',
+      subtitle: 'รายงานความก้าวหน้าและคอร์สเกินกำหนด',
+      description: 'ตรวจสอบอัตราความก้าวหน้าและการเรียนตามเกณฑ์แยกตามสายงานและฝ่าย ติดตามเป้าหมาย และดูรายละเอียดการเรียนเกินกำหนดของผู้เรียนแบบเจาะลึก',
       path: '/reports/compliance',
       icon: ShieldAlert,
-      tag: 'Executive Overview',
+      tag: 'ภาพรวมผู้บริหาร',
       tone: 'danger' as const,
       accentBg: 'bg-rose-50 text-rose-600 group-hover:bg-rose-100 group-hover:text-rose-700',
     },
     {
       title: 'Learner Transcript',
-      description: 'Search for any learner to view their complete training history, active enrollments, course statuses, score results, and print-ready transcripts.',
+      subtitle: 'ประวัติการเรียนรายบุคคล',
+      description: 'ค้นหารายชื่อผู้เรียนเพื่อตรวจสอบประวัติการฝึกอบรมทั้งหมด รายวิชาที่กำลังเรียน สถานะการเรียน ผลคะแนนสอบ และพิมพ์ใบทรานสคริปต์',
       path: '/reports/transcript',
       icon: GraduationCap,
-      tag: 'Learner Audit',
+      tag: 'ประวัติรายบุคคล',
       tone: 'info' as const,
       accentBg: 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 group-hover:text-indigo-700',
     },
     {
       title: 'Course Summary Report',
-      description: 'Analyze average learner progress, completion rates, total enrollments, overdue counts, and test scores across all active courses.',
+      subtitle: 'รายงานสรุปผลการเรียนรายคอร์ส',
+      description: 'วิเคราะห์อัตราการเรียนสำเร็จ (Completion Rate) จำนวนผู้เรียนที่ลงทะเบียน จำนวนผู้เรียนเกินกำหนด และคะแนนสอบเฉลี่ยของทุกคอร์สในแคตตาล็อก',
       path: '/reports/courses',
       icon: BookOpen,
-      tag: 'Course Analytics',
+      tag: 'สถิติรายคอร์ส',
       tone: 'success' as const,
       accentBg: 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 group-hover:text-emerald-700',
     },
     {
       title: 'Training Activity Report',
-      description: 'Track monthly completion trends, active learner volume, new course enrollments, and cumulative play time over custom period ranges.',
+      subtitle: 'รายงานสถิติและกิจกรรมการเรียนรู้',
+      description: 'ติดตามแนวโน้มการเรียนจบรายเดือน ปริมาณผู้เรียนที่แอคทีฟ การลงทะเบียนคอร์สใหม่ และเวลาเรียนสะสมตามช่วงเวลาที่เลือก',
       path: '/reports/activity',
       icon: Activity,
-      tag: 'Monthly Trends',
+      tag: 'แนวโน้มรายเดือน',
       tone: 'warning' as const,
       accentBg: 'bg-amber-50 text-amber-600 group-hover:bg-amber-100 group-hover:text-amber-700',
     },
@@ -47,9 +51,9 @@ export function ReportHubPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <SectionHeader icon={BarChart3}>Report Hub</SectionHeader>
+        <SectionHeader icon={BarChart3}>Report Hub / ศูนย์รวมรายงาน</SectionHeader>
         <p className="text-xs text-slate-500 font-medium">
-          Comprehensive analytics, compliance statistics, course metrics, and learner transcript records.
+          ศูนย์รวมข้อมูลสถิติ วิเคราะห์ผลการเรียนรู้ ติดตามการเข้าเรียนเกินกำหนด สรุปผลรายคอร์ส และประวัติการเรียนของผู้เรียน
         </p>
       </div>
 
@@ -75,7 +79,10 @@ export function ReportHubPage() {
                       </Badge>
                     </div>
                     <h3 className="text-base font-bold text-slate-800 transition-colors group-hover:text-indigo-600">
-                      {report.title}
+                      {report.title}{' '}
+                      <span className="text-xs font-semibold text-slate-400 block sm:inline">
+                        ({report.subtitle})
+                      </span>
                     </h3>
                     <p className="mt-1.5 text-xs text-slate-500 font-medium leading-relaxed">
                       {report.description}
@@ -84,7 +91,7 @@ export function ReportHubPage() {
                 </div>
 
                 <div className="flex items-center justify-end gap-1 text-xs font-bold text-slate-400 transition-colors group-hover:text-indigo-600 pt-2 border-t border-slate-100/80">
-                  <span>View Report</span>
+                  <span>เปิดดูรายงาน</span>
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                 </div>
               </Card>
@@ -95,3 +102,4 @@ export function ReportHubPage() {
     </div>
   )
 }
+
