@@ -1,4 +1,5 @@
 import { appConfig } from '../config/appConfig'
+import { t, UI_LABELS } from './labels'
 
 export class ApiError extends Error {
   status: number
@@ -139,7 +140,7 @@ export const uploadWithProgress = <TResponse>(
         const responseBody = xhr.responseText
         let errorMsg = xhr.statusText || 'API request failed'
         if (xhr.status === 413) {
-          errorMsg = 'ไฟล์ใหญ่เกินลิมิตของเซิร์ฟเวอร์'
+          errorMsg = t(UI_LABELS.fileTooLarge)
         } else if (responseBody) {
           try {
             const contentType = xhr.getResponseHeader('content-type') || ''

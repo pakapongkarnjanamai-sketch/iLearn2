@@ -278,6 +278,7 @@ export const UI_LABELS = {
   continue: { th: 'ถัดไป', en: 'Continue' },
   openDetails: { th: 'เปิดดูรายละเอียด', en: 'Open Details' },
   createEntity: { th: 'สร้าง{0}', en: 'Create {0}' },
+  fileTooLarge: { th: 'ไฟล์ใหญ่เกินลิมิตของเซิร์ฟเวอร์', en: 'File exceeds the server size limit' },
   actions: { th: 'การดำเนินการ', en: 'Actions' },
 } satisfies Record<string, LabelPair>
 
