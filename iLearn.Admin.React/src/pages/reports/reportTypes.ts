@@ -119,6 +119,41 @@ export interface AssignmentSummaryRow {
   status: string
 }
 
+// Mirrors LearnerGroupSummaryReportDto (iLearn.Application/DTOs/ReportDtos.cs)
+export interface LearnerGroupSummaryReportDto {
+  generatedAt: string
+  totalGroups: number
+  totalMembers: number
+  groupsWithAssignments: number
+  totalAssignments: number
+  totalEnrollments: number
+  completionRate: number
+  rows: LearnerGroupSummaryRow[]
+}
+
+// Mirrors LearnerGroupSummaryRow (iLearn.Application/DTOs/ReportDtos.cs)
+export interface LearnerGroupSummaryRow {
+  learnerGroupId: number
+  name: string
+  description?: string | null
+  divisionName?: string | null
+  categoryName?: string | null
+  createdAt: string
+  dueDate?: string | null
+  memberCount: number
+  assignmentCount: number
+  courseCount: number
+  enrollmentCount: number
+  completedCount: number
+  overdueCount: number
+  avgProgress: number
+  completionRate: number
+}
+
+// Export endpoints return binary .xlsx files, not JSON envelopes:
+// GET Reports/assignments/export?from&to&lang
+// GET Reports/learner-groups/export?from&to&lang
+
 
 // Mirrors ActivityReportDto (iLearn.Application/DTOs/ReportDtos.cs)
 export interface ActivityReportDto {

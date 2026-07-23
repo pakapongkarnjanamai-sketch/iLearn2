@@ -8,6 +8,7 @@ using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
 using System.Globalization;
 using System.Linq.Expressions;
+using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 
@@ -488,6 +489,248 @@ namespace iLearn.Tests
             Assert.Equal(1, overdueBatch.OverdueCount);
         }
 
+        [Fact]
+        public async Task AssignmentExport_DateFilter_AppliesToSummaryAndDetail()
+        {
+            var assignments = new List<Assignment>
+            {
+                new() { Id = 1, AssignmentNo = "ASG-IN", Description = "In range", CourseId = 1, StartDate = Now.AddDays(-5), DueDate = Now.AddDays(5), CreatedAt = Now.AddDays(-5) },
+                new() { Id = 2, AssignmentNo = "ASG-OUT", Description = "Out range", CourseId = 2, StartDate = Now.AddDays(-10), DueDate = Now.AddDays(20), CreatedAt = Now.AddDays(-10) },
+            };
+            var enrollments = new List<Enrollment>
+            {
+                new() { Id = 1, LearnerCode = "EMP001", IsCompleted = false, Progress = 25, CourseId = 1, StartDate = Now.AddDays(-30), DueDate = Now.AddDays(30) },
+                new() { Id = 2, LearnerCode = "EMP002", IsCompleted = false, Progress = 10, CourseId = 2, StartDate = Now.AddDays(-30), DueDate = Now.AddDays(30) },
+            };
+            var links = new List<EnrollmentAssignment>
+            {
+                new() { Id = 1, AssignmentId = 1, Assignment = assignments[0], EnrollmentId = 1, Enrollment = enrollments[0], StartDate = Now.AddDays(-5), DueDate = Now.AddDays(5) },
+                new() { Id = 2, AssignmentId = 2, Assignment = assignments[1], EnrollmentId = 2, Enrollment = enrollments[1], StartDate = Now.AddDays(-10), DueDate = Now.AddDays(20) },
+            };
+            enrollments[0].AssignmentLinks.Add(links[0]);
+            enrollments[1].AssignmentLinks.Add(links[1]);
+
+            var learnerMap = new Dictionary<string, ExternalLearnerDto>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["EMP001"] = new() { Code = "EMP001", Name = "Learner One", Division = "DIV-A" },
+                ["EMP002"] = new() { Code = "EMP002", Name = "Learner Two", Division = "DIV-A" },
+            };
+            var service = CreateService(enrollments, links, assignments,
+                [
+                    new Course { Id = 1, Code = "C01", Title = "Course 1", CategoryId = 1 },
+                    new Course { Id = 2, Code = "C02", Title = "Course 2", CategoryId = 1 },
+                ],
+                learnerMap: learnerMap);
+
+            var export = await service.GetAssignmentReportExportAsync(null, Now, Now.AddDays(10), Now);
+
+            var summaryRow = Assert.Single(export.Summary.Rows);
+            Assert.Equal("ASG-IN", summaryRow.AssignmentNo);
+            var detailRow = Assert.Single(export.DetailRows);
+            Assert.Equal("ASG-IN", detailRow.AssignmentNo);
+            Assert.Equal(Now.AddDays(5), detailRow.DueDate);
+            Assert.Equal(1, export.Summary.TotalAssignments);
+            Assert.Equal(1, export.Summary.TotalEnrollments);
+        }
+
+        [Fact]
+        public async Task AssignmentExport_WorkbookOpens_AndDetailUsesEffectiveDates()
+        {
+            var assignment = new Assignment { Id = 1, AssignmentNo = "ASG-EFF", CourseId = 1, StartDate = Now.AddDays(-20), DueDate = Now.AddDays(-5), CreatedAt = Now.AddDays(-20) };
+            var enrollmentWithLink = new Enrollment
+            {
+                Id = 1,
+                LearnerCode = "EMP001",
+                IsCompleted = false,
+                Progress = 50,
+                CourseId = 1,
+                StartDate = Now.AddDays(-30),
+                DueDate = Now.AddDays(-10),
+            };
+            var link = new EnrollmentAssignment
+            {
+                Id = 1,
+                AssignmentId = 1,
+                Assignment = assignment,
+                EnrollmentId = 1,
+                Enrollment = enrollmentWithLink,
+                StartDate = Now.AddDays(-3),
+                DueDate = Now.AddDays(6),
+            };
+            enrollmentWithLink.AssignmentLinks.Add(link);
+            var legacyEnrollment = new Enrollment
+            {
+                Id = 2,
+                LearnerCode = "EMP002",
+                IsCompleted = false,
+                Progress = 20,
+                CourseId = 2,
+                StartDate = Now.AddDays(-4),
+                DueDate = Now.AddDays(4),
+            };
+
+            var learnerMap = new Dictionary<string, ExternalLearnerDto>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["EMP001"] = new() { Code = "EMP001", Name = "Linked Learner", Division = "DIV-A" },
+                ["EMP002"] = new() { Code = "EMP002", Name = "Legacy Learner", Division = "DIV-B" },
+            };
+            var service = CreateService(
+                [enrollmentWithLink, legacyEnrollment], [link], [assignment],
+                [
+                    new Course { Id = 1, Code = "C01", Title = "Course 1", CategoryId = 1 },
+                    new Course { Id = 2, Code = "C02", Title = "Course 2", CategoryId = 1 },
+                ],
+                learnerMap: learnerMap);
+
+            var export = await service.GetAssignmentReportExportAsync(null, null, null, Now);
+            var linkedDetail = export.DetailRows.Single(row => row.LearnerCode == "EMP001");
+
+            Assert.Equal(Now.AddDays(-3), linkedDetail.StartDate);
+            Assert.Equal(Now.AddDays(6), linkedDetail.DueDate);
+
+            var workbookBytes = await service.BuildAssignmentReportExcelAsync(null, null, null, "en", Now);
+            using var workbook = new XLWorkbook(new MemoryStream(workbookBytes));
+
+            Assert.Equal(2, workbook.Worksheets.Count);
+            Assert.NotNull(workbook.Worksheet("Summary"));
+            var detailSheet = workbook.Worksheet("Detail");
+            Assert.Equal("Assignment No.", detailSheet.Cell(5, 1).GetString());
+            Assert.Equal("ASG-EFF", detailSheet.Cell(6, 1).GetString());
+            Assert.Equal(Now.AddDays(-3).Date, detailSheet.Cell(6, 6).GetDateTime().Date);
+            Assert.Equal(Now.AddDays(6).Date, detailSheet.Cell(6, 7).GetDateTime().Date);
+            Assert.Equal("0.0%", detailSheet.Cell(6, 9).Style.NumberFormat.Format);
+        }
+
+        #endregion
+
+        #region Learner Group Summary Tests
+
+        [Fact]
+        public async Task LearnerGroupSummary_ScopesGroups_AndCountsMemberEnrollments()
+        {
+            var groups = new List<LearnerGroup>
+            {
+                new() { Id = 1, Name = "Assembly Team", Description = "Line A", DivisionId = 1, CreatedAt = Now.AddDays(-30) },
+                new() { Id = 2, Name = "Other Division", DivisionId = 2, CreatedAt = Now.AddDays(-20) },
+            };
+            var groupMembers = new List<LearnerGroupMember>
+            {
+                new() { Id = 1, LearnerGroupId = 1, LearnerCode = "EMP001" },
+                new() { Id = 2, LearnerGroupId = 1, LearnerCode = "EMP002" },
+                new() { Id = 3, LearnerGroupId = 2, LearnerCode = "EMP003" },
+            };
+            var assignments = new List<Assignment>
+            {
+                new() { Id = 1, AssignmentNo = "ASG-001", LearnerGroupId = 1, CourseId = 1, DivisionId = 1 },
+                new() { Id = 2, AssignmentNo = "ASG-001", LearnerGroupId = 1, CourseId = 2, DivisionId = 1 },
+                new() { Id = 3, AssignmentNo = "ASG-002", LearnerGroupId = 2, CourseId = 1, DivisionId = 2 },
+            };
+            var enrollments = new List<Enrollment>
+            {
+                new() { Id = 1, LearnerCode = "EMP001", IsCompleted = true, Progress = 100, CourseId = 1 },
+                new() { Id = 2, LearnerCode = "EMP002", IsCompleted = false, Progress = 30, CourseId = 2 },
+                new() { Id = 3, LearnerCode = "EMP003", IsCompleted = true, Progress = 100, CourseId = 1 },
+            };
+            var links = new List<EnrollmentAssignment>
+            {
+                new() { Id = 1, AssignmentId = 1, Assignment = assignments[0], EnrollmentId = 1, Enrollment = enrollments[0], DueDate = Now.AddDays(5) },
+                new() { Id = 2, AssignmentId = 2, Assignment = assignments[1], EnrollmentId = 2, Enrollment = enrollments[1], DueDate = Now.AddDays(-1) },
+                new() { Id = 3, AssignmentId = 3, Assignment = assignments[2], EnrollmentId = 3, Enrollment = enrollments[2], DueDate = Now.AddDays(5) },
+            };
+            enrollments[0].AssignmentLinks.Add(links[0]);
+            enrollments[1].AssignmentLinks.Add(links[1]);
+            enrollments[2].AssignmentLinks.Add(links[2]);
+
+            var service = CreateService(
+                enrollments,
+                links,
+                assignments,
+                [
+                    new Course { Id = 1, Code = "C01", Title = "Course 1", CategoryId = 1 },
+                    new Course { Id = 2, Code = "C02", Title = "Course 2", CategoryId = 1 },
+                ],
+                groupMembers: groupMembers,
+                learnerGroups: groups);
+
+            var result = await service.GetLearnerGroupSummaryReportAsync(1, Now);
+
+            Assert.Equal(1, result.TotalGroups);
+            Assert.Equal(2, result.TotalMembers);
+            Assert.Equal(1, result.GroupsWithAssignments);
+            Assert.Equal(1, result.TotalAssignments);
+            Assert.Equal(2, result.TotalEnrollments);
+            Assert.Equal(50, result.CompletionRate);
+
+            var row = Assert.Single(result.Rows);
+            Assert.Equal(1, row.LearnerGroupId);
+            Assert.Equal("Assembly Team", row.Name);
+            Assert.Equal(2, row.MemberCount);
+            Assert.Equal(1, row.AssignmentCount);
+            Assert.Equal(2, row.CourseCount);
+            Assert.Equal(2, row.EnrollmentCount);
+            Assert.Equal(1, row.CompletedCount);
+            Assert.Equal(1, row.OverdueCount);
+            Assert.Equal(65, row.AvgProgress);
+            Assert.Equal(50, row.CompletionRate);
+        }
+
+        [Fact]
+        public async Task LearnerGroupExport_WorkbookOpens_WithSummaryMembersAndDetailSheets()
+        {
+            var groups = new List<LearnerGroup>
+            {
+                new() { Id = 1, Name = "Assembly Team", Description = "Line A", DivisionId = 1, CreatedAt = Now.AddDays(-30) },
+            };
+            var groupMembers = new List<LearnerGroupMember>
+            {
+                new() { Id = 1, LearnerGroupId = 1, LearnerCode = "EMP001", CreatedAt = Now.AddDays(-25) },
+            };
+            var assignment = new Assignment { Id = 1, AssignmentNo = "ASG-LG", LearnerGroupId = 1, CourseId = 1, DivisionId = 1, CreatedAt = Now.AddDays(-20) };
+            var enrollment = new Enrollment
+            {
+                Id = 1,
+                LearnerCode = "EMP001",
+                IsCompleted = false,
+                Progress = 75,
+                CourseId = 1,
+                StartDate = Now.AddDays(-30),
+                DueDate = Now.AddDays(-10),
+            };
+            var link = new EnrollmentAssignment
+            {
+                Id = 1,
+                AssignmentId = 1,
+                Assignment = assignment,
+                EnrollmentId = 1,
+                Enrollment = enrollment,
+                StartDate = Now.AddDays(-2),
+                DueDate = Now.AddDays(3),
+            };
+            enrollment.AssignmentLinks.Add(link);
+            var learnerMap = new Dictionary<string, ExternalLearnerDto>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["EMP001"] = new() { Code = "EMP001", Name = "Learner One", Division = "DIV-A" },
+            };
+            var service = CreateService(
+                [enrollment], [link], [assignment],
+                [new Course { Id = 1, Code = "C01", Title = "Course 1", CategoryId = 1 }],
+                learnerMap: learnerMap,
+                groupMembers: groupMembers,
+                learnerGroups: groups);
+
+            var workbookBytes = await service.BuildLearnerGroupReportExcelAsync(1, Now, Now.AddDays(10), "en", Now);
+            using var workbook = new XLWorkbook(new MemoryStream(workbookBytes));
+
+            Assert.Equal(3, workbook.Worksheets.Count);
+            Assert.Equal("Group Name", workbook.Worksheet("Summary").Cell(5, 1).GetString());
+            Assert.Equal("Assembly Team", workbook.Worksheet("Members").Cell(6, 1).GetString());
+            var detailSheet = workbook.Worksheet("Detail");
+            Assert.Equal("Assembly Team", detailSheet.Cell(6, 1).GetString());
+            Assert.Equal(Now.AddDays(-2).Date, detailSheet.Cell(6, 6).GetDateTime().Date);
+            Assert.Equal(Now.AddDays(3).Date, detailSheet.Cell(6, 7).GetDateTime().Date);
+            Assert.Equal("0.0%", detailSheet.Cell(6, 9).Style.NumberFormat.Format);
+        }
+
         #endregion
 
         #region Test Infrastructure
@@ -667,7 +910,7 @@ namespace iLearn.Tests
             }
 
             IQueryProvider IQueryable.Provider => Provider;
-            public new IQueryProvider Provider { get; }
+            public IQueryProvider Provider { get; }
 
             public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
             {

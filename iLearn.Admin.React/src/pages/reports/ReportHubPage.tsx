@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { Badge, type BadgeTone } from '../../components/ui/Badge'
-import { ShieldAlert, GraduationCap, BookOpen, Activity, ClipboardList, ArrowRight, BarChart3 } from 'lucide-react'
+import { ShieldAlert, GraduationCap, BookOpen, Activity, ClipboardList, ArrowRight, BarChart3, UsersRound } from 'lucide-react'
 import { REPORT_LABELS, getLang, t, type LabelPair, type UiLang } from '../../lib/labels'
 
 type ReportTone = Exclude<BadgeTone, 'neutral'>
@@ -49,6 +49,14 @@ const reports = [
     icon: ClipboardList,
     tag: REPORT_LABELS.assignmentsTag,
     tone: 'info',
+  },
+  {
+    title: REPORT_LABELS.learnerGroupsTitle,
+    description: REPORT_LABELS.learnerGroupsDesc,
+    path: '/reports/learner-groups',
+    icon: UsersRound,
+    tag: REPORT_LABELS.learnerGroupsTag,
+    tone: 'success',
   },
   {
     title: REPORT_LABELS.activityTitle,

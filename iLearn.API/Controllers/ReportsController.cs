@@ -62,6 +62,46 @@ namespace iLearn.API.Controllers
             return Ok(new { success = true, data = result });
         }
 
+        [HttpGet("assignments/export")]
+        public async Task<IActionResult> ExportAssignments(
+            [FromQuery] DateTime? from,
+            [FromQuery] DateTime? to,
+            [FromQuery] string? lang,
+            CancellationToken cancellationToken)
+        {
+            var now = _dateTime.Now;
+            var bytes = await _reportService.BuildAssignmentReportExcelAsync(
+                _currentUser.DivisionId, from, to, lang, now, cancellationToken);
+            return File(
+                bytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"assignment-report-{now:yyyyMMdd-HHmm}.xlsx");
+        }
+
+        [HttpGet("learner-groups")]
+        public async Task<IActionResult> GetLearnerGroups(CancellationToken cancellationToken)
+        {
+            var result = await _reportService.GetLearnerGroupSummaryReportAsync(
+                _currentUser.DivisionId, _dateTime.Now, cancellationToken);
+            return Ok(new { success = true, data = result });
+        }
+
+        [HttpGet("learner-groups/export")]
+        public async Task<IActionResult> ExportLearnerGroups(
+            [FromQuery] DateTime? from,
+            [FromQuery] DateTime? to,
+            [FromQuery] string? lang,
+            CancellationToken cancellationToken)
+        {
+            var now = _dateTime.Now;
+            var bytes = await _reportService.BuildLearnerGroupReportExcelAsync(
+                _currentUser.DivisionId, from, to, lang, now, cancellationToken);
+            return File(
+                bytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"learner-group-report-{now:yyyyMMdd-HHmm}.xlsx");
+        }
+
         [HttpGet("activity")]
         public async Task<IActionResult> GetActivity([FromQuery] int months = 12, CancellationToken cancellationToken = default)
         {

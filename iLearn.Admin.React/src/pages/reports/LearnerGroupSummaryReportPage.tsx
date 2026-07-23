@@ -1,38 +1,34 @@
 import { useEffect, useMemo, useState, type UIEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowUpDown, Download, ExternalLink, FileSpreadsheet } from 'lucide-react'
-import { Card } from '../../components/ui/Card'
-import { LoadingState } from '../../components/ui/LoadingState'
 import { AppButton } from '../../components/ui/AppButton'
+import { Card } from '../../components/ui/Card'
 import { ListToolbar } from '../../components/ui/ListToolbar'
+import { LoadingState } from '../../components/ui/LoadingState'
 import { ProgressBar } from '../../components/ui/ProgressBar'
-import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
-import { StatusBadge } from '../../components/ui/StatusBadge'
 import { buildApiUrl, fetchWithAccessControl } from '../../lib/apiClient'
 import { exportRowsAsCsv } from '../../lib/csvExport'
 import { downloadBlob, filenameFromContentDisposition } from '../../lib/downloadBlob'
 import { formatDate, formatNumber, formatPercent } from '../../lib/format'
 import { DASHBOARD_LABELS, REPORT_LABELS, UI_LABELS, getLang, learnerStatusLabel, t } from '../../lib/labels'
-import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
+import { DETAIL_TABLE_CHUNK_SIZE, shouldLoadMoreOnScroll } from '../../lib/tableStandards'
 import { toast } from '../../lib/toast'
-import type { AssignmentSummaryReportDto } from './reportTypes'
+import type { LearnerGroupSummaryReportDto } from './reportTypes'
 
 type SortKey =
-  | 'assignmentNo'
+  | 'name'
   | 'description'
   | 'divisionName'
-  | 'status'
-  | 'startDate'
-  | 'dueDate'
+  | 'categoryName'
   | 'createdAt'
+  | 'memberCount'
+  | 'assignmentCount'
   | 'courseCount'
-  | 'learnerCount'
   | 'enrollmentCount'
   | 'completedCount'
   | 'overdueCount'
+  | 'avgProgress'
   | 'completionRate'
-
-const STATUS_FILTERS = ['All', 'InProgress', 'Completed', 'Expired', 'Upcoming'] as const
 
 function compareNullableText(a: string | null | undefined, b: string | null | undefined) {
   return (a ?? '').localeCompare(b ?? '')
@@ -68,13 +64,12 @@ function KpiTile({ label, value, tone = 'slate' }: { label: string; value: strin
   )
 }
 
-export function AssignmentSummaryReportPage() {
+export function LearnerGroupSummaryReportPage() {
   const [loading, setLoading] = useState(true)
-  const [data, setData] = useState<AssignmentSummaryReportDto | null>(null)
+  const [data, setData] = useState<LearnerGroupSummaryReportDto | null>(null)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('All')
-  const [sortKey, setSortKey] = useState<SortKey>('createdAt')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [sortKey, setSortKey] = useState<SortKey>('name')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [visibleRows, setVisibleRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
@@ -83,7 +78,7 @@ export function AssignmentSummaryReportPage() {
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    fetchWithAccessControl<{ success: boolean; data: AssignmentSummaryReportDto }>('Reports/assignments')
+    fetchWithAccessControl<{ success: boolean; data: LearnerGroupSummaryReportDto }>('Reports/learner-groups')
       .then((resp) => {
         if (cancelled) return
         if (resp.success) {
@@ -100,14 +95,14 @@ export function AssignmentSummaryReportPage() {
 
   useEffect(() => {
     setVisibleRows(DETAIL_TABLE_CHUNK_SIZE)
-  }, [search, statusFilter, sortKey, sortOrder, fromDate, toDate])
+  }, [search, sortKey, sortOrder, fromDate, toDate])
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
     } else {
       setSortKey(key)
-      setSortOrder('desc')
+      setSortOrder(key === 'name' ? 'asc' : 'desc')
     }
   }
 
@@ -123,8 +118,8 @@ export function AssignmentSummaryReportPage() {
     return [...data.rows].sort((a, b) => {
       let result: number
       switch (sortKey) {
-        case 'assignmentNo':
-          result = compareNullableText(a.assignmentNo, b.assignmentNo)
+        case 'name':
+          result = compareNullableText(a.name, b.name)
           break
         case 'description':
           result = compareNullableText(a.description, b.description)
@@ -132,14 +127,8 @@ export function AssignmentSummaryReportPage() {
         case 'divisionName':
           result = compareNullableText(a.divisionName, b.divisionName)
           break
-        case 'status':
-          result = compareNullableText(a.status, b.status)
-          break
-        case 'startDate':
-          result = compareNullableDate(a.startDate, b.startDate)
-          break
-        case 'dueDate':
-          result = compareNullableDate(a.dueDate, b.dueDate)
+        case 'categoryName':
+          result = compareNullableText(a.categoryName, b.categoryName)
           break
         case 'createdAt':
           result = compareNullableDate(a.createdAt, b.createdAt)
@@ -153,30 +142,21 @@ export function AssignmentSummaryReportPage() {
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return sortedRows.filter((row) => {
-      if (statusFilter !== 'All' && row.status !== statusFilter) return false
-      if (!isDueDateInRange(row.dueDate, fromDate, toDate)) return false
-      if (!q) return true
-      return [
-        row.assignmentNo,
-        row.description,
-        row.divisionName,
-        learnerStatusLabel(row.status),
-      ]
+    return sortedRows.filter((row) =>
+      isDueDateInRange(row.dueDate, fromDate, toDate)
+      && (!q || [row.name, row.description, row.divisionName, row.categoryName]
         .filter(Boolean)
-        .some((value) => value!.toLowerCase().includes(q))
-    })
-  }, [fromDate, search, sortedRows, statusFilter, toDate])
+        .some((value) => value!.toLowerCase().includes(q))),
+    )
+  }, [fromDate, search, sortedRows, toDate])
 
-  const visibleAssignmentRows = useMemo(
+  const visibleGroupRows = useMemo(
     () => filteredRows.slice(0, visibleRows),
     [filteredRows, visibleRows],
   )
 
   const handleScroll = (event: UIEvent<HTMLDivElement>) => {
-    const target = event.currentTarget
-    const threshold = target.scrollHeight - target.scrollTop - target.clientHeight
-    if (threshold <= 60 && visibleRows < filteredRows.length) {
+    if (visibleRows < filteredRows.length && shouldLoadMoreOnScroll(event.currentTarget)) {
       setVisibleRows((prev) => prev + DETAIL_TABLE_CHUNK_SIZE)
     }
   }
@@ -189,38 +169,38 @@ export function AssignmentSummaryReportPage() {
 
     const header = [
       '#',
-      'Assignment No',
+      'Learner Group',
       'Description',
       'Division',
-      'Status',
+      'Category',
       'Created',
-      'Start Date',
-      'Due Date',
+      'Members',
+      'Assignments',
       'Courses',
-      'Learners',
       'Enrollments',
       'Completed',
       'Overdue',
+      'Average Progress %',
       'Completion %',
     ]
     const body = filteredRows.map((row, index) => [
       index + 1,
-      row.assignmentNo,
+      row.name,
       row.description ?? '',
       row.divisionName ?? '',
-      learnerStatusLabel(row.status),
+      row.categoryName ?? '',
       formatDate(row.createdAt),
-      formatDate(row.startDate),
-      formatDate(row.dueDate),
+      row.memberCount,
+      row.assignmentCount,
       row.courseCount,
-      row.learnerCount,
       row.enrollmentCount,
       row.completedCount,
       row.overdueCount,
+      formatPercent(row.avgProgress).replace('%', ''),
       formatPercent(row.completionRate).replace('%', ''),
     ])
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-    exportRowsAsCsv(`assignment-summary-report-${stamp}.csv`, header, body)
+    exportRowsAsCsv(`learner-group-summary-report-${stamp}.csv`, header, body)
   }
 
   const handleExportExcel = async () => {
@@ -230,14 +210,14 @@ export function AssignmentSummaryReportPage() {
       if (fromDate) params.set('from', fromDate)
       if (toDate) params.set('to', toDate)
       params.set('lang', getLang())
-      const response = await fetch(buildApiUrl(`Reports/assignments/export?${params.toString()}`), {
+      const response = await fetch(buildApiUrl(`Reports/learner-groups/export?${params.toString()}`), {
         credentials: 'include',
         headers: { Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
       })
       if (!response.ok) throw new Error(response.statusText || t(REPORT_LABELS.exportExcelFailed))
 
       const blob = await response.blob()
-      downloadBlob(blob, filenameFromContentDisposition(response.headers.get('content-disposition'), 'assignment-report.xlsx'))
+      downloadBlob(blob, filenameFromContentDisposition(response.headers.get('content-disposition'), 'learner-group-report.xlsx'))
     } catch {
       toast.error(t(REPORT_LABELS.exportExcelFailed))
     } finally {
@@ -265,16 +245,16 @@ export function AssignmentSummaryReportPage() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs sm:grid-cols-3 xl:grid-cols-6">
-        <KpiTile label={t(REPORT_LABELS.csColAssignments)} value={formatNumber(data.totalAssignments)} />
-        <KpiTile label={t(REPORT_LABELS.asgActiveAssignments)} value={formatNumber(data.activeAssignments)} tone="indigo" />
-        <KpiTile label={t(REPORT_LABELS.asgCompletedAssignments)} value={formatNumber(data.completedAssignments)} tone="emerald" />
-        <KpiTile label={t(REPORT_LABELS.asgOverdueAssignments)} value={formatNumber(data.overdueAssignments)} tone="rose" />
-        <KpiTile label={t(REPORT_LABELS.asgTotalEnrollments)} value={formatNumber(data.totalEnrollments)} />
-        <KpiTile label={t(REPORT_LABELS.asgOverallCompletion)} value={formatPercent(data.completionRate)} />
+        <KpiTile label={t(REPORT_LABELS.lgTotalGroups)} value={formatNumber(data.totalGroups)} />
+        <KpiTile label={t(REPORT_LABELS.lgTotalMembers)} value={formatNumber(data.totalMembers)} tone="indigo" />
+        <KpiTile label={t(REPORT_LABELS.lgGroupsWithAssignments)} value={formatNumber(data.groupsWithAssignments)} />
+        <KpiTile label={t(REPORT_LABELS.lgTotalAssignments)} value={formatNumber(data.totalAssignments)} />
+        <KpiTile label={t(REPORT_LABELS.lgTotalEnrollments)} value={formatNumber(data.totalEnrollments)} tone="emerald" />
+        <KpiTile label={t(REPORT_LABELS.lgOverallCompletion)} value={formatPercent(data.completionRate)} />
       </div>
 
       <Card
-        title={t(REPORT_LABELS.asgTitle)}
+        title={t(REPORT_LABELS.lgTitle)}
         className="flex min-h-0 flex-1 flex-col"
         bodyClassName="flex min-h-0 flex-1 flex-col"
         actions={
@@ -291,38 +271,26 @@ export function AssignmentSummaryReportPage() {
         }
       >
         <div className="shrink-0 border-b border-slate-100 bg-slate-50/20 px-5 py-3">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
             <ListToolbar
               searchValue={search}
               onSearchChange={setSearch}
-              searchPlaceholder={t(REPORT_LABELS.asgSearchPlaceholder)}
+              searchPlaceholder={t(REPORT_LABELS.lgSearchPlaceholder)}
             />
-            <div className="flex flex-col gap-2 xl:items-end">
-              <div className="flex flex-wrap items-end gap-2">
-                <label className="flex flex-col gap-1 text-xxs font-bold uppercase text-slate-400">
-                  {t(REPORT_LABELS.filterFromDate)}
-                  <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700" />
-                </label>
-                <label className="flex flex-col gap-1 text-xxs font-bold uppercase text-slate-400">
-                  {t(REPORT_LABELS.filterToDate)}
-                  <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700" />
-                </label>
-                {(fromDate || toDate) && (
-                  <AppButton onClick={clearDateFilter} variant="ghost" size="sm">
-                    {t(REPORT_LABELS.clearDateFilter)}
-                  </AppButton>
-                )}
-              </div>
-              <SegmentedToggle
-                variant="filter"
-                value={statusFilter}
-                onChange={setStatusFilter}
-                options={STATUS_FILTERS.map((status) => ({
-                  value: status,
-                  label: status === 'All' ? t(REPORT_LABELS.asgAllStatuses) : learnerStatusLabel(status),
-                }))}
-                className="overflow-x-auto custom-scrollbar pb-1 xl:pb-0"
-              />
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="flex flex-col gap-1 text-xxs font-bold uppercase text-slate-400">
+                {t(REPORT_LABELS.filterFromDate)}
+                <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700" />
+              </label>
+              <label className="flex flex-col gap-1 text-xxs font-bold uppercase text-slate-400">
+                {t(REPORT_LABELS.filterToDate)}
+                <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700" />
+              </label>
+              {(fromDate || toDate) && (
+                <AppButton onClick={clearDateFilter} variant="ghost" size="sm">
+                  {t(REPORT_LABELS.clearDateFilter)}
+                </AppButton>
+              )}
             </div>
           </div>
         </div>
@@ -332,29 +300,29 @@ export function AssignmentSummaryReportPage() {
             <thead>
               <tr className="sticky top-0 z-10 select-none border-b border-slate-200 bg-slate-50 text-xxs font-bold uppercase text-slate-500 shadow-xs">
                 <th className="w-12 p-3 pl-5 text-center">#</th>
-                <th className="min-w-40 cursor-pointer p-3 transition duration-100 hover:bg-slate-100/70" onClick={() => handleSort('assignmentNo')}>
-                  {t(REPORT_LABELS.asgColAssignmentNo)}{renderSortIndicator('assignmentNo')}
-                </th>
-                <th className="min-w-60 cursor-pointer p-3 transition duration-100 hover:bg-slate-100/70" onClick={() => handleSort('description')}>
-                  {t(REPORT_LABELS.asgColDescription)}{renderSortIndicator('description')}
+                <th className="min-w-56 cursor-pointer p-3 transition duration-100 hover:bg-slate-100/70" onClick={() => handleSort('name')}>
+                  {t(REPORT_LABELS.lgColGroup)}{renderSortIndicator('name')}
                 </th>
                 <th className="min-w-36 cursor-pointer p-3 transition duration-100 hover:bg-slate-100/70" onClick={() => handleSort('divisionName')}>
                   {t(REPORT_LABELS.colDivision)}{renderSortIndicator('divisionName')}
                 </th>
-                <th className="min-w-32 cursor-pointer p-3 text-center transition duration-100 hover:bg-slate-100/70" onClick={() => handleSort('status')}>
-                  {t(DASHBOARD_LABELS.colStatus)}{renderSortIndicator('status')}
+                <th className="min-w-40 cursor-pointer p-3 transition duration-100 hover:bg-slate-100/70" onClick={() => handleSort('categoryName')}>
+                  {t(REPORT_LABELS.lgColCategory)}{renderSortIndicator('categoryName')}
                 </th>
-                <th className="min-w-48 cursor-pointer p-3 transition duration-100 hover:bg-slate-100/70" onClick={() => handleSort('dueDate')}>
-                  {t(REPORT_LABELS.asgColSchedule)}{renderSortIndicator('dueDate')}
+                <th className="w-24 cursor-pointer p-3 text-center transition duration-100 hover:bg-slate-100/70" onClick={() => handleSort('memberCount')}>
+                  {t(REPORT_LABELS.lgColMembers)}{renderSortIndicator('memberCount')}
+                </th>
+                <th className="w-24 cursor-pointer p-3 text-center transition duration-100 hover:bg-slate-100/70" onClick={() => handleSort('assignmentCount')}>
+                  {t(REPORT_LABELS.lgColAssignments)}{renderSortIndicator('assignmentCount')}
                 </th>
                 <th className="w-24 cursor-pointer p-3 text-center transition duration-100 hover:bg-slate-100/70" onClick={() => handleSort('courseCount')}>
-                  {t(REPORT_LABELS.asgColCourses)}{renderSortIndicator('courseCount')}
-                </th>
-                <th className="w-24 cursor-pointer p-3 text-center transition duration-100 hover:bg-slate-100/70" onClick={() => handleSort('learnerCount')}>
-                  {t(DASHBOARD_LABELS.colLearners)}{renderSortIndicator('learnerCount')}
+                  {t(REPORT_LABELS.lgColCourses)}{renderSortIndicator('courseCount')}
                 </th>
                 <th className="w-28 cursor-pointer p-3 text-center transition duration-100 hover:bg-slate-100/70" onClick={() => handleSort('enrollmentCount')}>
-                  {t(REPORT_LABELS.asgColEnrollments)}{renderSortIndicator('enrollmentCount')}
+                  {t(REPORT_LABELS.lgColEnrollments)}{renderSortIndicator('enrollmentCount')}
+                </th>
+                <th className="min-w-36 cursor-pointer p-3 transition duration-100 hover:bg-slate-100/70" onClick={() => handleSort('avgProgress')}>
+                  {t(REPORT_LABELS.lgColAvgProgress)}{renderSortIndicator('avgProgress')}
                 </th>
                 <th className="min-w-36 cursor-pointer p-3 transition duration-100 hover:bg-slate-100/70" onClick={() => handleSort('completionRate')}>
                   {t(REPORT_LABELS.colCompletionShare)}{renderSortIndicator('completionRate')}
@@ -363,33 +331,35 @@ export function AssignmentSummaryReportPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
-              {visibleAssignmentRows.map((row, index) => (
-                <tr key={row.assignmentId} className="transition duration-100 hover:bg-slate-50/50">
+              {visibleGroupRows.map((row, index) => (
+                <tr key={row.learnerGroupId} className="transition duration-100 hover:bg-slate-50/50">
                   <td className="p-3 pl-5 text-center text-xs font-semibold tabular-nums text-slate-400">
                     {index + 1}
                   </td>
-                  <td className="p-3 text-xs font-mono font-bold text-slate-800 select-all">
-                    {row.assignmentNo}
-                  </td>
                   <td className="p-3 text-xs font-semibold text-slate-700">
-                    <div className="max-w-sm truncate" title={row.description ?? undefined}>{row.description || '-'}</div>
+                    <div className="max-w-sm truncate font-bold text-slate-800" title={row.name}>{row.name}</div>
+                    <div className="mt-0.5 max-w-sm truncate text-xxs font-semibold text-slate-400" title={row.description ?? undefined}>
+                      {row.description || '-'}
+                    </div>
                     <div className="mt-0.5 text-xxs font-semibold text-slate-400">
                       {t(REPORT_LABELS.asgColCreated)} {formatDate(row.createdAt)}
                     </div>
+                    <div className="mt-0.5 text-xxs font-semibold text-slate-400">
+                      {t(REPORT_LABELS.filterToDate)} {formatDate(row.dueDate)}
+                    </div>
                   </td>
                   <td className="p-3 text-xs font-semibold text-slate-500">{row.divisionName || '-'}</td>
-                  <td className="p-3 text-center text-xs">
-                    <StatusBadge size="xxs">{learnerStatusLabel(row.status)}</StatusBadge>
-                  </td>
-                  <td className="p-3 text-xs font-semibold text-slate-500">
-                    <div>{formatDate(row.startDate)}</div>
-                    <div className="mt-0.5 text-xxs text-slate-400">{formatDate(row.dueDate)}</div>
-                  </td>
+                  <td className="p-3 text-xs font-semibold text-slate-500">{row.categoryName || '-'}</td>
+                  <td className="p-3 text-center text-xs font-semibold tabular-nums">{formatNumber(row.memberCount)}</td>
+                  <td className="p-3 text-center text-xs font-semibold tabular-nums">{formatNumber(row.assignmentCount)}</td>
                   <td className="p-3 text-center text-xs font-semibold tabular-nums">{formatNumber(row.courseCount)}</td>
-                  <td className="p-3 text-center text-xs font-semibold tabular-nums">{formatNumber(row.learnerCount)}</td>
                   <td className="p-3 text-center text-xs font-semibold tabular-nums">
                     <div>{formatNumber(row.enrollmentCount)}</div>
                     {row.overdueCount > 0 && <div className="text-xxs font-bold text-rose-600">{formatNumber(row.overdueCount)} {learnerStatusLabel('Overdue')}</div>}
+                  </td>
+                  <td className="p-3 text-xs">
+                    <ProgressBar value={row.avgProgress} maxWidthClass="max-w-36" />
+                    <div className="mt-1 text-xxs font-semibold text-slate-400">{formatPercent(row.avgProgress)}</div>
                   </td>
                   <td className="p-3 text-xs">
                     <ProgressBar value={row.completionRate} completed={row.completionRate >= 100} maxWidthClass="max-w-36" />
@@ -398,8 +368,8 @@ export function AssignmentSummaryReportPage() {
                     </div>
                   </td>
                   <td className="p-3 pr-5 text-right text-xs font-bold text-indigo-700">
-                    <Link to={`/assignments/${row.assignmentId}/report`} className="inline-flex items-center justify-end gap-1 hover:text-indigo-900">
-                      {t(REPORT_LABELS.asgOpenBatchReport)}
+                    <Link to={`/learner-groups/${row.learnerGroupId}`} className="inline-flex items-center justify-end gap-1 hover:text-indigo-900">
+                      {t(REPORT_LABELS.lgOpenGroup)}
                       <ExternalLink className="h-3 w-3" aria-hidden="true" />
                     </Link>
                   </td>
@@ -419,10 +389,10 @@ export function AssignmentSummaryReportPage() {
         {filteredRows.length > 0 && (
           <div className="flex shrink-0 items-center justify-between border-t border-slate-100 bg-slate-50/50 px-5 py-2.5 text-xs font-medium text-slate-500">
             <span>
-              {t(REPORT_LABELS.rowsShowing)} <strong className="tabular-nums text-slate-800">{visibleAssignmentRows.length}</strong> {t(REPORT_LABELS.rowsOf)}{' '}
+              {t(REPORT_LABELS.rowsShowing)} <strong className="tabular-nums text-slate-800">{visibleGroupRows.length}</strong> {t(REPORT_LABELS.rowsOf)}{' '}
               <strong className="tabular-nums text-slate-800">{filteredRows.length}</strong> {t(REPORT_LABELS.rowsUnit)}
             </span>
-            {visibleAssignmentRows.length < filteredRows.length && (
+            {visibleGroupRows.length < filteredRows.length && (
               <span className="flex items-center gap-1 text-xxs font-semibold text-indigo-600">
                 {t(UI_LABELS.scrollToLoadMore)}
               </span>

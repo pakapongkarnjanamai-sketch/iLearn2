@@ -436,6 +436,206 @@ namespace iLearn.Application.Services
             };
         }
 
+        public async Task<LearnerGroupSummaryReportDto> GetLearnerGroupSummaryReportAsync(
+            int? divisionId, DateTime currentDate, CancellationToken cancellationToken = default)
+        {
+            var groupRows = await _learnerGroupRepo.GetQuery()
+                .AsNoTracking()
+                .Where(g => !divisionId.HasValue || g.DivisionId == divisionId.Value)
+                .Select(g => new
+                {
+                    g.Id,
+                    g.Name,
+                    g.Description,
+                    g.CreatedAt,
+                    DivisionName = g.Division != null ? g.Division.Name : null,
+                    CategoryName = g.Category != null ? g.Category.Name : null,
+                })
+                .ToListAsync(cancellationToken);
+
+            if (groupRows.Count == 0)
+            {
+                return new LearnerGroupSummaryReportDto { GeneratedAt = currentDate };
+            }
+
+            var groupIds = groupRows.Select(row => row.Id).ToList();
+            var memberRows = await _learnerGroupMemberRepo.GetQuery()
+                .AsNoTracking()
+                .Where(member => groupIds.Contains(member.LearnerGroupId))
+                .Select(member => new
+                {
+                    member.LearnerGroupId,
+                    member.LearnerCode,
+                })
+                .ToListAsync(cancellationToken);
+
+            var learnerCodes = memberRows
+                .Select(row => row.LearnerCode)
+                .Where(code => !string.IsNullOrWhiteSpace(code))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var visibleEnrollments = learnerCodes.Count == 0
+                ? new List<EnrollmentReportRow>()
+                : await BuildVisibleEnrollmentRowsQuery(divisionId)
+                    .Where(enrollment => learnerCodes.Contains(enrollment.LearnerCode))
+                    .ToListAsync(cancellationToken);
+
+            var assignmentRows = await _assignmentRepo.GetQuery()
+                .AsNoTracking()
+                .Where(assignment => assignment.LearnerGroupId.HasValue && groupIds.Contains(assignment.LearnerGroupId.Value))
+                .Where(assignment => !divisionId.HasValue || assignment.DivisionId == divisionId.Value)
+                .Select(assignment => new
+                {
+                    LearnerGroupId = assignment.LearnerGroupId!.Value,
+                    assignment.Id,
+                    assignment.AssignmentNo,
+                })
+                .ToListAsync(cancellationToken);
+
+            var rows = groupRows
+                .Select(group =>
+                {
+                    var groupMembers = memberRows
+                        .Where(member => member.LearnerGroupId == group.Id)
+                        .Select(member => member.LearnerCode)
+                        .Where(code => !string.IsNullOrWhiteSpace(code))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+                    var memberSet = groupMembers.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    var groupEnrollments = visibleEnrollments
+                        .Where(enrollment => memberSet.Contains(enrollment.LearnerCode))
+                        .ToList();
+                    var groupAssignments = assignmentRows
+                        .Where(assignment => assignment.LearnerGroupId == group.Id)
+                        .Select(assignment => string.IsNullOrWhiteSpace(assignment.AssignmentNo)
+                            ? $"assignment:{assignment.Id}"
+                            : assignment.AssignmentNo!)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Count();
+                    var completedCount = groupEnrollments.Count(enrollment => enrollment.IsCompleted);
+
+                    return new LearnerGroupSummaryRow
+                    {
+                        LearnerGroupId = group.Id,
+                        Name = group.Name,
+                        Description = group.Description,
+                        DivisionName = group.DivisionName,
+                        CategoryName = group.CategoryName,
+                        CreatedAt = group.CreatedAt,
+                        MemberCount = groupMembers.Count,
+                        AssignmentCount = groupAssignments,
+                        CourseCount = groupEnrollments
+                            .Where(enrollment => enrollment.CourseId.HasValue)
+                            .Select(enrollment => enrollment.CourseId!.Value)
+                            .Distinct()
+                            .Count(),
+                        DueDate = groupEnrollments.Any(enrollment => enrollment.DueDate.HasValue)
+                            ? groupEnrollments
+                                .Where(enrollment => enrollment.DueDate.HasValue)
+                                .Max(enrollment => enrollment.DueDate)
+                            : null,
+                        EnrollmentCount = groupEnrollments.Count,
+                        CompletedCount = completedCount,
+                        OverdueCount = groupEnrollments.Count(enrollment => !enrollment.IsCompleted && enrollment.DueDate.HasValue && enrollment.DueDate.Value < currentDate),
+                        AvgProgress = groupEnrollments.Count == 0 ? 0 : groupEnrollments.Average(enrollment => enrollment.Progress),
+                        CompletionRate = groupEnrollments.Count == 0 ? 0 : (double)completedCount / groupEnrollments.Count * 100,
+                    };
+                })
+                .OrderBy(row => row.Name)
+                .ToList();
+
+            var totalEnrollments = rows.Sum(row => row.EnrollmentCount);
+            var totalCompleted = rows.Sum(row => row.CompletedCount);
+
+            return new LearnerGroupSummaryReportDto
+            {
+                GeneratedAt = currentDate,
+                TotalGroups = rows.Count,
+                TotalMembers = rows.Sum(row => row.MemberCount),
+                GroupsWithAssignments = rows.Count(row => row.AssignmentCount > 0),
+                TotalAssignments = rows.Sum(row => row.AssignmentCount),
+                TotalEnrollments = totalEnrollments,
+                CompletionRate = totalEnrollments == 0 ? 0 : (double)totalCompleted / totalEnrollments * 100,
+                Rows = rows,
+            };
+        }
+
+        public async Task<AssignmentReportExportDto> GetAssignmentReportExportAsync(
+            int? divisionId, DateTime? from, DateTime? to, DateTime currentDate, CancellationToken cancellationToken = default)
+        {
+            var normalizedFrom = NormalizeDate(from);
+            var normalizedTo = NormalizeDate(to);
+            var summary = await GetAssignmentSummaryReportAsync(divisionId, currentDate, cancellationToken);
+            summary.Rows = summary.Rows
+                .Where(row => IsDueDateInRange(row.DueDate, normalizedFrom, normalizedTo))
+                .ToList();
+
+            var detailRows = await BuildAssignmentExportDetailRowsAsync(
+                divisionId, summary.Rows, normalizedFrom, normalizedTo, currentDate, cancellationToken);
+
+            ApplyAssignmentExportDetailCounts(summary, detailRows, currentDate);
+
+            return new AssignmentReportExportDto
+            {
+                GeneratedAt = currentDate,
+                From = normalizedFrom,
+                To = normalizedTo,
+                Summary = summary,
+                DetailRows = detailRows,
+            };
+        }
+
+        public async Task<LearnerGroupReportExportDto> GetLearnerGroupReportExportAsync(
+            int? divisionId, DateTime? from, DateTime? to, DateTime currentDate, CancellationToken cancellationToken = default)
+        {
+            var normalizedFrom = NormalizeDate(from);
+            var normalizedTo = NormalizeDate(to);
+            var hasDateFilter = normalizedFrom.HasValue || normalizedTo.HasValue;
+            var summary = await GetLearnerGroupSummaryReportAsync(divisionId, currentDate, cancellationToken);
+            var candidateGroupIds = summary.Rows.Select(row => row.LearnerGroupId).ToList();
+
+            var detailRows = await BuildLearnerGroupExportDetailRowsAsync(
+                divisionId, candidateGroupIds, normalizedFrom, normalizedTo, currentDate, cancellationToken);
+
+            var includedGroupIds = hasDateFilter
+                ? detailRows.Select(row => row.LearnerGroupId).Distinct().ToHashSet()
+                : candidateGroupIds.ToHashSet();
+
+            summary.Rows = summary.Rows
+                .Where(row => includedGroupIds.Contains(row.LearnerGroupId))
+                .ToList();
+
+            ApplyLearnerGroupExportDetailCounts(summary, detailRows);
+
+            var memberRows = await BuildLearnerGroupExportMemberRowsAsync(
+                summary.Rows.Select(row => row.LearnerGroupId).ToList(), cancellationToken);
+
+            return new LearnerGroupReportExportDto
+            {
+                GeneratedAt = currentDate,
+                From = normalizedFrom,
+                To = normalizedTo,
+                Summary = summary,
+                MemberRows = memberRows,
+                DetailRows = detailRows,
+            };
+        }
+
+        public async Task<byte[]> BuildAssignmentReportExcelAsync(
+            int? divisionId, DateTime? from, DateTime? to, string? lang, DateTime currentDate, CancellationToken cancellationToken = default)
+        {
+            var export = await GetAssignmentReportExportAsync(divisionId, from, to, currentDate, cancellationToken);
+            return ReportExcelBuilder.BuildAssignmentWorkbook(export, lang);
+        }
+
+        public async Task<byte[]> BuildLearnerGroupReportExcelAsync(
+            int? divisionId, DateTime? from, DateTime? to, string? lang, DateTime currentDate, CancellationToken cancellationToken = default)
+        {
+            var export = await GetLearnerGroupReportExportAsync(divisionId, from, to, currentDate, cancellationToken);
+            return ReportExcelBuilder.BuildLearnerGroupWorkbook(export, lang);
+        }
+
 
         public async Task<ActivityReportDto> GetActivityReportAsync(
             int months, int? divisionId, CancellationToken cancellationToken = default)
@@ -533,6 +733,350 @@ namespace iLearn.Application.Services
             public DateTime? StartDate { get; init; }
             public DateTime? DueDate { get; init; }
             public DateTime? CompletedDate { get; init; }
+        }
+
+        private async Task<List<AssignmentReportDetailRow>> BuildAssignmentExportDetailRowsAsync(
+            int? divisionId,
+            IReadOnlyCollection<AssignmentSummaryRow> summaryRows,
+            DateTime? from,
+            DateTime? to,
+            DateTime currentDate,
+            CancellationToken cancellationToken)
+        {
+            if (summaryRows.Count == 0)
+            {
+                return [];
+            }
+
+            var assignmentRows = await _assignmentRepo.GetQuery()
+                .AsNoTracking()
+                .Where(assignment => !divisionId.HasValue || assignment.DivisionId == divisionId.Value)
+                .Select(assignment => new
+                {
+                    assignment.Id,
+                    assignment.AssignmentNo,
+                })
+                .ToListAsync(cancellationToken);
+
+            var includedFirstAssignmentIds = summaryRows.Select(row => row.AssignmentId).ToHashSet();
+            var includedBatchKeys = assignmentRows
+                .Where(row => includedFirstAssignmentIds.Contains(row.Id))
+                .Select(row => GetAssignmentBatchKey(row.Id, row.AssignmentNo))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var includedAssignmentIds = assignmentRows
+                .Where(row => includedBatchKeys.Contains(GetAssignmentBatchKey(row.Id, row.AssignmentNo)))
+                .Select(row => row.Id)
+                .ToList();
+
+            if (includedAssignmentIds.Count == 0)
+            {
+                return [];
+            }
+
+            var assignmentMap = assignmentRows.ToDictionary(row => row.Id);
+            var linkRows = await _enrollmentAssignmentRepo.GetQuery()
+                .AsNoTracking()
+                .Where(link => includedAssignmentIds.Contains(link.AssignmentId) && link.Enrollment != null)
+                .Select(link => new
+                {
+                    link.AssignmentId,
+                    link.EnrollmentId,
+                })
+                .ToListAsync(cancellationToken);
+
+            var enrollmentIds = linkRows.Select(row => row.EnrollmentId).Distinct().ToList();
+            if (enrollmentIds.Count == 0)
+            {
+                return [];
+            }
+
+            var enrollmentRows = await BuildVisibleEnrollmentRowsQuery(divisionId)
+                .Where(enrollment => enrollmentIds.Contains(enrollment.Id))
+                .ToListAsync(cancellationToken);
+            var enrollmentMap = enrollmentRows.ToDictionary(row => row.Id);
+            var learnerMap = await LoadLearnerMapAsync(enrollmentRows.Select(row => row.LearnerCode));
+
+            return linkRows
+                .Select(row =>
+                {
+                    if (!enrollmentMap.TryGetValue(row.EnrollmentId, out var enrollment))
+                    {
+                        return null;
+                    }
+
+                    if (!IsDueDateInRange(enrollment.DueDate, from, to))
+                    {
+                        return null;
+                    }
+
+                    assignmentMap.TryGetValue(row.AssignmentId, out var assignment);
+                    learnerMap.TryGetValue(enrollment.LearnerCode, out var learner);
+                    return new AssignmentReportDetailRow
+                    {
+                        AssignmentNo = BuildAssignmentDisplayNo(row.AssignmentId, assignment?.AssignmentNo),
+                        LearnerCode = enrollment.LearnerCode,
+                        LearnerName = learner?.Name,
+                        LearnerDivision = learner?.Division,
+                        CourseCode = enrollment.CourseCode,
+                        CourseTitle = enrollment.CourseTitle,
+                        StartDate = enrollment.StartDate,
+                        DueDate = enrollment.DueDate,
+                        Status = AssignmentStatusKeys.GetScheduledLearnerStatus(
+                            enrollment.IsCompleted, enrollment.Progress, enrollment.StartDate, enrollment.DueDate, currentDate),
+                        Progress = enrollment.Progress,
+                        CompletedDate = enrollment.CompletedDate,
+                        DaysOverdue = GetDaysOverdue(enrollment.IsCompleted, enrollment.DueDate, currentDate),
+                    };
+                })
+                .Where(row => row != null)
+                .Cast<AssignmentReportDetailRow>()
+                .OrderBy(row => row.AssignmentNo)
+                .ThenBy(row => row.LearnerCode)
+                .ThenBy(row => row.CourseTitle)
+                .ToList();
+        }
+
+        private async Task<List<LearnerGroupReportMemberRow>> BuildLearnerGroupExportMemberRowsAsync(
+            IReadOnlyCollection<int> learnerGroupIds,
+            CancellationToken cancellationToken)
+        {
+            if (learnerGroupIds.Count == 0)
+            {
+                return [];
+            }
+
+            var groupMap = await _learnerGroupRepo.GetQuery()
+                .AsNoTracking()
+                .Where(group => learnerGroupIds.Contains(group.Id))
+                .Select(group => new { group.Id, group.Name })
+                .ToDictionaryAsync(group => group.Id, cancellationToken);
+            var memberRows = await _learnerGroupMemberRepo.GetQuery()
+                .AsNoTracking()
+                .Where(member => learnerGroupIds.Contains(member.LearnerGroupId))
+                .Select(member => new
+                {
+                    member.LearnerGroupId,
+                    member.LearnerCode,
+                    member.CreatedAt,
+                })
+                .ToListAsync(cancellationToken);
+            var learnerMap = await LoadLearnerMapAsync(memberRows.Select(row => row.LearnerCode));
+
+            return memberRows
+                .Select(row =>
+                {
+                    groupMap.TryGetValue(row.LearnerGroupId, out var group);
+                    learnerMap.TryGetValue(row.LearnerCode, out var learner);
+                    return new LearnerGroupReportMemberRow
+                    {
+                        LearnerGroupId = row.LearnerGroupId,
+                        GroupName = group?.Name ?? string.Empty,
+                        LearnerCode = row.LearnerCode,
+                        LearnerName = learner?.Name,
+                        LearnerDivision = learner?.Division,
+                        CreatedAt = row.CreatedAt,
+                    };
+                })
+                .OrderBy(row => row.GroupName)
+                .ThenBy(row => row.LearnerCode)
+                .ToList();
+        }
+
+        private async Task<List<LearnerGroupReportDetailRow>> BuildLearnerGroupExportDetailRowsAsync(
+            int? divisionId,
+            IReadOnlyCollection<int> learnerGroupIds,
+            DateTime? from,
+            DateTime? to,
+            DateTime currentDate,
+            CancellationToken cancellationToken)
+        {
+            if (learnerGroupIds.Count == 0)
+            {
+                return [];
+            }
+
+            var groupMap = await _learnerGroupRepo.GetQuery()
+                .AsNoTracking()
+                .Where(group => learnerGroupIds.Contains(group.Id))
+                .Select(group => new { group.Id, group.Name })
+                .ToDictionaryAsync(group => group.Id, cancellationToken);
+            var memberRows = await _learnerGroupMemberRepo.GetQuery()
+                .AsNoTracking()
+                .Where(member => learnerGroupIds.Contains(member.LearnerGroupId))
+                .Select(member => new
+                {
+                    member.LearnerGroupId,
+                    member.LearnerCode,
+                })
+                .ToListAsync(cancellationToken);
+            var learnerCodes = memberRows
+                .Select(row => row.LearnerCode)
+                .Where(code => !string.IsNullOrWhiteSpace(code))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (learnerCodes.Count == 0)
+            {
+                return [];
+            }
+
+            var enrollmentRows = await BuildVisibleEnrollmentRowsQuery(divisionId)
+                .Where(enrollment => learnerCodes.Contains(enrollment.LearnerCode))
+                .ToListAsync(cancellationToken);
+            var enrollmentsByLearner = enrollmentRows.ToLookup(row => row.LearnerCode, StringComparer.OrdinalIgnoreCase);
+            var learnerMap = await LoadLearnerMapAsync(learnerCodes);
+
+            return memberRows
+                .SelectMany(member => enrollmentsByLearner[member.LearnerCode]
+                    .Where(enrollment => IsDueDateInRange(enrollment.DueDate, from, to))
+                    .Select(enrollment =>
+                    {
+                        groupMap.TryGetValue(member.LearnerGroupId, out var group);
+                        learnerMap.TryGetValue(member.LearnerCode, out var learner);
+                        return new LearnerGroupReportDetailRow
+                        {
+                            LearnerGroupId = member.LearnerGroupId,
+                            GroupName = group?.Name ?? string.Empty,
+                            LearnerCode = member.LearnerCode,
+                            LearnerName = learner?.Name,
+                            CourseCode = enrollment.CourseCode,
+                            CourseTitle = enrollment.CourseTitle,
+                            AssignmentNo = enrollment.AssignmentNo,
+                            StartDate = enrollment.StartDate,
+                            DueDate = enrollment.DueDate,
+                            Status = AssignmentStatusKeys.GetScheduledLearnerStatus(
+                                enrollment.IsCompleted, enrollment.Progress, enrollment.StartDate, enrollment.DueDate, currentDate),
+                            Progress = enrollment.Progress,
+                            CompletedDate = enrollment.CompletedDate,
+                            DaysOverdue = GetDaysOverdue(enrollment.IsCompleted, enrollment.DueDate, currentDate),
+                        };
+                    }))
+                .OrderBy(row => row.GroupName)
+                .ThenBy(row => row.LearnerCode)
+                .ThenBy(row => row.CourseTitle)
+                .ToList();
+        }
+
+        private async Task<Dictionary<string, ExternalLearnerDto>> LoadLearnerMapAsync(IEnumerable<string> learnerCodes)
+        {
+            var codes = learnerCodes
+                .Where(code => !string.IsNullOrWhiteSpace(code))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            return codes.Count == 0
+                ? new Dictionary<string, ExternalLearnerDto>(StringComparer.OrdinalIgnoreCase)
+                : await _learnerApiService.GetLearnersByCodesAsync(codes);
+        }
+
+        private static void ApplyAssignmentExportDetailCounts(
+            AssignmentSummaryReportDto summary,
+            IReadOnlyCollection<AssignmentReportDetailRow> detailRows,
+            DateTime currentDate)
+        {
+            var detailsByAssignment = detailRows.ToLookup(row => row.AssignmentNo, StringComparer.OrdinalIgnoreCase);
+            foreach (var row in summary.Rows)
+            {
+                var rows = detailsByAssignment[row.AssignmentNo].ToList();
+                row.LearnerCount = rows.Select(detail => detail.LearnerCode).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+                row.CourseCount = rows
+                    .Select(detail => !string.IsNullOrWhiteSpace(detail.CourseCode) ? detail.CourseCode : detail.CourseTitle)
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Count();
+                row.EnrollmentCount = rows.Count;
+                row.CompletedCount = rows.Count(detail => detail.Status == AssignmentStatusKeys.Learner.Completed);
+                row.OverdueCount = rows.Count(detail => detail.DaysOverdue > 0);
+                row.CompletionRate = rows.Count == 0 ? 0 : (double)row.CompletedCount / rows.Count * 100;
+                row.Status = AssignmentStatusKeys.GetBatchStatus(
+                    rows.Count > 0,
+                    rows.Count > 0 && row.CompletedCount == rows.Count,
+                    row.StartDate,
+                    row.DueDate,
+                    currentDate);
+            }
+
+            summary.TotalAssignments = summary.Rows.Count;
+            summary.ActiveAssignments = summary.Rows.Count(row => row.Status == AssignmentStatusKeys.Batch.InProgress);
+            summary.CompletedAssignments = summary.Rows.Count(row => row.Status == AssignmentStatusKeys.Batch.Completed);
+            summary.OverdueAssignments = summary.Rows.Count(row => row.Status == AssignmentStatusKeys.Batch.Expired);
+            summary.TotalLearners = detailRows.Select(row => row.LearnerCode).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+            summary.TotalEnrollments = detailRows.Count;
+            summary.CompletionRate = detailRows.Count == 0
+                ? 0
+                : (double)detailRows.Count(row => row.Status == AssignmentStatusKeys.Learner.Completed) / detailRows.Count * 100;
+        }
+
+        private static void ApplyLearnerGroupExportDetailCounts(
+            LearnerGroupSummaryReportDto summary,
+            IReadOnlyCollection<LearnerGroupReportDetailRow> detailRows)
+        {
+            var detailsByGroup = detailRows.ToLookup(row => row.LearnerGroupId);
+            foreach (var row in summary.Rows)
+            {
+                var rows = detailsByGroup[row.LearnerGroupId].ToList();
+                row.CourseCount = rows
+                    .Select(detail => !string.IsNullOrWhiteSpace(detail.CourseCode) ? detail.CourseCode : detail.CourseTitle)
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Count();
+                row.EnrollmentCount = rows.Count;
+                row.CompletedCount = rows.Count(detail => detail.Status == AssignmentStatusKeys.Learner.Completed);
+                row.OverdueCount = rows.Count(detail => detail.DaysOverdue > 0);
+                row.AvgProgress = rows.Count == 0 ? 0 : rows.Average(detail => detail.Progress);
+                row.CompletionRate = rows.Count == 0 ? 0 : (double)row.CompletedCount / rows.Count * 100;
+                row.DueDate = rows.Any(detail => detail.DueDate.HasValue)
+                    ? rows.Where(detail => detail.DueDate.HasValue).Max(detail => detail.DueDate)
+                    : null;
+            }
+
+            summary.TotalGroups = summary.Rows.Count;
+            summary.TotalMembers = summary.Rows.Sum(row => row.MemberCount);
+            summary.GroupsWithAssignments = summary.Rows.Count(row => row.AssignmentCount > 0);
+            summary.TotalAssignments = summary.Rows.Sum(row => row.AssignmentCount);
+            summary.TotalEnrollments = detailRows.Count;
+            summary.CompletionRate = detailRows.Count == 0
+                ? 0
+                : (double)detailRows.Count(row => row.Status == AssignmentStatusKeys.Learner.Completed) / detailRows.Count * 100;
+        }
+
+        private static DateTime? NormalizeDate(DateTime? value)
+        {
+            return value?.Date;
+        }
+
+        private static bool IsDueDateInRange(DateTime? dueDate, DateTime? from, DateTime? to)
+        {
+            if (!from.HasValue && !to.HasValue)
+            {
+                return true;
+            }
+
+            if (!dueDate.HasValue)
+            {
+                return false;
+            }
+
+            var dueDateValue = dueDate.Value.Date;
+            return (!from.HasValue || dueDateValue >= from.Value.Date)
+                && (!to.HasValue || dueDateValue <= to.Value.Date);
+        }
+
+        private static string GetAssignmentBatchKey(int assignmentId, string? assignmentNo)
+        {
+            return string.IsNullOrWhiteSpace(assignmentNo) ? $"assignment:{assignmentId}" : assignmentNo!;
+        }
+
+        private static string BuildAssignmentDisplayNo(int assignmentId, string? assignmentNo)
+        {
+            return string.IsNullOrWhiteSpace(assignmentNo) ? $"Assignment {assignmentId}" : assignmentNo!;
+        }
+
+        private static int GetDaysOverdue(bool isCompleted, DateTime? dueDate, DateTime currentDate)
+        {
+            return !isCompleted && dueDate.HasValue && dueDate.Value.Date < currentDate.Date
+                ? (int)(currentDate.Date - dueDate.Value.Date).TotalDays
+                : 0;
         }
 
         /// <summary>

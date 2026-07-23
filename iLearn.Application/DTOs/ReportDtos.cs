@@ -125,6 +125,100 @@ namespace iLearn.Application.DTOs
         public string Status { get; set; } = string.Empty;
     }
 
+    public class AssignmentReportExportDto
+    {
+        public DateTime GeneratedAt { get; set; }
+        public DateTime? From { get; set; }
+        public DateTime? To { get; set; }
+        public AssignmentSummaryReportDto Summary { get; set; } = new();
+        public List<AssignmentReportDetailRow> DetailRows { get; set; } = new();
+    }
+
+    public class AssignmentReportDetailRow
+    {
+        public string AssignmentNo { get; set; } = string.Empty;
+        public string LearnerCode { get; set; } = string.Empty;
+        public string? LearnerName { get; set; }
+        public string? LearnerDivision { get; set; }
+        public string? CourseCode { get; set; }
+        public string? CourseTitle { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? DueDate { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public double Progress { get; set; }
+        public DateTime? CompletedDate { get; set; }
+        public int DaysOverdue { get; set; }
+    }
+
+    // ── GET api/Reports/learner-groups ──
+    public class LearnerGroupSummaryReportDto
+    {
+        public DateTime GeneratedAt { get; set; }
+        public int TotalGroups { get; set; }
+        public int TotalMembers { get; set; }
+        public int GroupsWithAssignments { get; set; }
+        public int TotalAssignments { get; set; }
+        public int TotalEnrollments { get; set; }
+        public double CompletionRate { get; set; }
+        public List<LearnerGroupSummaryRow> Rows { get; set; } = new();
+    }
+
+    public class LearnerGroupSummaryRow
+    {
+        public int LearnerGroupId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? DivisionName { get; set; }
+        public string? CategoryName { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? DueDate { get; set; }
+        public int MemberCount { get; set; }
+        public int AssignmentCount { get; set; }
+        public int CourseCount { get; set; }
+        public int EnrollmentCount { get; set; }
+        public int CompletedCount { get; set; }
+        public int OverdueCount { get; set; }
+        public double AvgProgress { get; set; }
+        public double CompletionRate { get; set; }
+    }
+
+    public class LearnerGroupReportExportDto
+    {
+        public DateTime GeneratedAt { get; set; }
+        public DateTime? From { get; set; }
+        public DateTime? To { get; set; }
+        public LearnerGroupSummaryReportDto Summary { get; set; } = new();
+        public List<LearnerGroupReportMemberRow> MemberRows { get; set; } = new();
+        public List<LearnerGroupReportDetailRow> DetailRows { get; set; } = new();
+    }
+
+    public class LearnerGroupReportMemberRow
+    {
+        public int LearnerGroupId { get; set; }
+        public string GroupName { get; set; } = string.Empty;
+        public string LearnerCode { get; set; } = string.Empty;
+        public string? LearnerName { get; set; }
+        public string? LearnerDivision { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class LearnerGroupReportDetailRow
+    {
+        public int LearnerGroupId { get; set; }
+        public string GroupName { get; set; } = string.Empty;
+        public string LearnerCode { get; set; } = string.Empty;
+        public string? LearnerName { get; set; }
+        public string? CourseCode { get; set; }
+        public string? CourseTitle { get; set; }
+        public string? AssignmentNo { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? DueDate { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public double Progress { get; set; }
+        public DateTime? CompletedDate { get; set; }
+        public int DaysOverdue { get; set; }
+    }
+
 
     // ── GET api/Reports/activity?months=12 ──
     public class ActivityReportDto
