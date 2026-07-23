@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import {
   GraduationCap,
   Printer,
   Search,
   BookOpen,
-  ArrowLeft,
   X,
   UserCheck,
 } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
-import { SectionHeader } from '../../components/ui/SectionHeader'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { ProgressBar } from '../../components/ui/ProgressBar'
@@ -93,11 +91,19 @@ export function TranscriptReportPage() {
     return filteredTranscriptRows.slice(0, visibleRows)
   }, [filteredTranscriptRows, visibleRows])
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    const threshold = target.scrollHeight - target.scrollTop - target.clientHeight
+    if (threshold <= 60 && visibleRows < filteredTranscriptRows.length) {
+      setVisibleRows((prev) => prev + DETAIL_TABLE_CHUNK_SIZE)
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const trimmed = inputCode.trim()
     if (!trimmed) {
-      toast.info('Please enter a learner code')
+      toast.info('กรุณากรอกรหัสพนักงานเพื่อค้นหา')
       return
     }
     setSearchParams({ code: trimmed })
@@ -119,72 +125,66 @@ export function TranscriptReportPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Top Header with Navigation & Search Bar */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
-        <div className="flex flex-col gap-2">
-          <Link
-            to="/reports"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 w-fit transition-colors"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Back to Report Hub</span>
-          </Link>
-          <SectionHeader icon={GraduationCap}>Learner Transcript</SectionHeader>
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Enter learner code (EId)..."
-              value={inputCode}
-              onChange={(e) => setInputCode(e.target.value)}
-              className="appearance-none rounded-lg border border-slate-200 bg-white pl-3 pr-8 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 focus:outline-none focus:border-indigo-500 w-56 shadow-xs"
-            />
-            {inputCode && (
-              <button
-                type="button"
-                onClick={handleClearSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                title="Clear search"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
+    <div className="h-full flex flex-col min-h-0 gap-5 overflow-auto custom-scrollbar">
+      {/* Search Header Card */}
+      <Card
+        title="Learner Transcript / ค้นหาประวัติการเรียนรายบุคคล"
+        icon={GraduationCap}
+        className="shrink-0 print:hidden"
+        actions={
+          <form onSubmit={handleSubmit} className="flex items-center gap-2">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="กรอกรหัสพนักงาน (EId)..."
+                value={inputCode}
+                onChange={(e) => setInputCode(e.target.value)}
+                className="appearance-none rounded-lg border border-slate-200 bg-white pl-3 pr-8 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 focus:outline-none focus:border-indigo-500 w-56 shadow-xs"
+              />
+              {inputCode && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  title="ล้างคำค้นหา"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            <AppButton type="submit" size="sm" icon={Search}>
+              ค้นหา
+            </AppButton>
+          </form>
+        }
+      >
+        {!hasSearched && (
+          <div className="p-8 text-center text-slate-400 font-medium flex flex-col items-center justify-center gap-2.5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+              <UserCheck className="h-6 w-6" />
+            </div>
+            <div className="text-sm font-bold text-slate-700">ค้นหาและพิมพ์ประวัติการเรียน (Transcript)</div>
+            <div className="text-xs text-slate-500 max-w-md leading-relaxed">
+              กรุณากรอกรหัสพนักงาน (เช่น EId) ในช่องค้นหาด้านบน เพื่อดึงและตรวจสอบประวัติการฝึกอบรมทั้งหมดของผู้เรียน
+            </div>
           </div>
-          <AppButton type="submit" size="sm" icon={Search}>
-            Search
-          </AppButton>
-        </form>
-      </div>
+        )}
+      </Card>
 
-      {loading && <LoadingState label="Searching learner transcript..." />}
+      {loading && <LoadingState label="กำลังค้นหาประวัติการเรียน..." />}
 
       {!loading && error && (
         <NotFoundState
-          title="Learner Not Found"
-          message={`No transcript record found for code "${codeParam}". Please verify the employee directory.`}
+          title="ไม่พบข้อมูลผู้เรียน"
+          message={`ไม่พบประวัติการเรียนสำหรับรหัส "${codeParam}" กรุณาตรวจสอบรหัสพนักงานอีกครั้ง`}
           backTo="/reports"
-          backLabel="Back to Reports"
+          backLabel="กลับไปยังศูนย์รวมรายงาน"
           tone="danger"
         />
       )}
 
-      {!loading && !hasSearched && !error && (
-        <Card bodyClassName="p-12 text-center text-slate-400 font-medium flex flex-col items-center justify-center gap-3 print:hidden">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-            <UserCheck className="h-7 w-7" />
-          </div>
-          <div className="text-sm font-bold text-slate-700">Search Learner Transcript</div>
-          <div className="text-xs text-slate-500 max-w-md leading-relaxed">
-            Please enter a valid learner code (e.g. employee EId) in the search box above to generate and inspect their complete training history.
-          </div>
-        </Card>
-      )}
-
       {!loading && data && !error && (
-        <div className="flex flex-col gap-6">
+        <div className="flex-1 flex flex-col min-h-0 gap-5">
           {/* Printable Transcript Header (only visible when printing) */}
           <div className="hidden print:block mb-4 pb-4 border-b border-slate-200">
             <h1 className="text-xl font-bold text-slate-900">Official Learner Training Transcript</h1>
@@ -194,27 +194,27 @@ export function TranscriptReportPage() {
           </div>
 
           {/* Learner Information Card */}
-          <Card title="Learner Information" icon={GraduationCap} className="relative">
+          <Card title="Learner Information / ข้อมูลผู้เรียน" icon={GraduationCap} className="relative shrink-0">
             <div className="absolute top-3.5 right-4 print:hidden">
               <AppButton onClick={handlePrint} icon={Printer} variant="secondary" size="sm">
-                Print Transcript
+                พิมพ์ใบทรานสคริปต์ (Print)
               </AppButton>
             </div>
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-700">
               <div className="flex flex-col gap-3">
                 <div>
-                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">Learner Name</span>
+                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">ชื่อผู้เรียน (Learner Name)</span>
                   <span className="text-sm font-extrabold text-slate-800">{data.learnerName || '—'}</span>
                 </div>
                 <div>
-                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">Learner Code</span>
+                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">รหัสพนักงาน (Learner Code)</span>
                   <span className="font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded text-xs inline-block">
                     {data.learnerCode}
                   </span>
                 </div>
                 {data.learnerGroups && data.learnerGroups.length > 0 && (
                   <div>
-                    <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">Groups</span>
+                    <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">กลุ่มผู้เรียน (Learner Groups)</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {data.learnerGroups.map((g) => (
                         <Badge key={g} tone="neutral" variant="soft">
@@ -228,22 +228,22 @@ export function TranscriptReportPage() {
 
               <div className="flex flex-col gap-3">
                 <div>
-                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">Division</span>
+                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">สายงาน (Division)</span>
                   <span className="text-slate-800 font-semibold">{data.division || '—'}</span>
                 </div>
                 <div>
-                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">Department</span>
+                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">ฝ่าย (Department)</span>
                   <span className="text-slate-800 font-semibold">{data.department || '—'}</span>
                 </div>
                 <div>
-                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">Completion Rate</span>
+                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">อัตราเรียนสำเร็จ (Completion Rate)</span>
                   <div className="flex items-center gap-2 mt-1">
                     <ProgressBar
                       value={data.totalCourses > 0 ? (data.completedCourses / data.totalCourses) * 100 : 0}
                       completed={data.completedCourses === data.totalCourses && data.totalCourses > 0}
                     />
                     <span className="text-xxs font-bold text-slate-600 tabular-nums">
-                      {data.completedCourses} of {data.totalCourses} completed ({data.totalCourses > 0 ? formatPercent((data.completedCourses / data.totalCourses) * 100) : '—'})
+                      เรียนสำเร็จ {data.completedCourses} จาก {data.totalCourses} คอร์ส ({data.totalCourses > 0 ? formatPercent((data.completedCourses / data.totalCourses) * 100) : '—'})
                     </span>
                   </div>
                 </div>
@@ -252,25 +252,33 @@ export function TranscriptReportPage() {
           </Card>
 
           {/* Training Records Card */}
-          <Card title="Training Records" icon={BookOpen}>
-            <div className="border-b border-slate-100 bg-slate-50/20 px-5 print:hidden">
+          <Card
+            title="Training Records / ประวัติการเรียนรู้"
+            icon={BookOpen}
+            className="flex-1 flex flex-col min-h-64"
+            bodyClassName="flex-1 flex flex-col min-h-0"
+          >
+            <div className="border-b border-slate-100 bg-slate-50/20 px-5 shrink-0 print:hidden">
               <ListToolbar
                 searchValue={recordSearch}
                 onSearchChange={setRecordSearch}
-                searchPlaceholder="Filter transcript by course code, title or status..."
+                searchPlaceholder="กรองประวัติการเรียนด้วยรหัสคอร์ส, ชื่อคอร์ส หรือสถานะ..."
               />
             </div>
 
-            <div className="overflow-x-auto custom-scrollbar">
+            <div
+              onScroll={handleScroll}
+              className="flex-1 overflow-x-auto overflow-y-auto min-h-0 custom-scrollbar"
+            >
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
-                    <th className="p-3 pl-5">Course Code & Title</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Progress</th>
-                    <th className="p-3 text-center">Score</th>
-                    <th className="p-3 text-center">Time Spent</th>
-                    <th className="p-3 pr-5">Timeline</th>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs sticky top-0 z-10 shadow-xs">
+                    <th className="p-3 pl-5">คอร์สเรียน (Course Code & Title)</th>
+                    <th className="p-3">สถานะ (Status)</th>
+                    <th className="p-3">ความก้าวหน้า (Progress)</th>
+                    <th className="p-3 text-center">คะแนน (Score)</th>
+                    <th className="p-3 text-center">เวลาที่ใช้ (Time Spent)</th>
+                    <th className="p-3 pr-5">ช่วงเวลา (Timeline)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -297,16 +305,16 @@ export function TranscriptReportPage() {
                         {formatDuration(row.totalTimeSpentSeconds)}
                       </td>
                       <td className="p-3 pr-5 text-xxs text-slate-500 leading-relaxed font-semibold">
-                        {row.startDate && <div>Started: {formatDate(row.startDate)}</div>}
-                        {row.dueDate && <div className="mt-0.5">Due: {formatDate(row.dueDate)}</div>}
-                        {row.completedDate && <div className="mt-0.5 text-emerald-600">Completed: {formatDate(row.completedDate)}</div>}
+                        {row.startDate && <div>เริ่มเรียน: {formatDate(row.startDate)}</div>}
+                        {row.dueDate && <div className="mt-0.5">กำหนดส่ง: {formatDate(row.dueDate)}</div>}
+                        {row.completedDate && <div className="mt-0.5 text-emerald-600">สำเร็จเมื่อ: {formatDate(row.completedDate)}</div>}
                       </td>
                     </tr>
                   ))}
                   {filteredTranscriptRows.length === 0 && (
                     <tr>
                       <td colSpan={6} className="p-6 text-center text-slate-400 text-xs font-medium">
-                        No enrollment history found for this learner
+                        ไม่พบประวัติการเรียนสำหรับผู้เรียนรายนี้
                       </td>
                     </tr>
                   )}
@@ -314,15 +322,18 @@ export function TranscriptReportPage() {
               </table>
             </div>
 
-            {filteredTranscriptRows.length > visibleTranscriptRows.length && (
-              <div className="border-t border-slate-100 p-3 text-center print:hidden">
-                <AppButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setVisibleRows((v) => v + DETAIL_TABLE_CHUNK_SIZE)}
-                >
-                  Load more
-                </AppButton>
+            {/* Footer showing row count & infinite scroll status */}
+            {filteredTranscriptRows.length > 0 && (
+              <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-2.5 text-xs text-slate-500 font-medium flex items-center justify-between shrink-0 print:hidden">
+                <span>
+                  แสดงข้อมูล <strong className="text-slate-800 tabular-nums">{visibleTranscriptRows.length}</strong> จาก{' '}
+                  <strong className="text-slate-800 tabular-nums">{filteredTranscriptRows.length}</strong> รายการ
+                </span>
+                {visibleTranscriptRows.length < filteredTranscriptRows.length && (
+                  <span className="text-xxs text-indigo-600 font-semibold flex items-center gap-1">
+                    เลื่อนลงเพื่อดูรายการเพิ่มเติม (Scroll down to load more)
+                  </span>
+                )}
               </div>
             )}
           </Card>
@@ -331,3 +342,4 @@ export function TranscriptReportPage() {
     </div>
   )
 }
+

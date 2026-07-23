@@ -2,7 +2,15 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
-## [2026-07-23 —] GitHub Copilot — commit + deploy QA/PROD (Antigravity course summary UX changes)
+## [2026-07-23 —] Antigravity — Standardize All Report Pages Design, Thai Localization & Infinite Scroll
+- ทำอะไร: ปรับปรุงโครงสร้าง UI หน้ารายงานทั้งหมดใน `iLearn.Admin.React/src/pages/reports` (`ComplianceReportPage.tsx`, `ActivityReportPage.tsx`, `TranscriptReportPage.tsx`) ให้มีมาตรฐานรูปแบบเดียวกับหน้า `CourseSummaryReportPage.tsx`: (1) ปรับ Layout เป็นแบบ Full-height Screen (`h-full flex flex-col min-h-0`) ขยายพื้นที่ตารางพอดีกรอบหน้าจอ (2) ปรับเปลี่ยนข้อความ ชื่อหัวตาราง ป้ายปุ่ม ป้ายสถานะ และช่องค้นหาเป็นภาษาไทยที่เข้าใจง่าย (3) ยกเลิกปุ่ม Load More โดยเปลี่ยนใช้ **Infinite Scroll** โหลดรายการในตารางเมื่อเลื่อนลงขอบล่าง พร้อมส่วนแสดงสถานะจำนวนรายการที่ด้านล่างตาราง (4) รวมปุ่ม Export CSV และปุ่มเปลี่ยนช่วงเวลาไว้ใน Card header อย่างเป็นระเบียบ
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/reports/ComplianceReportPage.tsx`, `iLearn.Admin.React/src/pages/reports/ActivityReportPage.tsx`, `iLearn.Admin.React/src/pages/reports/TranscriptReportPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: `npm run lint` ผ่าน 0 errors, `npm run build` ผ่าน 0 errors (built in 1.49s)
+- ทำอะไร: ปรับปรุงหน้า `CourseSummaryReportPage.tsx` (`/reports/courses`): (1) ยกเลิกคอลัมน์ `Completion Rate` และ `Avg Score` ออกจากตารางและไฟล์ Export CSV ตามคำสั่งผู้ใช้ ทำให้เหลือ 10 คอลัมน์ที่สะอาดตาขึ้น (2) ปรับ Layout ตารางให้ใช้ `h-full flex flex-col min-h-0` ขยายความสูงเต็มพื้นที่หน้าจอพอดีกรอบ Viewport โดยอัตโนมัติ (3) ลบ Modal คำอธิบายที่ไม่ได้ใช้ออกเพื่อ clean up โค้ด
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/reports/CourseSummaryReportPage.tsx`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: `npm run lint` ผ่าน 0 errors, `npm run build` ผ่าน 0 errors (built in 1.48s)
 - ทำอะไร: Verify + commit + deploy งานของ Antigravity (course summary infinite scroll / remove KPI header / ReportHub Thai localization). **§0 Verify**: `npm run lint` ✓, `npm run build` ✓ (1.41s), `dotnet test` 242/242 ✓, no pending migrations. **§1 Commit**: `a11dc73` "feat(reports): course summary infinite scroll + remove KPI header cards; report hub Thai localization" (3 files changed, 56 ins / 165 del). **§2 QA deploy**: API stamp `20260723081121` → `\\AP-NTC2138-QAWB\wwwroot\iLearn\Service` ✓; React robocopy ExitCode:3 → `\\AP-NTC2138-QAWB\wwwroot\iLearn\admin-react` ✓. **§3 PROD deploy**: API stamp `20260723081307` health check HTTP 401 ✓ → `\\ap-ntc2137-prwb\wwwroot\iLearn\Service`; React robocopy ExitCode:3 → `\\ap-ntc2137-prwb\wwwroot\iLearn\admin-react` ✓.
 - ไฟล์หลักที่แตะ: `DOC/AGENT_LOG.md`; server-side: QA + PROD API + admin-react deploy
 - Contract ที่เปลี่ยน: ไม่มี

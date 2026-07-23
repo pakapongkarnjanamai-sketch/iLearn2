@@ -2,19 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Download,
   ArrowUpDown,
-  Info,
-  Percent,
-  Layers,
 } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
 import { LoadingState } from '../../components/ui/LoadingState'
-import { ProgressBar } from '../../components/ui/ProgressBar'
 import { Badge } from '../../components/ui/Badge'
 import { AppButton } from '../../components/ui/AppButton'
 import { ListToolbar } from '../../components/ui/ListToolbar'
-import { Modal } from '../../components/ui/Modal'
 import { fetchWithAccessControl } from '../../lib/apiClient'
-import { formatPercent, formatNumber } from '../../lib/format'
+import { formatNumber } from '../../lib/format'
 import { exportRowsAsCsv } from '../../lib/csvExport'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 import { toast } from '../../lib/toast'
@@ -30,17 +25,14 @@ type SortKey =
   | 'enrolledLearners'
   | 'completedCount'
   | 'overdueCount'
-  | 'completionRate'
-  | 'avgScore'
 
 export function CourseSummaryReportPage() {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<CourseSummaryReportDto | null>(null)
   const [search, setSearch] = useState('')
-  const [sortKey, setSortKey] = useState<SortKey>('completionRate')
+  const [sortKey, setSortKey] = useState<SortKey>('enrolledLearners')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [visibleRows, setVisibleRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
-  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -137,8 +129,6 @@ export function CourseSummaryReportPage() {
       'Enrolled Learners',
       'Completed Count',
       'Overdue Count',
-      'Completion Rate %',
-      'Avg Score',
     ]
     const body = data.rows.map((r, idx) => [
       idx + 1,
@@ -151,8 +141,6 @@ export function CourseSummaryReportPage() {
       r.enrolledLearners,
       r.completedCount,
       r.overdueCount,
-      formatPercent(r.completionRate).replace('%', ''),
-      r.avgScore !== null && r.avgScore !== undefined ? formatNumber(r.avgScore) : '',
     ])
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
     exportRowsAsCsv(`course-summary-report-${stamp}.csv`, header, body)
@@ -171,10 +159,12 @@ export function CourseSummaryReportPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="h-full flex flex-col min-h-0">
       {/* Courses Performance List with Scroller Grid */}
       <Card
         title="Course Completion Summary"
+        className="flex-1 flex flex-col min-h-0"
+        bodyClassName="flex-1 flex flex-col min-h-0"
         actions={
           data.rows.length > 0 && (
             <AppButton
@@ -188,7 +178,7 @@ export function CourseSummaryReportPage() {
           )
         }
       >
-        <div className="border-b border-slate-100 bg-slate-50/20 px-5">
+        <div className="border-b border-slate-100 bg-slate-50/20 px-5 shrink-0">
           <ListToolbar
             searchValue={search}
             onSearchChange={setSearch}
@@ -196,10 +186,10 @@ export function CourseSummaryReportPage() {
           />
         </div>
 
-        {/* Scroller Grid container with max-height, custom scrollbar, and infinite scroll handler */}
+        {/* Scroller Grid container flexing height to fit screen */}
         <div
           onScroll={handleScroll}
-          className="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar"
+          className="flex-1 overflow-x-auto overflow-y-auto min-h-0 custom-scrollbar"
         >
           <table className="w-full text-left text-sm border-collapse">
             <thead>
@@ -259,22 +249,6 @@ export function CourseSummaryReportPage() {
                 >
                   Overdue{renderSortIndicator('overdueCount')}
                 </th>
-                <th
-                  className="p-3 cursor-pointer hover:bg-slate-100/70 transition duration-100 min-w-44"
-                  onClick={() => handleSort('completionRate')}
-                >
-                  <div className="flex items-center gap-1" onClick={(e) => { e.stopPropagation(); setIsHelpModalOpen(true); }}>
-                    <span>Completion Rate</span>
-                    <Info className="h-3 w-3 text-slate-400 hover:text-indigo-600" />
-                    {renderSortIndicator('completionRate')}
-                  </div>
-                </th>
-                <th
-                  className="p-3 text-center cursor-pointer hover:bg-slate-100/70 transition duration-100"
-                  onClick={() => handleSort('avgScore')}
-                >
-                  Avg Score{renderSortIndicator('avgScore')}
-                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -318,22 +292,11 @@ export function CourseSummaryReportPage() {
                       {row.overdueCount}
                     </span>
                   </td>
-                  <td className="p-3 min-w-44">
-                    <div className="flex items-center gap-3">
-                      <ProgressBar value={row.completionRate} completed={row.completionRate >= 100} maxWidthClass="max-w-24" />
-                      <span className="text-xxs font-bold text-slate-500 tabular-nums">
-                        {formatPercent(row.completionRate)}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="p-3 text-center text-xs font-semibold tabular-nums">
-                    {row.avgScore !== null && row.avgScore !== undefined ? formatNumber(row.avgScore) : '—'}
-                  </td>
                 </tr>
               ))}
               {filteredRows.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="p-6 text-center text-slate-400 text-xs font-medium">
+                  <td colSpan={10} className="p-6 text-center text-slate-400 text-xs font-medium">
                     No course records found
                   </td>
                 </tr>
@@ -344,7 +307,7 @@ export function CourseSummaryReportPage() {
 
         {/* Footer showing row count & infinite scroll status */}
         {filteredRows.length > 0 && (
-          <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-2.5 text-xs text-slate-500 font-medium flex items-center justify-between">
+          <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-2.5 text-xs text-slate-500 font-medium flex items-center justify-between shrink-0">
             <span>
               Showing <strong className="text-slate-800 tabular-nums">{visibleCourseRows.length}</strong> of{' '}
               <strong className="text-slate-800 tabular-nums">{filteredRows.length}</strong> courses
@@ -357,81 +320,8 @@ export function CourseSummaryReportPage() {
           </div>
         )}
       </Card>
-
-      {/* Metrics Guide Help Popup Modal */}
-      <Modal
-        open={isHelpModalOpen}
-        onClose={() => setIsHelpModalOpen(false)}
-        title="Course Metrics Guide / คำอธิบายตัววัดสถิติ"
-        size="lg"
-      >
-        <div className="p-6 flex flex-col gap-6 text-xs text-slate-700 leading-relaxed max-h-[75vh] overflow-y-auto custom-scrollbar">
-          {/* Section 1: Completion Rate */}
-          <div className="p-4 rounded-xl bg-indigo-50/50 border border-indigo-100 flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-indigo-700 font-extrabold text-sm">
-              <Percent className="h-4 w-4" />
-              <span>Completion Rate (%) — อัตราผู้เรียนสำเร็จ</span>
-            </div>
-            <p className="text-slate-600">
-              วัดจากสัดส่วนเปอร์เซ็นต์ของผู้เรียนที่ <strong>เรียนจบตามเกณฑ์ 100% (Completed)</strong> แล้ว
-              เปรียบเทียบกับจำนวนผู้เรียนทั้งหมดที่ถูกมอบหมายในคอร์สนั้น (เป็นตัววัดการเรียนสำเร็จหลักคอลัมน์เดียวของตาราง)
-            </p>
-            <div className="bg-white p-2.5 rounded-lg border border-indigo-100 font-mono text-xxs font-bold text-indigo-800">
-              สูตรคำนวณ: (จำนวนผู้เรียนที่สำเร็จ ÷ จำนวนผู้เรียนทั้งหมดที่ถูกมอบหมาย) × 100
-            </div>
-          </div>
-
-          {/* Section 2: Overall Completion Rate */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-slate-800 font-extrabold text-sm">
-              <Layers className="h-4 w-4 text-indigo-600" />
-              <span>Overall Completion Rate — อัตราเรียนสำเร็จรวมภาพรวม</span>
-            </div>
-            <p className="text-slate-600">
-              แสดงอัตราการเรียนสำเร็จรวมของทุกคอร์สในระบบเปรียบเทียบกับจำนวนผู้เรียนที่ถูกลงทะเบียนทั้งหมด
-            </p>
-          </div>
-
-          {/* Section 3: Example */}
-          <div className="border border-amber-200 bg-amber-50/40 rounded-xl p-4 flex flex-col gap-3">
-            <h4 className="font-bold text-amber-900 text-xs uppercase tracking-wider">
-              💡 ตัวอย่างการคิดคำนวณ Completion Rate
-            </h4>
-            <p className="text-amber-800 leading-relaxed">
-              สมมติคอร์ส A มีผู้เรียนถูกมอบหมายทั้งหมด <strong>100 คน</strong>:
-              <br />
-              • เรียนสำเร็จ 100% แล้ว: <strong>75 คน</strong>
-              <br />
-              • ยังเรียนไม่สำเร็จ (กำลังเรียนอยู่ หรือ เกินกำหนด): <strong>25 คน</strong>
-              <br />
-              $\rightarrow$ ค่า <strong>Completion Rate</strong> ของคอร์ส A จะเท่ากับ <strong>75.0%</strong>
-            </p>
-          </div>
-
-          {/* Section 4: Other Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-3.5 rounded-lg border border-slate-200 bg-white">
-              <span className="font-bold text-slate-800 block mb-1">Overdue Count</span>
-              <p className="text-slate-500 text-xxs leading-relaxed">
-                จำนวนผู้เรียนที่เกินกำหนดวันส่งงาน/วันสิ้นสุดการเรียน (Due Date) แต่ยังเรียนไม่สำเร็จ
-              </p>
-            </div>
-            <div className="p-3.5 rounded-lg border border-slate-200 bg-white">
-              <span className="font-bold text-slate-800 block mb-1">Avg Score</span>
-              <p className="text-slate-500 text-xxs leading-relaxed">
-                คะแนนสอบ/แบบทดสอบเฉลี่ยของผู้เรียนทุกคนที่มีผลคะแนนในคอร์สนั้น
-              </p>
-            </div>
-          </div>
-
-          <div className="flex justify-end pt-2">
-            <AppButton onClick={() => setIsHelpModalOpen(false)} variant="primary" size="sm">
-              Got It / เข้าใจแล้ว
-            </AppButton>
-          </div>
-        </div>
-      </Modal>
     </div>
   )
 }
+
 
