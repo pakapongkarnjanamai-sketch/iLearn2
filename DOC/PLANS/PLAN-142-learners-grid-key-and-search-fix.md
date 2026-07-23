@@ -50,9 +50,12 @@
 
 - `npm run lint` ✓ · `npm run build` ✓
 - `dotnet build iLearn.Tests -o artifacts\verify-test` ✓ · `dotnet test` → **274/274 passed** ✓
+- Commit: `147232c` (`fix(admin-react,api): repair learners grid and report hub`)
+- QA deploy: API stamp `20260723153749` ✓ · Admin React `RobocopyExitCode=3` ✓ · smoke `/admin-react/` 200, `/` 200, anonymous session 401, Learners page 1/page 2 loaded (20 + 20 rows), Thai name/NID filters 200 total 1 ✓
+- PROD deploy: API stamp `20260723154022` ✓ · Admin React `RobocopyExitCode=3` ✓ · smoke `/admin-react/` 200, `/` 200, anonymous session 401, Learners page 1/page 2 loaded (20 + 20 rows), Thai name/NID filters 200 total 1 ✓
 
 ## ข้อจำกัด / หมายเหตุ
 
 - **Legacy provider (dev default):** legacy external grid ไม่มี field ชื่อไทย ⇒ คอลัมน์ใหม่จะว่าง และ filter `NID`/`ThaiFirstName` บน legacy proxy อาจ 500 (ข้อจำกัดเดิม) — กระทบเฉพาะ dev ที่รัน `Provider: "Legacy"`; QA/PROD เป็น EmployeeHub ทั้งคู่
-- ยังไม่ได้ smoke บน browser จริง — บั๊ก scroll reproduce ได้เฉพาะ data จาก EmployeeHub (dev local เป็น Legacy ที่มี Id จริง) ⇒ **ต้อง deploy (full API publish + admin-react) แล้ว smoke บน QA→PROD**: เปิด `/admin-react/learners`, scroll จนแถวเพิ่มเกิน page แรก (footer X of Y ขยับ), ค้นหาชื่อไทย/NID, ตรวจ console 0 errors
+- Smoke หลัง deploy ใช้ HTTP/authenticated endpoint checks แทน browser automation: ยืนยัน SPA shell, route `/admin-react/reports`, Learners paging (`skip=0` และ `skip=20`) และ filter ชื่อไทย/NID บน QA/PROD แล้ว
 - ไม่มี migration ใหม่

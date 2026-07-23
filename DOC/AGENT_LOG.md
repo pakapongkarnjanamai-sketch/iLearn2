@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-23 —] GitHub Copilot — Commit `147232c` + deploy PLAN-142/Reports Hub to QA/PROD
+- ทำอะไร: commit งานพร้อมขึ้นเป็น `147232c` (`fix(admin-react,api): repair learners grid and report hub`) แล้ว deploy ทั้ง API + Admin React ไป QA และ PROD. QA API stamp `20260723153749` health `/Service/api/admin/session/me` = 401 attempt แรก, Admin React copy สำเร็จ (`RobocopyExitCode=3`). PROD API stamp `20260723154022` health 401 attempt แรก, Admin React copy สำเร็จ (`RobocopyExitCode=3`)
+- Smoke QA/PROD: `/admin-react/` = 200, `/` = 200, anonymous `/Service/api/admin/session/me` = 401; Learners `Get?skip=0&take=20` total `8044`, page 1 = 20 rows, page 2 = 20 rows, payload มี `thaiFirstName` + `nid`; filter `thaiFirstName contains โมโตฮิสะ` = 200/total 1 และ `nid contains a5521` = 200/total 1 ทั้ง QA และ PROD; `/admin-react/reports` = 200 ทั้ง QA/PROD
+- ไฟล์หลักที่แตะ: deploy docs/log only after commit — `DOC/AGENT_LOG.md`, `DOC/PLANS/PLAN-142-learners-grid-key-and-search-fix.md`
+- Contract ที่เปลี่ยน: ไม่มีเพิ่มเติมจาก `147232c` (PLAN-142 additive Learners grid fields ถูก deploy แล้ว)
+- Verified: pre-commit `npm run lint` ✓, `npm run build` ✓, `dotnet build iLearn.Tests -o artifacts\verify-test` ✓, `dotnet test artifacts\verify-test\iLearn.Tests.dll` = 274/274 ✓; QA/PROD deploy + smoke ✓
+
 ## [2026-07-23 —] GitHub Copilot — Reports Hub refactor
 - ทำอะไร: refactor หน้า Reports Hub ให้ metadata รายงานเป็น config คงที่นอก render, แยก `ReportTile` component สำหรับการ์ดรายงาน, ใช้ type `LucideIcon`/`BadgeTone` ชัดเจน, รวม class สีราย tone ไว้ที่เดียว และปรับ layout/spacing/focus/hover ให้คมขึ้นโดยยังใช้ `Card`, `Badge`, `SectionHeader`, label dictionary และ route เดิมทั้งหมด
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/reports/ReportHubPage.tsx`, `DOC/AGENT_LOG.md`
