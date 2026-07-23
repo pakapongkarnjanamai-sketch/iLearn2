@@ -5,6 +5,7 @@ import { ProgressBar } from '../ui/ProgressBar'
 import { useConfirm } from '../ui/ConfirmDialog'
 import { formatBytes, formatPercent } from '../../lib/format'
 import type { UploadPhase } from '../../lib/apiClient'
+import { ADMIN_LABELS, t } from '../../lib/labels'
 
 type UploadProgressOverlayProps = {
   phase: UploadPhase
@@ -30,8 +31,8 @@ export function UploadProgressOverlay({
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault()
-      e.returnValue = 'Upload is in progress. Are you sure you want to leave?'
-      return 'Upload is in progress. Are you sure you want to leave?'
+      e.returnValue = t(ADMIN_LABELS.uploadInProgressLeave)
+      return t(ADMIN_LABELS.uploadInProgressLeave)
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => {
@@ -42,10 +43,7 @@ export function UploadProgressOverlay({
   const handleCancelClick = async () => {
     setIsCancelling(true)
     const confirmed = await confirm({
-      title: 'Cancel Upload',
-      message: 'Are you sure you want to cancel the SCORM package upload?',
-      confirmLabel: 'Yes, Cancel',
-      cancelLabel: 'No, Keep Uploading',
+      title: t(ADMIN_LABELS.cancelUpload), message: t(ADMIN_LABELS.cancelUploadConfirm), confirmLabel: t(ADMIN_LABELS.yesCancel), cancelLabel: t(ADMIN_LABELS.noKeepUploading),
       danger: true,
     })
     setIsCancelling(false)
@@ -70,7 +68,7 @@ export function UploadProgressOverlay({
           {/* Title and Metadata */}
           <div className="text-center w-full">
             <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wide">
-              {phase === 'uploading' ? 'Uploading Content' : 'Processing on Server'}
+              {t(phase === 'uploading' ? ADMIN_LABELS.uploadingContent : ADMIN_LABELS.processingOnServer)}
             </h3>
             <p className="text-xs text-slate-500 font-bold mt-1 max-w-full truncate px-4 select-all" title={fileName}>
               {fileName}
@@ -94,7 +92,7 @@ export function UploadProgressOverlay({
 
             {phase === 'processing' && (
               <p className="text-xs font-semibold text-indigo-500 text-center animate-pulse leading-relaxed">
-                Processing on server — extracting & validating SCORM package...
+                {t(ADMIN_LABELS.processingScorm)}
               </p>
             )}
           </div>
@@ -108,7 +106,7 @@ export function UploadProgressOverlay({
                 onClick={handleCancelClick}
                 disabled={isCancelling}
               >
-                Cancel Upload
+                {t(ADMIN_LABELS.cancelUpload)}
               </AppButton>
             </div>
           )}
@@ -116,7 +114,7 @@ export function UploadProgressOverlay({
           {/* Caution Message */}
           <div className="text-center mt-1">
             <p className="text-[11px] font-semibold text-slate-400 leading-relaxed">
-              Please do not close or refresh this page.
+              {t(ADMIN_LABELS.doNotClose)}
             </p>
           </div>
         </div>

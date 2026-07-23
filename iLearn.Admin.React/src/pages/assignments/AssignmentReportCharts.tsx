@@ -11,7 +11,7 @@ import {
 } from 'recharts'
 import { STATUS_COLORS, BRAND, tooltipStyle, axisStyle } from '../../lib/chartTheme'
 import { formatPercent } from '../../lib/format'
-import { LEARNER_STATUS_KEYS, learnerStatusLabel } from '../../lib/labels'
+import { ASSIGNMENT_LABELS, LEARNER_STATUS_KEYS, learnerStatusLabel, t, tf } from '../../lib/labels'
 
 type StatusEntry = { status: string; label: string; count: number }
 
@@ -24,7 +24,7 @@ type StatusDonutProps = {
 export function StatusDonut({ data, completionRate, activeStatus }: StatusDonutProps) {
   const filtered = data.filter(d => d.count > 0)
   if (filtered.length === 0) {
-    return <EmptyChart label="No enrollments" />
+    return <EmptyChart label={t(ASSIGNMENT_LABELS.noEnrollments)} />
   }
   const total = filtered.reduce((s, d) => s + d.count, 0)
   const hasActive = activeStatus && activeStatus !== 'All'
@@ -63,7 +63,7 @@ export function StatusDonut({ data, completionRate, activeStatus }: StatusDonutP
         {/* Center label */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <span className="text-xl font-bold text-slate-800 tabular-nums leading-none">{formatPercent(completionRate)}</span>
-          <span className="text-xxs font-semibold text-slate-400 mt-0.5">Completion</span>
+          <span className="text-xxs font-semibold text-slate-400 mt-0.5">{t(ASSIGNMENT_LABELS.completion)}</span>
         </div>
       </div>
       {/* Legend */}
@@ -104,7 +104,7 @@ type CourseCompletionBarsProps = {
 
 export function CourseCompletionBars({ data, activeCourse }: CourseCompletionBarsProps) {
   if (!data || data.length === 0) {
-    return <EmptyChart label="No course data" />
+    return <EmptyChart label={t(ASSIGNMENT_LABELS.noCourseData)} />
   }
 
   const sorted = [...data].sort((a, b) => a.pct - b.pct)
@@ -129,7 +129,7 @@ export function CourseCompletionBars({ data, activeCourse }: CourseCompletionBar
             formatter={(_value, _name, props) => {
               const entry = (props as { payload?: CourseBarEntry })?.payload
               if (!entry) return ['', '']
-              return [`${entry.completedLearners}/${entry.totalLearners} Completed`, entry.courseTitle]
+              return [tf(ASSIGNMENT_LABELS.completedOf, entry.completedLearners, entry.totalLearners), entry.courseTitle]
             }}
             labelFormatter={() => ''}
           />

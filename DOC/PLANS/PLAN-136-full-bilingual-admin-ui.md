@@ -1,7 +1,7 @@
 # PLAN-136: เฟสสองภาษาเต็มรูปแบบ (TH/EN) — iLearn.Admin.React ทั้งแอป
 
 - **Status**: IN_PROGRESS
-- **Assigned**: Claude Code (ผู้ใช้เลือกให้ทำเองทั้งหมด ทีละโซน)
+- **Assigned**: Claude Code (โซน P0/A/B/C — เสร็จแล้ว) → **โซน D/E/F มอบ GitHub Copilot ตาม PLAN-138** (ผู้ใช้สั่งเปลี่ยน 2026-07-23; Claude เปลี่ยนบทบาทเป็น reviewer)
 - **Created**: 2026-07-23
 
 ## การตัดสินใจของผู้ใช้ (ยืนยันแล้ว)
@@ -27,9 +27,9 @@
 | **A** Layout + shared UI | navigation.ts (+Sidebar/Breadcrumbs), ListToolbar, ConfirmDialog, AppWizard, AppTable/Footer/Search, ExplorerTable, Header strings | en→+th | ✅ 2026-07-23 — **ยกเว้น** EntityListPage buttons + moduleConfigs (title/eyebrow/description/caption ~60 คอลัมน์ ผูกกับ type `AdminGridColumn` → ทำในรอบโซน list ถัดไป) |
 | **B** Dashboard | DashboardPage, DashboardCharts | th→+en | ✅ 2026-07-23 — `DASHBOARD_LABELS` ~45 คีย์; แก้เพิ่ม: หัวตารางสองภาษาปนกันเดิม ("งานมอบหมาย (Assignment)") → ภาษาเดียวตามสวิตช์, badge สถานะที่เคยโชว์ key ดิบ (`Active`/`Due Soon` จาก DashboardService) → เพิ่มเข้า `STATUS_LABELS` + ผ่าน `learnerStatusLabel`, `formatRelativeTime` ใน format.ts ทำเป็น lang-aware (เมื่อครู่ ↔ just now) — verified ทั้ง th/en ในเบราว์เซอร์, console 0 errors |
 | **C** Reports (5 หน้า) | ReportHub, Compliance, Transcript, Activity, CourseSummary | th→+en | ✅ 2026-07-23 — `REPORT_LABELS` ~95 คีย์; Hub การ์ดแสดงชื่อภาษาหลัก + อีกภาษาในวงเล็บ (สลับตาม lang); หัวตาราง "ไทย (English)" ปนกันเดิม → ภาษาเดียวทุกหน้า; **บั๊กเดิม**: Transcript badge สถานะโชว์ key ดิบ → `learnerStatusLabel`; CourseSummary (อังกฤษล้วนเดิม) ได้ไทยครบ; ยกเว้น: CSV export headers + print-only transcript header คงอังกฤษ (ไฟล์/เอกสารทางการ) — verified th/en ทั้ง 5 หน้า, console 0 errors |
-| **D** Courses + Content | CourseList/Detail/Editor, VersionDetail/Form, ContentItemDetail/Editor | ผสม | ☐ |
-| **E** Assignments + Learners | AssignmentDetail/Report/Gantt/Bulk, LearnerGroupList/Detail/Editor, LearnerList/Profile, LearnerDirectorySelector | en→+th | ☐ |
-| **F** Master Data + Users + System + misc | MasterData*, AdminUsers/UserEditor/UserDetail, SystemConfig, HealthCheck (CHECK_LABELS), Notifications, NotFound/AccessDenied, toasts/confirm ในเพจ | en→+th | ☐ |
+| **D** Courses + Content | CourseList/Detail/Editor, VersionDetail/Form, ContentItemDetail/Editor | ผสม | ✅ 2026-07-23 — `COURSE_LABELS`; modal/toast/confirm/explorer/stat text migrated; force-delete and category-modal copy included |
+| **E** Assignments + Learners | AssignmentDetail/Report/Gantt/Bulk, LearnerGroupList/Detail/Editor, LearnerList/Profile, LearnerDirectorySelector | en→+th | ✅ 2026-07-23 — `ASSIGNMENT_LABELS` + `LEARNER_LABELS`; assignment and learner-group workflows including PLAN-137 description modal migrated |
+| **F** Master Data + Users + System + misc | MasterData*, AdminUsers/UserEditor/UserDetail, SystemConfig, HealthCheck (CHECK_LABELS), Notifications, NotFound/AccessDenied, EntityListPage, moduleConfigs captions | en→+th | ✅ 2026-07-23 — `ADMIN_LABELS`; module-level configs now retain `LabelPair` and resolve in `AppTable`/page renderers |
 
 ## กติกา migrate ต่อโซน
 

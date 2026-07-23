@@ -4,7 +4,7 @@ import { buildApiUrl, fetchWithAccessControl } from '../../lib/apiClient'
 import { formatDateTime, formatNumber } from '../../lib/format'
 import { AppButton } from '../../components/ui/AppButton'
 import { Badge } from '../../components/ui/Badge'
-import { HEALTH_LABELS, t } from '../../lib/labels'
+import { ADMIN_LABELS, HEALTH_LABELS, t, tf, type LabelPair } from '../../lib/labels'
 import { Card } from '../../components/ui/Card'
 import { LoadingState } from '../../components/ui/LoadingState'
 
@@ -52,23 +52,23 @@ async function probeHealth(url: string): Promise<ProbeResult> {
     } catch {
       return {
         kind: 'unreachable',
-        reason: `Unexpected response (HTTP ${response.status}) from ${url}`,
+        reason: tf(ADMIN_LABELS.unexpectedResponse, response.status, url),
       }
     }
   } catch {
     return {
       kind: 'unreachable',
-      reason: `Could not reach ${url} from this browser (service down, or blocked by CORS when running the dev server)`,
+      reason: tf(ADMIN_LABELS.unreachableReason, url),
     }
   }
 }
 
-const CHECK_LABELS: Record<string, string> = {
-  database: 'Database connection',
-  courseFileShare: 'Course file share (UNC)',
-  courseContentFolder: 'Course content folder',
-  courseIndexFile: 'Course entry file (res/index.html)',
-  api: 'API reachability',
+const CHECK_LABELS: Record<string, LabelPair> = {
+  database: ADMIN_LABELS.databaseConnection,
+  courseFileShare: ADMIN_LABELS.courseFileShare,
+  courseContentFolder: ADMIN_LABELS.courseContentFolder,
+  courseIndexFile: ADMIN_LABELS.courseIndexFile,
+  api: ADMIN_LABELS.apiReachability,
 }
 
 function overallBadge(result: ProbeResult | null) {
@@ -83,9 +83,14 @@ function overallBadge(result: ProbeResult | null) {
     : <Badge tone="danger" variant="outline">{t(HEALTH_LABELS.degraded)}</Badge>
 }
 
+function checkLabel(name: string): string {
+  const pair = CHECK_LABELS[name]
+  return pair ? t(pair) : name
+}
+
 function ProbeResultBody({ result }: { result: ProbeResult | null }) {
   if (!result) {
-    return <p className="p-4 text-sm text-slate-500">Waiting for result…</p>
+    return <p className="p-4 text-sm text-slate-500">{t(ADMIN_LABELS.waitingForResult)}</p>
   }
 
   if (result.kind === 'unreachable') {
@@ -99,7 +104,7 @@ function ProbeResultBody({ result }: { result: ProbeResult | null }) {
           <li key={check.name} className="flex items-start justify-between gap-4 px-4 py-3">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-slate-800">
-                {CHECK_LABELS[check.name] ?? check.name}
+                {checkLabel(check.name)}
               </p>
               <p className="mt-0.5 break-all font-mono text-xs text-slate-500">{check.detail}</p>
             </div>
@@ -113,7 +118,7 @@ function ProbeResultBody({ result }: { result: ProbeResult | null }) {
         ))}
       </ul>
       <p className="border-t border-slate-100 px-4 py-2 text-xs text-slate-400">
-        Checked at {formatDateTime(result.report.timestamp)}
+        {tf(ADMIN_LABELS.checkedAt, formatDateTime(result.report.timestamp))}
       </p>
     </div>
   )
@@ -157,7 +162,7 @@ export function HealthCheckPage() {
       } else {
         setUserResult({
           kind: 'unreachable',
-          reason: 'Learner site URL is not available (FileSettings.HostUrl could not be read from the API)',
+          reason: t(ADMIN_LABELS.learnerSiteUnavailable),
         })
       }
     } finally {
@@ -173,13 +178,13 @@ export function HealthCheckPage() {
   }, [])
 
   if (loading) {
-    return <LoadingState label="Running system health checks..." />
+    return <LoadingState label={t(ADMIN_LABELS.runningHealthChecks)} />
   }
 
   return (
     <div className="space-y-6">
       <Card
-        title="System Health Check"
+        title={t(ADMIN_LABELS.healthCheck)}
         icon={Activity}
         actions={
           <AppButton
@@ -188,7 +193,7 @@ export function HealthCheckPage() {
             loading={refreshing}
             onClick={() => runChecks(courseId)}
           >
-            Re-run checks
+            {t(ADMIN_LABELS.rerunChecks)}
           </AppButton>
         }
         bodyClassName="p-4"
@@ -196,26 +201,25 @@ export function HealthCheckPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex-1">
             <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">
-              Course ID (optional)
+              {t(ADMIN_LABELS.courseIdOptional)}
             </span>
             <input
               type="text"
               value={courseId}
               onChange={(event) => setCourseId(event.target.value)}
-              placeholder="e.g. e57bcaf3-f64b-4d18-bf28-a2c5c0b75f7b"
+              placeholder={t(ADMIN_LABELS.courseIdExample)}
               className="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </label>
           <p className="text-xs text-slate-500 sm:max-w-xs sm:pb-2.5">
-            Verifies that the SCORM entry file <span className="font-mono">res/index.html</span> for
-            this course exists on the learner site before re-running.
+            {t(ADMIN_LABELS.healthCheckHelp)}
           </p>
         </div>
       </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card
-          title="iLearn API"
+          title={t(ADMIN_LABELS.apiService)}
           icon={Server}
           actions={overallBadge(apiResult)}
         >
@@ -223,7 +227,7 @@ export function HealthCheckPage() {
         </Card>
 
         <Card
-          title="Learner Site (iLearn.User)"
+          title={t(ADMIN_LABELS.learnerSite)}
           icon={GraduationCap}
           actions={overallBadge(userResult)}
         >

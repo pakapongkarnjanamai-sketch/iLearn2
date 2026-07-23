@@ -4,7 +4,7 @@ import { Layers, Plus } from 'lucide-react'
 import { AppButton } from '../components/ui/AppButton'
 import { Badge } from '../components/ui/Badge'
 import { StatusBadge } from '../components/ui/StatusBadge'
-import { learnerStatusLabel } from '../lib/labels'
+import { ADMIN_LABELS, learnerStatusLabel, t, tf } from '../lib/labels'
 import { DataGridSurface } from '../components/ui/DataGridSurface'
 import { AppTable } from '../components/ui/AppTable'
 import { createAdminDataSource } from '../lib/createDataSource'
@@ -21,6 +21,7 @@ type EntityListPageProps = {
 export function EntityListPage({ config }: EntityListPageProps) {
   const navigate = useNavigate()
   const { isSuperAdmin } = useSession()
+  const title = t(config.title)
   
   const [divisions, setDivisions] = useState<any[]>([])
 
@@ -36,7 +37,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
         })
         .catch(err => {
           console.error('Failed to load divisions for lookup', err)
-          toast.error('Failed to load division lookup')
+          toast.error(t(ADMIN_LABELS.failedToLoadDivisionLookup))
         })
     }
   }, [config.controller])
@@ -49,7 +50,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
           cellRender: ({ value }: any) => {
             if (value === null || value === undefined) return '—'
             const div = divisions.find(d => d.id === Number(value))
-            return div ? div.name : `Division ${value}`
+            return div ? div.name : tf(ADMIN_LABELS.divisionWithId, value)
           }
         }
       }
@@ -158,7 +159,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
     }
 
     return [{
-      hint: 'Open Details',
+      hint: t(ADMIN_LABELS.openDetails),
       icon: 'info',
       onClick: (e: { row: { data: any } }) => {
         if (!e.row?.data) return
@@ -191,7 +192,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
       {isMasterData && (
         <Link to={`${getRoutePrefix(config.controller)}/new`}>
           <AppButton variant="primary" icon={Plus}>
-            Create {config.title.replace(/s$/, '')}
+            {tf(ADMIN_LABELS.create, title.replace(/s$/, ''))}
           </AppButton>
         </Link>
       )}
@@ -200,12 +201,12 @@ export function EntityListPage({ config }: EntityListPageProps) {
         <>
           <Link to="/assignments/gantt">
             <AppButton variant="secondary" icon={Layers}>
-              Schedule
+              {t(ADMIN_LABELS.schedule)}
             </AppButton>
           </Link>
           <Link to="/assignments/bulk">
             <AppButton variant="primary" icon={Plus}>
-              Assign Courses
+              {t(ADMIN_LABELS.assignCourses)}
             </AppButton>
           </Link>
         </>
@@ -214,7 +215,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
       {config.controller === 'ContentItemsCRUD' && isSuperAdmin && (
         <Link to="/content-library/new">
           <AppButton variant="primary" icon={Plus}>
-            Upload SCORM
+            {t(ADMIN_LABELS.uploadScorm)}
           </AppButton>
         </Link>
       )}
@@ -223,7 +224,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
 
   return (
     <>
-      <DataGridSurface title={config.gridTitle} note={config.gridNote} actions={gridActions}>
+      <DataGridSurface title={t(config.gridTitle)} note={t(config.gridNote)} actions={gridActions}>
         {/* key forces a full AppTable remount when switching entity routes —
             React reuses this same EntityListPage instance across routes, so
             without it the previous entity's rows/page state leak into the new list */}
@@ -231,9 +232,9 @@ export function EntityListPage({ config }: EntityListPageProps) {
           key={config.controller}
           store={store}
           columns={mappedColumns}
-          noDataText={`No ${config.title.toLowerCase()} data found`}
+          noDataText={tf(ADMIN_LABELS.noDataFor, title.toLowerCase())}
           onRowDblClick={isReadOnly ? undefined : handleRowDoubleClick}
-          searchPlaceholder="Search records..."
+          searchPlaceholder={t(ADMIN_LABELS.searchRecords)}
           searchExpr={config.searchExpr}
           actionButtons={actionButtons}
         />

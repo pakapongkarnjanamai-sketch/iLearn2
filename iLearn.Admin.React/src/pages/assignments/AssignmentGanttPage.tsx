@@ -5,7 +5,7 @@ import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
-import { COMMON_LABELS, learnerStatusLabel, t } from '../../lib/labels'
+import { ASSIGNMENT_LABELS, COMMON_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
 
 type GanttTask = {
   id: number
@@ -52,7 +52,7 @@ export function AssignmentGanttPage() {
         if (cancelled) return
         setTasks(Array.isArray(data) ? data : [])
       })
-      .catch(() => toast.error('Failed to load Gantt schedule'))
+      .catch(() => toast.error(t(ASSIGNMENT_LABELS.failedToLoadGantt)))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
@@ -115,11 +115,11 @@ export function AssignmentGanttPage() {
 
   return (
     <DataGridSurface
-      title="Assignment Schedule"
-      note="Gantt chart of assignment batches and due dates."
+      title={t(ASSIGNMENT_LABELS.assignmentSchedule)}
+      note={t(ASSIGNMENT_LABELS.ganttNote)}
       actions={
         <AppButton variant="secondary" icon={CalendarClock} onClick={scrollToToday}>
-          Today
+          {t(ASSIGNMENT_LABELS.today)}
         </AppButton>
       }
     >
@@ -145,13 +145,13 @@ export function AssignmentGanttPage() {
           <LoadingState size="section" />
         ) : filtered.length === 0 ? (
           <div className="flex flex-1 items-center justify-center rounded-lg border border-slate-200 bg-slate-50/40 p-8 text-[13px] font-medium text-slate-400">
-            No assignments.
+            {t(ASSIGNMENT_LABELS.noAssignments)}
           </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-200/80 bg-white">
             <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5">
               <span className="text-xs font-semibold text-slate-500">
-                Showing <strong className="text-slate-800">{filtered.length}</strong> of {tasks.length} batches
+                {tf(ASSIGNMENT_LABELS.showingBatches, filtered.length, tasks.length)}
               </span>
             </div>
 
@@ -159,8 +159,8 @@ export function AssignmentGanttPage() {
               <div className="flex min-w-full">
                 <div className="w-72 shrink-0 border-r border-slate-200/70 bg-white">
                   <div className="h-14 border-b border-slate-200/70 px-3 py-1.5 text-xxs font-extrabold uppercase text-slate-500">
-                    <div className="leading-tight">Assignment</div>
-                    <div className="text-slate-400">batch</div>
+                    <div className="leading-tight">{t(ASSIGNMENT_LABELS.assignment)}</div>
+                    <div className="text-slate-400">{t(ASSIGNMENT_LABELS.batch)}</div>
                   </div>
                   {filtered.map((t) => (
                     <div

@@ -7,7 +7,7 @@ import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { AppButton } from '../../components/ui/AppButton'
 import { Badge } from '../../components/ui/Badge'
-import { COMMON_LABELS, t } from '../../lib/labels'
+import { COMMON_LABELS, COURSE_LABELS, UI_LABELS, contentTypeLabel, t, tf } from '../../lib/labels'
 import { IconButton } from '../../components/ui/IconButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
@@ -137,7 +137,7 @@ const createDraftFromUploadFile = (file: File, index: number): VersionContentDra
 
 const getContentTypeLabel = (item: Pick<VersionContentDraftItem, 'typeId' | 'typeName'>) => {
   if (item.typeName) return item.typeName
-  return item.typeId === 2 ? 'Exam' : 'Learn'
+  return contentTypeLabel(item.typeId)
 }
 
 const getContentReadiness = (item: Pick<VersionContentDraftItem, 'source' | 'isPublished' | 'url'>) => {
@@ -200,12 +200,12 @@ export function VersionDetailPage() {
     try {
       const result = await fetchWithAccessControl<ContentLaunchResponse>(`ContentItems/${itemId}/content`)
       if (!result.url) {
-        toast.error('Launch URL is not available for this content item')
+        toast.error(t(COURSE_LABELS.launchUrlUnavailable))
         return
       }
       window.open(result.url, '_blank', 'noopener,noreferrer')
     } catch {
-      toast.error('Failed to open SCORM content')
+      toast.error(t(COURSE_LABELS.failedToOpenScorm))
     } finally {
       setOpeningPlayerId(null)
     }
@@ -252,7 +252,7 @@ export function VersionDetailPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Unable to load version details')
+      toast.error(t(COURSE_LABELS.failedToLoadVersionDetails))
     } finally {
       setLoading(false)
     }
@@ -265,7 +265,7 @@ export function VersionDetailPage() {
       setContentLibrary(unwrapList(libraryData))
     } catch (err) {
       console.error(err)
-      toast.error('Unable to load content library')
+      toast.error(t(COURSE_LABELS.failedToLoadContentLibrary))
     } finally {
       setLoadingContentLibrary(false)
     }
@@ -340,7 +340,7 @@ export function VersionDetailPage() {
 
     const queuedFiles = Array.from(files).map((file, index) => createDraftFromUploadFile(file, index))
     setContentDraft(prev => [...prev, ...queuedFiles])
-    toast.success(`${queuedFiles.length} file${queuedFiles.length === 1 ? '' : 's'} added to queue`)
+    toast.success(tf(COURSE_LABELS.fileCountQueued, queuedFiles.length, queuedFiles.length === 1 ? '' : 's'))
   }
 
   const removeContentFromDraft = (uid: string) => {
@@ -397,11 +397,11 @@ export function VersionDetailPage() {
           return true
         }
 
-        toast.error(response?.message || 'Unable to update version')
+        toast.error(response?.message || t(COURSE_LABELS.saveFailed))
         return false
       } catch (error) {
         console.error(error)
-        toast.error(getApiErrorText(error, 'Unable to update version'))
+        toast.error(getApiErrorText(error, t(COURSE_LABELS.saveFailed)))
         return false
       }
     },
@@ -413,7 +413,7 @@ export function VersionDetailPage() {
     if (!selectedVersion) return
 
     if (!generalForm.note.trim()) {
-      toast.error('Version note is required')
+      toast.error(t(COURSE_LABELS.versionNoteRequired))
       return
     }
 
@@ -424,7 +424,7 @@ export function VersionDetailPage() {
         note: generalForm.note,
         isActive: generalForm.isActive,
         contentItems: currentContent,
-        successMessage: 'Version details updated',
+        successMessage: t(COURSE_LABELS.versionUpdated),
       })
 
       if (isSaved) {
@@ -440,7 +440,7 @@ export function VersionDetailPage() {
     if (!selectedVersion) return
 
     if (contentDraft.length === 0) {
-      toast.error('Please add at least one content item')
+      toast.error(t(COURSE_LABELS.contentRequired))
       return
     }
 
@@ -450,7 +450,7 @@ export function VersionDetailPage() {
         note: selectedVersion.note || '',
         isActive: selectedVersion.isActive,
         contentItems: contentDraft,
-        successMessage: 'Version content updated',
+        successMessage: t(COURSE_LABELS.versionUpdated),
       })
 
       if (isSaved) {
@@ -468,10 +468,10 @@ export function VersionDetailPage() {
   if (!data || !selectedVersion || !courseId) {
     return (
       <NotFoundState
-        title="Version Not Found"
-        message="The requested course version is missing or has been deleted."
+        title={t(COURSE_LABELS.versionNotFound)}
+        message={t(COURSE_LABELS.versionNotFound)}
         backTo={courseId ? `/courses/${courseId}` : '/courses'}
-        backLabel="Back to course"
+        backLabel={t(COURSE_LABELS.backToCourse)}
       />
     )
   }
@@ -482,19 +482,19 @@ export function VersionDetailPage() {
         sidebar={
           <ControlsSidebar>
             <ControlAction icon={Edit3} onClick={openGeneralEditModal}>
-              Edit General Info
+              {t(COURSE_LABELS.editGeneralInfo)}
             </ControlAction>
             <ControlAction icon={BookOpen} onClick={openContentEditModal}>
-              Edit Content
+              {t(COURSE_LABELS.editContent)}
             </ControlAction>
             <ControlAction to={`/courses/${courseId}`} icon={FileText}>
-              Back to Course
+              {t(COURSE_LABELS.backToCourse)}
             </ControlAction>
           </ControlsSidebar>
         }
       >
         <main className="space-y-6">
-          <Card icon={FileText} title="Overview" bodyClassName="p-5 space-y-5">
+          <Card icon={FileText} title={t(COURSE_LABELS.overview)} bodyClassName="p-5 space-y-5">
               {selectedVersion.note && (
                 <p className="text-sm text-slate-500 leading-relaxed max-w-2xl border-l-2 border-slate-200 pl-3 whitespace-pre-wrap">
                   {selectedVersion.note}
@@ -502,9 +502,9 @@ export function VersionDetailPage() {
               )}
 
               <FactGrid className={`text-sm ${selectedVersion.note ? 'border-t border-slate-100 pt-5' : 'pt-2'}`}>
-                <Fact label="Version" valueClassName="font-semibold">v{selectedVersion.versionNumber}</Fact>
-                <Fact label="Course Code" mono valueClassName="font-semibold">{data.course.courseCode}</Fact>
-                <Fact label="Status">
+                <Fact label={t(COURSE_LABELS.version)} valueClassName="font-semibold">v{selectedVersion.versionNumber}</Fact>
+                <Fact label={t(COURSE_LABELS.courseCode)} mono valueClassName="font-semibold">{data.course.courseCode}</Fact>
+                <Fact label={t(COURSE_LABELS.status)}>
                   <StatusBadge tone={selectedVersion.isActive ? 'success' : 'neutral'}>
                     {t(selectedVersion.isActive ? COMMON_LABELS.activeVersion : COMMON_LABELS.inactiveVersion)}
                   </StatusBadge>
@@ -525,25 +525,25 @@ export function VersionDetailPage() {
           />
 
           {activeDetailTab === 'content' && (
-            <Card icon={BookOpen} title="Current Content" bodyClassName="p-5 space-y-4">
+            <Card icon={BookOpen} title={t(COURSE_LABELS.currentContent)} bodyClassName="p-5 space-y-4">
                 <p className="text-xs font-semibold text-slate-500">Attached content items in this version.</p>
 
                 <div className="overflow-auto border border-slate-200 rounded custom-scrollbar">
                   <table className="min-w-full divide-y divide-slate-200 text-sm">
                     <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 select-none">
                       <tr>
-                        <th className="w-12 px-3 py-2 text-left">Order</th>
-                        <th className="px-3 py-2 text-left">Content Name</th>
-                        <th className="w-28 px-3 py-2 text-left">Type</th>
-                        <th className="w-28 px-3 py-2 text-left">Status</th>
-                        <th className="w-48 px-3 py-2 text-left">Player</th>
+                        <th className="w-12 px-3 py-2 text-left">{t(COURSE_LABELS.order)}</th>
+                        <th className="px-3 py-2 text-left">{t(COURSE_LABELS.contentName)}</th>
+                        <th className="w-28 px-3 py-2 text-left">{t(COURSE_LABELS.type)}</th>
+                        <th className="w-28 px-3 py-2 text-left">{t(COURSE_LABELS.status)}</th>
+                        <th className="w-48 px-3 py-2 text-left">SCORM</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
                       {currentContentItems.length === 0 ? (
                         <tr>
                           <td colSpan={5} className="px-3 py-8 text-center text-xs font-semibold text-slate-400">
-                            No content attached in this version.
+                            {t(COURSE_LABELS.noContentSelected)}
                           </td>
                         </tr>
                       ) : (
@@ -568,10 +568,10 @@ export function VersionDetailPage() {
                                     disabled={openingPlayerId === item.id}
                                     loading={openingPlayerId === item.id}
                                   >
-                                    Open SCORM Player
+                                    {t(COURSE_LABELS.openScormPlayer)}
                                   </AppButton>
                                 ) : (
-                                  <span className="text-xs font-semibold text-slate-400">Unavailable</span>
+                                  <span className="text-xs font-semibold text-slate-400">{t(COURSE_LABELS.launchUrlUnavailable)}</span>
                                 )}
                               </td>
                             </tr>
@@ -585,7 +585,7 @@ export function VersionDetailPage() {
                 {currentContentItems.length > 0 && (
                   <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
                     <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
-                      Showing {visibleCurrentContentItems.length} of {currentContentItems.length}
+                      {tf(COURSE_LABELS.showingOf, visibleCurrentContentItems.length, currentContentItems.length)}
                     </span>
                     {currentContentItems.length > visibleCurrentContentItems.length && (
                       <AppButton
@@ -593,7 +593,7 @@ export function VersionDetailPage() {
                         onClick={() => setVisibleContentRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
                         className="px-3 py-1 text-xxs font-bold"
                       >
-                        Load more
+                        {t(COURSE_LABELS.loadMore)}
                       </AppButton>
                     )}
                   </div>
@@ -614,20 +614,20 @@ export function VersionDetailPage() {
               type="button"
               onClick={() => setShowGeneralEditModal(false)}
               icon={X}
-              title="Close"
+              title={t(COURSE_LABELS.close)}
               tone="neutral"
               size="sm"
               className="absolute top-4 right-4"
             />
 
             <div className="mb-4 border-b border-slate-100 pb-3 pr-8 select-none">
-              <h3 className="text-sm font-bold text-slate-800">Edit Version General Info</h3>
+              <h3 className="text-sm font-bold text-slate-800">{t(COURSE_LABELS.editGeneralInfo)}</h3>
               <p className="text-xs text-slate-500 mt-1">Update version note and active status.</p>
             </div>
 
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label htmlFor="version-note" className="wiz-label">Version Name / Note</label>
+                <label htmlFor="version-note" className="wiz-label">{t(COURSE_LABELS.version)}</label>
                 <textarea
                   id="version-note"
                   rows={4}
@@ -645,7 +645,7 @@ export function VersionDetailPage() {
                   onChange={event => setGeneralForm(prev => ({ ...prev, isActive: event.target.checked }))}
                   className="h-4 w-4 rounded border-slate-300 text-indigo-500 focus:ring-indigo-400 cursor-pointer"
                 />
-                <span className="wiz-label">Set as Active Version</span>
+                <span className="wiz-label">{t(COURSE_LABELS.setActiveVersion)}</span>
               </label>
             </div>
 
@@ -654,7 +654,7 @@ export function VersionDetailPage() {
                 variant="ghost"
                 onClick={() => setShowGeneralEditModal(false)}
               >
-                Cancel
+                {t(UI_LABELS.cancel)}
               </AppButton>
               <AppButton
                 type="submit"
@@ -662,7 +662,7 @@ export function VersionDetailPage() {
                 loading={savingGeneral}
                 className="px-4 py-2 text-sm font-semibold"
               >
-                Save General Info
+                {t(COURSE_LABELS.saveGeneralInfo)}
               </AppButton>
             </div>
           </form>

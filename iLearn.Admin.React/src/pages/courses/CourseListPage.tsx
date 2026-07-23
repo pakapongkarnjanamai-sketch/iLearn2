@@ -28,6 +28,7 @@ import { useExplorer } from '../../components/ui/explorer/useExplorer'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { useSession } from '../../lib/sessionContext'
 import { toast } from '../../lib/toast'
+import { COURSE_LABELS, UI_LABELS, t, tf } from '../../lib/labels'
 
 type ApiEnvelope<T> = {
   success?: boolean
@@ -239,14 +240,14 @@ export function CourseListPage() {
       return null
     },
     buildBreadcrumbs: currentPath => {
-      const rootCrumbs = [{ to: '/courses', label: 'Courses' }]
+      const rootCrumbs = [{ to: '/courses', label: t(COURSE_LABELS.courses) }]
 
       if (currentPath.categoryId !== null) {
         if (currentPath.categoryId === 0) {
           return [
             ...rootCrumbs,
-            { to: '/courses?divisionId=0', label: 'Uncategorized' },
-            { to: '/courses?categoryId=0', label: 'Uncategorized' },
+            { to: '/courses?divisionId=0', label: t(COURSE_LABELS.uncategorized) },
+            { to: '/courses?categoryId=0', label: t(COURSE_LABELS.uncategorized) },
           ]
         }
 
@@ -264,7 +265,7 @@ export function CourseListPage() {
           if (division) {
             crumbs.push({ to: `/courses?divisionId=${division.id}`, label: division.name })
           } else {
-            crumbs.push({ to: '/courses?divisionId=0', label: 'Uncategorized' })
+            crumbs.push({ to: '/courses?divisionId=0', label: t(COURSE_LABELS.uncategorized) })
           }
           crumbs.push({ to: `/courses?categoryId=${category.id}`, label: category.name })
           return crumbs
@@ -273,7 +274,7 @@ export function CourseListPage() {
 
       if (currentPath.divisionId !== null) {
         if (currentPath.divisionId === 0) {
-          return [...rootCrumbs, { to: '/courses?divisionId=0', label: 'Uncategorized' }]
+          return [...rootCrumbs, { to: '/courses?divisionId=0', label: t(COURSE_LABELS.uncategorized) }]
         }
 
         const division = divisionsById.get(currentPath.divisionId)
@@ -328,7 +329,7 @@ export function CourseListPage() {
       setCourseTypes(Array.isArray(typesResp) ? typesResp : [])
     } catch (error) {
       console.error('Failed to load course explorer data', error)
-      toast.error('Failed to load explorer contents')
+      toast.error(t(COURSE_LABELS.failedToLoadExplorer))
     } finally {
       setLoading(false)
     }
@@ -368,7 +369,7 @@ export function CourseListPage() {
     event.preventDefault()
     const nameVal = newCategoryName.trim()
     if (!nameVal) {
-      toast.error('Category name is required')
+      toast.error(t(COURSE_LABELS.categoryRequired))
       return
     }
 
@@ -379,7 +380,7 @@ export function CourseListPage() {
         : (newCategoryDivisionId !== '' ? Number(newCategoryDivisionId) : null))
 
     if (!divisionIdVal) {
-      toast.error('Division is required')
+      toast.error(t(COURSE_LABELS.selectDivision))
       return
     }
 
@@ -403,7 +404,7 @@ export function CourseListPage() {
         body: fd
       })
 
-      toast.success(`Category "${nameVal}" created successfully`)
+      toast.success(`${t(COURSE_LABELS.category)} "${nameVal}"`)
       setIsCreateModalOpen(false)
       setNewCategoryName('')
       setNewCategoryDescription('')
@@ -412,7 +413,7 @@ export function CourseListPage() {
       await loadData()
     } catch (error) {
       console.error(error)
-      toast.error('Failed to create category')
+      toast.error(t(COURSE_LABELS.saveFailed))
     } finally {
       setSubmittingCreate(false)
     }
@@ -424,7 +425,7 @@ export function CourseListPage() {
 
     const nameVal = editCategoryName.trim()
     if (!nameVal) {
-      toast.error('Category name is required')
+      toast.error(t(COURSE_LABELS.categoryRequired))
       return
     }
 
@@ -447,7 +448,7 @@ export function CourseListPage() {
         body: fd
       })
 
-      toast.success(`Category changes saved successfully`)
+      toast.success(t(COURSE_LABELS.saveChanges))
       setEditingCategory(null)
       setEditCategoryName('')
       setEditCategoryDescription('')
@@ -455,7 +456,7 @@ export function CourseListPage() {
       await loadData()
     } catch (error) {
       console.error(error)
-      toast.error('Failed to save category changes')
+      toast.error(t(COURSE_LABELS.saveFailed))
     } finally {
       setSubmittingRename(false)
     }
@@ -464,15 +465,15 @@ export function CourseListPage() {
   const handleDeleteCategory = useCallback(async (category: CategoryLookup) => {
     const coursesCount = coursesByCategory.get(category.id)?.length ?? 0
     if (coursesCount > 0) {
-      toast.error('Cannot delete: category has courses inside.')
+      toast.error(t(COURSE_LABELS.cannotDeleteCategoryWithCourses))
       return
     }
 
     const ok = await confirm({
-      title: 'Delete Category',
-      message: `Are you sure you want to delete category "${category.name}"? This action cannot be undone.`,
+      title: t(COURSE_LABELS.deleteCategory),
+      message: tf(COURSE_LABELS.deleteCategoryConfirm, category.name),
       danger: true,
-      confirmLabel: 'Delete Category',
+      confirmLabel: t(COURSE_LABELS.deleteCategory),
     })
 
     if (!ok) return
@@ -485,11 +486,11 @@ export function CourseListPage() {
         body: fd
       })
 
-      toast.success(`Category "${category.name}" deleted successfully`)
+      toast.success(t(COURSE_LABELS.deleteCategory))
       await loadData()
     } catch (error) {
       console.error(error)
-      toast.error('Failed to delete category')
+      toast.error(t(COURSE_LABELS.deleteFailed))
     }
   }, [confirm, coursesByCategory, loadData])
 
@@ -510,17 +511,17 @@ export function CourseListPage() {
 
   const currentFolderName = useMemo(() => {
     if (currentCategoryId !== null) {
-      if (currentCategoryId === 0) return 'Uncategorized Category'
-      return categoriesById.get(currentCategoryId)?.name ?? 'Courses Explorer'
+      if (currentCategoryId === 0) return t(COURSE_LABELS.uncategorizedCategory)
+      return categoriesById.get(currentCategoryId)?.name ?? t(COURSE_LABELS.courseExplorer)
     }
     if (currentDivisionId !== null) {
-      if (currentDivisionId === 0) return 'Uncategorized Division'
-      return divisionsById.get(currentDivisionId)?.name ?? 'Courses Explorer'
+      if (currentDivisionId === 0) return t(COURSE_LABELS.uncategorizedDivision)
+      return divisionsById.get(currentDivisionId)?.name ?? t(COURSE_LABELS.courseExplorer)
     }
     if (singleDivision !== null) {
       return singleDivision.name
     }
-    return 'Courses Explorer'
+    return t(COURSE_LABELS.courseExplorer)
   }, [categoriesById, divisionsById, currentCategoryId, currentDivisionId, singleDivision])
 
   const currentItems = useMemo<ExplorerItem[]>(() => {
@@ -537,9 +538,9 @@ export function CourseListPage() {
       const items = childCourses.map(course => ({
         id: course.id,
         name: course.title,
-        description: course.description || 'No description available',
+        description: course.description || t(COURSE_LABELS.noDescription),
         isFolder: false,
-        countText: course.typeName || 'General',
+        countText: course.typeName || t(COURSE_LABELS.general),
         typeName: course.typeName,
         statusName: course.statusName || (course.isActive ? 'Open' : 'Closed'),
         code: course.code,
@@ -554,11 +555,11 @@ export function CourseListPage() {
       if (currentDivisionId === 0) {
         return [{
           id: 0,
-          name: 'Uncategorized',
-          description: 'Courses without category',
+          name: t(COURSE_LABELS.uncategorized),
+          description: t(COURSE_LABELS.coursesWithoutCategory),
           isFolder: true,
-          countText: `${uncategorizedCourses.length} courses`,
-          original: { id: 0, name: 'Uncategorized', divisionId: 0 }
+          countText: tf(COURSE_LABELS.coursesCount, uncategorizedCourses.length),
+          original: { id: 0, name: t(COURSE_LABELS.uncategorized), divisionId: 0 }
         }]
       }
 
@@ -568,9 +569,9 @@ export function CourseListPage() {
         return {
           id: cat.id,
           name: cat.sortOrder > 0 ? `${cat.sortOrder}. ${cat.name}` : cat.name,
-          description: cat.description || 'Category folder',
+          description: cat.description || t(COURSE_LABELS.categoryFolder),
           isFolder: true,
-          countText: `${count} courses`,
+          countText: tf(COURSE_LABELS.coursesCount, count),
           original: cat
         }
       })
@@ -585,9 +586,9 @@ export function CourseListPage() {
         return {
           id: cat.id,
           name: cat.sortOrder > 0 ? `${cat.sortOrder}. ${cat.name}` : cat.name,
-          description: cat.description || 'Category folder',
+          description: cat.description || t(COURSE_LABELS.categoryFolder),
           isFolder: true,
-          countText: `${count} courses`,
+          countText: tf(COURSE_LABELS.coursesCount, count),
           original: cat
         }
       })
@@ -597,11 +598,11 @@ export function CourseListPage() {
       if (uncategorizedCourses.length > 0) {
         list.push({
           id: 0,
-          name: 'Uncategorized',
-          description: 'Courses without division/category',
+          name: t(COURSE_LABELS.uncategorized),
+          description: t(COURSE_LABELS.coursesWithoutDivisionOrCategory),
           isFolder: true,
-          countText: '1 category',
-          original: { id: 0, name: 'Uncategorized', divisionId: 0, sortOrder: 0 }
+          countText: t(COURSE_LABELS.oneCategory),
+          original: { id: 0, name: t(COURSE_LABELS.uncategorized), divisionId: 0, sortOrder: 0 }
         })
       }
 
@@ -614,9 +615,9 @@ export function CourseListPage() {
       return {
         id: div.id,
         name: div.name,
-        description: 'Division folder',
+        description: t(COURSE_LABELS.divisionFolder),
         isFolder: true,
-        countText: `${childCategories.length} categories`,
+        countText: tf(COURSE_LABELS.categoriesCount, childCategories.length),
         original: div,
         isDivision: true
       }
@@ -627,11 +628,11 @@ export function CourseListPage() {
     if (uncategorizedCourses.length > 0) {
       list.push({
         id: 0,
-        name: 'Uncategorized',
-        description: 'Courses without division/category',
+        name: t(COURSE_LABELS.uncategorized),
+        description: t(COURSE_LABELS.coursesWithoutDivisionOrCategory),
         isFolder: true,
-        countText: '1 category',
-        original: { id: 0, name: 'Uncategorized' }
+        countText: t(COURSE_LABELS.oneCategory),
+        original: { id: 0, name: t(COURSE_LABELS.uncategorized) }
       })
     }
 
@@ -647,9 +648,9 @@ export function CourseListPage() {
       list.push({
         id: div.id,
         name: div.name,
-        description: 'โฟลเดอร์สายงาน (Division)',
+        description: t(COURSE_LABELS.divisionFolder),
         isFolder: true,
-        countText: `${childCategories.length} หมวดหมู่`,
+        countText: tf(COURSE_LABELS.categoriesCount, childCategories.length),
         original: div,
         isDivision: true,
       })
@@ -659,13 +660,13 @@ export function CourseListPage() {
     for (const cat of categories) {
       const count = coursesByCategory.get(cat.id)?.length ?? 0
       const div = divisionsById.get(cat.divisionId)
-      const divName = div ? div.name : 'ไม่ระบุสายงาน'
+      const divName = div ? div.name : t(COURSE_LABELS.uncategorizedDivision)
       list.push({
         id: cat.id,
         name: cat.sortOrder > 0 ? `${cat.sortOrder}. ${cat.name}` : cat.name,
-        description: cat.description ? `[${divName}] ${cat.description}` : `หมวดหมู่ใน ${divName}`,
+        description: cat.description ? `[${divName}] ${cat.description}` : tf(COURSE_LABELS.categoryInDivision, divName),
         isFolder: true,
-        countText: `${count} คอร์ส`,
+        countText: tf(COURSE_LABELS.coursesCount, count),
         original: cat,
       })
     }
@@ -678,14 +679,14 @@ export function CourseListPage() {
       }
 
       const cat = categoriesById.get(course.categoryId)
-      const catName = cat ? cat.name : (course.categoryName || 'ไม่ระบุหมวดหมู่')
+      const catName = cat ? cat.name : (course.categoryName || t(COURSE_LABELS.uncategorizedCategory))
 
       list.push({
         id: course.id,
         name: course.title,
-        description: course.description ? `[${catName}] ${course.description}` : `หมวดหมู่: ${catName}`,
+        description: course.description ? `[${catName}] ${course.description}` : tf(COURSE_LABELS.categoryPrefix, catName),
         isFolder: false,
-        countText: course.typeName || 'General',
+        countText: course.typeName || t(COURSE_LABELS.general),
         typeName: course.typeName,
         statusName: course.statusName || (course.isActive ? 'Open' : 'Closed'),
         code: course.code,
@@ -716,7 +717,7 @@ export function CourseListPage() {
   const tableColumns = useMemo<ExplorerColumn<ExplorerItem>[]>(() => [
     {
       key: 'name',
-      title: 'Name',
+      title: t(COURSE_LABELS.name),
       render: item => (
         <div className="flex items-center gap-2.5">
           {item.isFolder ? (
@@ -739,7 +740,7 @@ export function CourseListPage() {
     },
     {
       key: 'description',
-      title: 'Description',
+      title: t(COURSE_LABELS.description),
       headerClassName: 'w-80',
       cellClassName: 'text-xs font-semibold text-slate-500',
       render: item => (
@@ -748,24 +749,24 @@ export function CourseListPage() {
     },
     {
       key: 'type',
-      title: 'Type',
+      title: t(COURSE_LABELS.type),
       headerClassName: 'w-32 text-center',
       cellClassName: 'text-center',
       render: item => (
         item.isFolder ? (
           <Badge variant="tag" tone="warning">
-            Folder
+            {t(COURSE_LABELS.folder)}
           </Badge>
         ) : (
           <Badge tone={(item.typeName || '').toLowerCase().includes('special') ? 'warning' : 'info'} size="xxs">
-            {item.typeName || 'General'}
+            {item.typeName || t(COURSE_LABELS.general)}
           </Badge>
         )
       ),
     },
     {
       key: 'status',
-      title: 'Status / Count',
+      title: t(COURSE_LABELS.status),
       headerClassName: 'w-36 text-center',
       cellClassName: 'text-center text-xs font-bold text-slate-500',
       render: item => (
@@ -778,7 +779,7 @@ export function CourseListPage() {
     },
     {
       key: 'actions',
-      title: 'Actions',
+      title: t(COURSE_LABELS.actions),
       headerClassName: 'w-32 text-center',
       render: item => (
         <div className="flex items-center justify-center gap-1.5" onClick={event => event.stopPropagation()}>
@@ -788,7 +789,7 @@ export function CourseListPage() {
             icon={item.isFolder ? ArrowUpRight : Info}
             tone="neutral"
             size="sm"
-            title={item.isFolder ? 'Open Folder' : 'Open Course Details'}
+            title={t(item.isFolder ? COURSE_LABELS.openFolder : COURSE_LABELS.openCourseDetails)}
           />
           {currentCategoryId === null && item.isFolder && item.id > 0 && ((currentDivisionId !== null && currentDivisionId > 0) || singleDivision !== null) && (
             <>
@@ -798,7 +799,7 @@ export function CourseListPage() {
                 icon={Edit3}
                 tone="primary"
                 size="sm"
-                title="Rename Category"
+                title={t(COURSE_LABELS.renameCategory)}
               />
               <IconButton
                 type="button"
@@ -806,7 +807,7 @@ export function CourseListPage() {
                 icon={Trash2}
                 tone="danger"
                 size="sm"
-                title="Delete Category"
+                title={t(COURSE_LABELS.deleteCategory)}
               />
             </>
           )}
@@ -819,22 +820,22 @@ export function CourseListPage() {
     <>
       <DataGridSurface
         title={currentFolderName}
-        note="Manage folders and training courses in this directory."
+        note={t(COURSE_LABELS.manageCourses)}
         actions={
           <div className="flex items-center gap-2">
             {(currentCategoryId !== null || currentDivisionId !== null) && (
               <AppButton variant="ghost" icon={ChevronLeft} onClick={goBack}>
-                Back
+                {t(COURSE_LABELS.back)}
               </AppButton>
             )}
             {currentCategoryId === null && (currentDivisionId !== null ? currentDivisionId > 0 : (isSuperAdmin || singleDivision !== null)) && (
               <AppButton variant="secondary" icon={FolderPlus} onClick={openCreateCategoryModal}>
-                New Category
+                {t(COURSE_LABELS.newCategory)}
               </AppButton>
             )}
             <Link to="/courses/new">
               <AppButton variant="primary" icon={Plus}>
-                Create Course
+                {t(COURSE_LABELS.createCourse)}
               </AppButton>
             </Link>
           </div>
@@ -843,16 +844,16 @@ export function CourseListPage() {
         <div className="flex min-h-0 flex-1 flex-col">
           <ListToolbar
             count={filteredItems.length}
-            countUnit={searchTerm.trim() ? "items found" : "items in this folder"}
+            countUnit={t(searchTerm.trim() ? COURSE_LABELS.itemsFound : COURSE_LABELS.itemsInFolder)}
             searchValue={searchTerm}
             onSearchChange={setSearchTerm}
-            searchPlaceholder="Search folders or courses across all directories..."
+            searchPlaceholder={t(COURSE_LABELS.searchExplorer)}
             toolbarContent={
               currentCategoryId !== null ? (
                 <SegmentedToggle
                   variant="filter"
                   options={[
-                    { value: 'all', label: 'All Types' },
+                    { value: 'all', label: t(COURSE_LABELS.allTypes) },
                     ...courseTypes.map(chip => ({ value: `type-${chip.id}`, label: chip.name })),
                   ]}
                   value={selectedTypeKey}
@@ -865,8 +866,8 @@ export function CourseListPage() {
 
           <ExplorerTable
             loading={loading}
-            loadingLabel="Loading directory..."
-            emptyText="This folder is empty."
+            loadingLabel={t(COURSE_LABELS.loadingDirectory)}
+            emptyText={t(COURSE_LABELS.emptyFolder)}
             columns={tableColumns}
             items={filteredItems}
             getRowKey={item => `${item.isFolder ? 'folder' : 'course'}-${item.id}`}
@@ -880,18 +881,18 @@ export function CourseListPage() {
         onClose={() => setIsCreateModalOpen(false)}
         as="form"
         onSubmit={handleCreateCategory}
-        ariaLabel="Create Category"
+        ariaLabel={t(COURSE_LABELS.createCategory)}
       >
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
               <div className="flex items-center gap-2">
                 <FolderPlus className="h-5 w-5 text-indigo-500" />
-                <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">Create Category</h3>
+                <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">{t(COURSE_LABELS.createCategory)}</h3>
               </div>
               <IconButton
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
                 icon={X}
-                title="Close"
+                title={t(COURSE_LABELS.close)}
                 tone="neutral"
               />
             </div>
@@ -899,14 +900,14 @@ export function CourseListPage() {
             <div className="px-6 py-4 space-y-3">
               {isSuperAdmin && currentDivisionId === null && !singleDivision && (
                 <div className="space-y-1">
-                  <label htmlFor="newCategoryDivisionId" className="wiz-label">Division (แผนก) <span className="text-red-500">*</span></label>
+                  <label htmlFor="newCategoryDivisionId" className="wiz-label">{t(COURSE_LABELS.division)} <span className="text-red-500">*</span></label>
                   <select
                     id="newCategoryDivisionId"
                     value={newCategoryDivisionId}
                     onChange={event => setNewCategoryDivisionId(event.target.value === '' ? '' : Number(event.target.value))}
                     className="wiz-input"
                   >
-                    <option value="">— Select Division —</option>
+                    <option value="">- {t(COURSE_LABELS.selectDivisionOption)} -</option>
                     {divisions.map(div => (
                       <option key={div.id} value={div.id}>
                         {div.name}
@@ -917,7 +918,7 @@ export function CourseListPage() {
               )}
 
               <div className="space-y-1">
-                <label htmlFor="categoryName" className="wiz-label">Category Name <span className="text-red-500">*</span></label>
+                <label htmlFor="categoryName" className="wiz-label">{t(COURSE_LABELS.categoryName)} <span className="text-red-500">*</span></label>
                 <input
                   id="categoryName"
                   type="text"
@@ -925,12 +926,12 @@ export function CourseListPage() {
                   value={newCategoryName}
                   onChange={event => setNewCategoryName(event.target.value)}
                   className="wiz-input"
-                  placeholder="e.g. Technical Skills"
+                  placeholder={t(COURSE_LABELS.technicalSkillsExample)}
                 />
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="newCategorySortOrder" className="wiz-label">Sort Order (ลำดับ)</label>
+                <label htmlFor="newCategorySortOrder" className="wiz-label">{t(COURSE_LABELS.sortOrder)}</label>
                 <input
                   id="newCategorySortOrder"
                   type="number"
@@ -938,17 +939,17 @@ export function CourseListPage() {
                   value={newCategorySortOrder}
                   onChange={event => setNewCategorySortOrder(event.target.value === '' ? '' : Number(event.target.value))}
                   className="wiz-input"
-                  placeholder="e.g. 1, 2, 3..."
+                  placeholder={t(COURSE_LABELS.sortOrderExample)}
                 />
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="categoryDescription" className="wiz-label">Description (คำอธิบาย)</label>
+                <label htmlFor="categoryDescription" className="wiz-label">{t(COURSE_LABELS.description)}</label>
                 <textarea
                   id="categoryDescription"
                   value={newCategoryDescription}
                   onChange={event => setNewCategoryDescription(event.target.value)}
-                  placeholder="e.g. Courses related to technical skills and engineering..."
+                  placeholder={t(COURSE_LABELS.categoryDescriptionExample)}
                   maxLength={500}
                   rows={3}
                   className="wiz-input resize-y font-semibold"
@@ -961,7 +962,7 @@ export function CourseListPage() {
                 variant="ghost"
                 onClick={() => setIsCreateModalOpen(false)}
               >
-                Cancel
+                {t(UI_LABELS.cancel)}
               </AppButton>
               <AppButton
                 type="submit"
@@ -970,7 +971,7 @@ export function CourseListPage() {
                 disabled={submittingCreate || !newCategoryName.trim() || (isSuperAdmin && currentDivisionId === null && !singleDivision && !newCategoryDivisionId)}
                 className="px-4 py-2 text-xs font-bold shadow-3xs"
               >
-                Create Category
+                {t(COURSE_LABELS.createCategory)}
               </AppButton>
             </div>
       </Modal>
@@ -980,25 +981,25 @@ export function CourseListPage() {
         onClose={() => setEditingCategory(null)}
         as="form"
         onSubmit={handleRenameCategory}
-        ariaLabel="Edit Category"
+        ariaLabel={t(COURSE_LABELS.editCategory)}
       >
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
               <div className="flex items-center gap-2">
                 <Edit3 className="h-5 w-5 text-indigo-500" />
-                <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">Edit Category</h3>
+                <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">{t(COURSE_LABELS.editCategory)}</h3>
               </div>
               <IconButton
                 type="button"
                 onClick={() => setEditingCategory(null)}
                 icon={X}
-                title="Close"
+                title={t(COURSE_LABELS.close)}
                 tone="neutral"
               />
             </div>
 
             <div className="px-6 py-4 space-y-3">
               <div className="space-y-1">
-                <label htmlFor="editCategoryName" className="wiz-label">Category Name <span className="text-red-500">*</span></label>
+                <label htmlFor="editCategoryName" className="wiz-label">{t(COURSE_LABELS.categoryName)} <span className="text-red-500">*</span></label>
                 <input
                   id="editCategoryName"
                   type="text"
@@ -1006,12 +1007,12 @@ export function CourseListPage() {
                   value={editCategoryName}
                   onChange={event => setEditCategoryName(event.target.value)}
                   className="wiz-input"
-                  placeholder="e.g. Technical Skills"
+                  placeholder={t(COURSE_LABELS.technicalSkillsExample)}
                 />
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="editCategorySortOrder" className="wiz-label">Sort Order (ลำดับ) <span className="text-red-500">*</span></label>
+                <label htmlFor="editCategorySortOrder" className="wiz-label">{t(COURSE_LABELS.sortOrder)} <span className="text-red-500">*</span></label>
                 <input
                   id="editCategorySortOrder"
                   type="number"
@@ -1020,17 +1021,17 @@ export function CourseListPage() {
                   value={editCategorySortOrder}
                   onChange={event => setEditCategorySortOrder(event.target.value === '' ? '' : Number(event.target.value))}
                   className="wiz-input"
-                  placeholder="e.g. 1, 2, 3..."
+                  placeholder={t(COURSE_LABELS.sortOrderExample)}
                 />
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="editCategoryDescription" className="wiz-label">Description (คำอธิบาย)</label>
+                <label htmlFor="editCategoryDescription" className="wiz-label">{t(COURSE_LABELS.description)}</label>
                 <textarea
                   id="editCategoryDescription"
                   value={editCategoryDescription}
                   onChange={event => setEditCategoryDescription(event.target.value)}
-                  placeholder="e.g. Courses related to technical skills and engineering..."
+                  placeholder={t(COURSE_LABELS.categoryDescriptionExample)}
                   maxLength={500}
                   rows={3}
                   className="wiz-input resize-y font-semibold"
@@ -1043,7 +1044,7 @@ export function CourseListPage() {
                 variant="ghost"
                 onClick={() => setEditingCategory(null)}
               >
-                Cancel
+                {t(UI_LABELS.cancel)}
               </AppButton>
               <AppButton
                 type="submit"
@@ -1052,7 +1053,7 @@ export function CourseListPage() {
                 disabled={submittingRename || !editCategoryName.trim() || editCategorySortOrder === ''}
                 className="px-4 py-2 text-xs font-bold shadow-3xs"
               >
-                Save Changes
+                {t(COURSE_LABELS.saveChanges)}
               </AppButton>
             </div>
       </Modal>

@@ -18,6 +18,7 @@ import { Badge } from '../../components/ui/Badge'
 import { IconButton } from '../../components/ui/IconButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { getContentReadinessBadgeModel, ReadinessBadge } from '../../components/ui/ReadinessBadge'
+import { CONTENT_TYPE_LABELS, COURSE_LABELS, contentTypeLabel, t, tf } from '../../lib/labels'
 
 type LoadResult<T> = T[] | { data?: T[] }
 
@@ -81,25 +82,25 @@ type SelectedContentItem = {
 }
 
 const contentTypeOptions = [
-  { id: 1, name: 'Learn' },
-  { id: 2, name: 'Exam' }
+  { id: 1, name: CONTENT_TYPE_LABELS.learn },
+  { id: 2, name: CONTENT_TYPE_LABELS.exam }
 ]
 
 const learnerPolicyOptions = [
   {
     value: 'NewLearnersOnly' as const,
-    title: 'New Learners Only',
-    note: 'Existing learners stay on their enrolled version.'
+    title: COURSE_LABELS.learners,
+    note: COURSE_LABELS.version
   },
   {
     value: 'MoveNotStarted' as const,
-    title: 'Move Not Started',
-    note: 'Only learners who have not started move to the new version.'
+    title: COURSE_LABELS.notSelected,
+    note: COURSE_LABELS.version
   },
   {
     value: 'ResetInProgress' as const,
-    title: 'Reset In Progress',
-    note: 'Open learners move to the new version and in-progress learning resets.'
+    title: COURSE_LABELS.progress,
+    note: COURSE_LABELS.version
   }
 ]
 
@@ -174,7 +175,7 @@ export function VersionFormPage() {
         })
         .catch(error => {
           console.error(error)
-          toast.error('Failed to load course information')
+          toast.error(t(COURSE_LABELS.failedToLoadCourseDetails))
         })
     }
   }, [parsedCourseId, courseId, setLabel])
@@ -185,7 +186,7 @@ export function VersionFormPage() {
       setContentLibrary(unwrapList(result))
     } catch (error) {
       console.error(error)
-      toast.error('Failed to load content library')
+      toast.error(t(COURSE_LABELS.failedToLoadContentLibrary))
     }
   }, [])
 
@@ -216,7 +217,7 @@ export function VersionFormPage() {
       setImpact(result.data || null)
     } catch (error) {
       console.error(error)
-      toast.error('Failed to load learner impact summary')
+      toast.error(t(COURSE_LABELS.saveFailed))
       setImpact(null)
     }
   }, [parsedCourseId])
@@ -236,7 +237,7 @@ export function VersionFormPage() {
       }
     } catch (error) {
       console.error(error)
-      toast.error('Failed to load version details')
+      toast.error(t(COURSE_LABELS.failedToLoadVersionDetails))
     } finally {
       setLoading(false)
     }
@@ -263,7 +264,7 @@ export function VersionFormPage() {
 
   const validateDetails = () => {
     if (!formData.note.trim()) {
-      toast.error('Version note is required')
+      toast.error(t(COURSE_LABELS.versionNoteRequired))
       return false
     }
 
@@ -272,7 +273,7 @@ export function VersionFormPage() {
 
   const validateContent = () => {
     if (contentItems.length === 0) {
-      toast.error('Please add at least one content item')
+      toast.error(t(COURSE_LABELS.contentRequired))
       return false
     }
 
@@ -291,7 +292,7 @@ export function VersionFormPage() {
     }))
 
     setContentItems(prev => [...prev, ...queuedFiles])
-    toast.success(`${queuedFiles.length} file${queuedFiles.length === 1 ? '' : 's'} added to queue`)
+    toast.success(tf(COURSE_LABELS.fileCountQueued, queuedFiles.length, queuedFiles.length === 1 ? '' : 's'))
   }
 
   const removeContentItem = (uid: number | string) => {
@@ -350,12 +351,12 @@ export function VersionFormPage() {
       })
 
       if (resp.success) {
-        toast.success(resp.message || (isEditMode ? 'Version updated successfully' : 'Version created successfully'))
+        toast.success(resp.message || t(isEditMode ? COURSE_LABELS.versionUpdated : COURSE_LABELS.versionCreated))
         navigate(`/courses/${parsedCourseId}`)
       }
     } catch (error: unknown) {
       console.error(error)
-      toast.error(getApiErrorText(error, 'Error occurred while saving course version'))
+      toast.error(getApiErrorText(error, t(COURSE_LABELS.failedToSaveVersion)))
     } finally {
       setSaving(false)
     }
@@ -365,7 +366,7 @@ export function VersionFormPage() {
     <div className="space-y-4">
       <div className="space-y-1.5">
         <label htmlFor="note" className="wiz-label">
-          Version Name / Note <span className="text-red-500">*</span>
+          {t(COURSE_LABELS.version)} <span className="text-red-500">*</span>
         </label>
         <textarea
           id="note"
@@ -386,7 +387,7 @@ export function VersionFormPage() {
           onChange={handleCheckboxChange}
           className="h-4 w-4 rounded border-slate-300 text-indigo-500 focus:ring-indigo-400 cursor-pointer"
         />
-        <label htmlFor="isActive" className="wiz-label cursor-pointer">Set as Active Version</label>
+        <label htmlFor="isActive" className="wiz-label cursor-pointer">{t(COURSE_LABELS.setActiveVersion)}</label>
       </div>
     </div>
   )
@@ -395,7 +396,7 @@ export function VersionFormPage() {
     if (contentItems.length === 0) {
       return (
         <div className="flex min-h-28 items-center justify-center border border-dashed border-slate-200 rounded text-sm font-semibold text-slate-400 select-none py-6">
-          No content selected
+          {t(COURSE_LABELS.noContentSelected)}
         </div>
       )
     }
@@ -405,12 +406,12 @@ export function VersionFormPage() {
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 select-none">
             <tr>
-              <th className="w-12 px-3 py-2 text-left">Order</th>
-              <th className="px-3 py-2 text-left">Content Name</th>
-              <th className="w-28 px-3 py-2 text-left">Source</th>
-              <th className="w-36 px-3 py-2 text-left">Content Type</th>
-              <th className="w-28 px-3 py-2 text-left">Status</th>
-              <th className="w-28 px-3 py-2 text-right">Actions</th>
+              <th className="w-12 px-3 py-2 text-left">{t(COURSE_LABELS.order)}</th>
+              <th className="px-3 py-2 text-left">{t(COURSE_LABELS.contentName)}</th>
+              <th className="w-28 px-3 py-2 text-left">{t(COURSE_LABELS.source)}</th>
+              <th className="w-36 px-3 py-2 text-left">{t(COURSE_LABELS.contentType)}</th>
+              <th className="w-28 px-3 py-2 text-left">{t(COURSE_LABELS.status)}</th>
+              <th className="w-28 px-3 py-2 text-right">{t(COURSE_LABELS.actions)}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
@@ -420,7 +421,7 @@ export function VersionFormPage() {
                 <tr key={item.uid} className="hover:bg-slate-50/30 transition-colors">
                   <td className="px-3 py-2 font-bold text-slate-400">{index + 1}</td>
                   <td className="px-3 py-2 font-bold text-slate-700 truncate max-w-xs">{item.name}</td>
-                  <td className="px-3 py-2 text-slate-400 font-semibold">{item.source === 'upload' ? 'New upload' : 'Content library'}</td>
+                  <td className="px-3 py-2 text-slate-400 font-semibold">{t(item.source === 'upload' ? COURSE_LABELS.newUpload : COURSE_LABELS.contentLibrary)}</td>
                   <td className="px-3 py-2">
                     {item.source === 'upload' ? (
                       <select
@@ -428,10 +429,10 @@ export function VersionFormPage() {
                         onChange={event => updateUploadContentType(item.uid, Number(event.target.value))}
                         className="wiz-input py-1"
                       >
-                        {contentTypeOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+                        {contentTypeOptions.map(option => <option key={option.id} value={option.id}>{t(option.name)}</option>)}
                       </select>
                     ) : (
-                      <span className="font-semibold text-slate-600">{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
+                      <span className="font-semibold text-slate-600">{item.typeName || contentTypeLabel(item.typeId)}</span>
                     )}
                   </td>
                   <td className="px-3 py-2 select-none">
@@ -446,7 +447,7 @@ export function VersionFormPage() {
                         icon={ArrowUp}
                         tone="primary"
                         size="sm"
-                        title="Move content up"
+                        title={t(COURSE_LABELS.moveContentUp)}
                       />
                       <IconButton
                         type="button"
@@ -455,7 +456,7 @@ export function VersionFormPage() {
                         icon={ArrowDown}
                         tone="primary"
                         size="sm"
-                        title="Move content down"
+                        title={t(COURSE_LABELS.moveContentDown)}
                       />
                       <IconButton
                         type="button"
@@ -463,7 +464,7 @@ export function VersionFormPage() {
                         icon={X}
                         tone="danger"
                         size="sm"
-                        title="Remove content"
+                        title={t(COURSE_LABELS.removeContent)}
                       />
                     </div>
                   </td>
@@ -479,13 +480,13 @@ export function VersionFormPage() {
   const renderContentStep = () => (
     <div className="space-y-4">
       <div className="flex justify-end mb-1 select-none">
-        <Badge tone="neutral">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</Badge>
+        <Badge tone="neutral">{tf(COURSE_LABELS.itemCount, contentItems.length, contentItems.length === 1 ? '' : 's')}</Badge>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 select-none">
         <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-blue-500 transition duration-150">
           <Upload className="h-5 w-5 text-indigo-500" />
-          <span>Upload New SCORM</span>
+          <span>{t(COURSE_LABELS.uploadNewScorm)}</span>
           <span className="text-xs font-semibold text-slate-400">.zip packages · multiple allowed</span>
           <input
             type="file"
@@ -508,7 +509,7 @@ export function VersionFormPage() {
           className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500 transition duration-150"
         >
           <BookOpen className="h-5 w-5 text-indigo-600" />
-          <span>Select Existing Content</span>
+          <span>{t(COURSE_LABELS.selectExistingContent)}</span>
           <span className="text-xs font-semibold text-slate-400">Reuse packages from the Content Library</span>
         </button>
       </div>
@@ -554,8 +555,8 @@ export function VersionFormPage() {
               className="mt-0.5 h-3.5 w-3.5 border-slate-300 text-indigo-500 focus:ring-indigo-400 disabled:opacity-40 cursor-pointer"
             />
             <span>
-              <span className="block text-sm font-bold text-slate-800">{option.title}</span>
-              <span className="mt-1 block text-xs font-semibold text-slate-400 leading-normal">{option.note}</span>
+                <span className="block text-sm font-bold text-slate-800">{t(option.title)}</span>
+                <span className="mt-1 block text-xs font-semibold text-slate-400 leading-normal">{t(option.note)}</span>
             </span>
           </label>
         ))}
@@ -577,41 +578,41 @@ export function VersionFormPage() {
         </div>
         <div className="border-b border-slate-100 pb-2.5">
           <dt className="wiz-label">Learner Policy</dt>
-          <dd className="mt-1 text-sm font-semibold text-slate-700">{learnerPolicyOptions.find(option => option.value === formData.learnerPolicy)?.title}</dd>
+          <dd className="mt-1 text-sm font-semibold text-slate-700">{t(learnerPolicyOptions.find(option => option.value === formData.learnerPolicy)?.title || COURSE_LABELS.notSet)}</dd>
         </div>
       </dl>
 
       <div className="flex items-center justify-between pt-1 select-none">
-        <span className="wiz-label">Content Items</span>
-        <Badge tone="neutral">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</Badge>
+        <span className="wiz-label">{t(COURSE_LABELS.contentItems)}</span>
+        <Badge tone="neutral">{tf(COURSE_LABELS.itemCount, contentItems.length, contentItems.length === 1 ? '' : 's')}</Badge>
       </div>
       {renderContentRows()}
     </div>
   )
 
   const steps: WizardStep[] = [
-    { label: 'Details', validate: () => validateDetails(), render: () => renderDetailsStep() },
-    { label: 'Content', validate: () => validateContent(), render: () => renderContentStep() },
-    { label: 'Options', render: () => renderOptionsStep() },
-    { label: 'Review', render: () => renderReviewStep() }
+    { label: t(COURSE_LABELS.details), validate: () => validateDetails(), render: () => renderDetailsStep() },
+    { label: t(COURSE_LABELS.content), validate: () => validateContent(), render: () => renderContentStep() },
+    { label: t(COURSE_LABELS.options), render: () => renderOptionsStep() },
+    { label: t(COURSE_LABELS.review), render: () => renderReviewStep() }
   ]
 
   if (loading) {
-    return <LoadingState label="Loading version details..." />
+    return <LoadingState label={t(COURSE_LABELS.failedToLoadVersionDetails)} />
   }
 
   return (
     <>
       <AppWizard
-        title={isEditMode ? 'Edit Version' : 'New Version'}
-        description={isEditMode ? 'Update training course version details.' : 'Create a new version for this training course.'}
-        eyebrow="Version Control"
+        title={t(isEditMode ? COURSE_LABELS.editVersion : COURSE_LABELS.newVersion)}
+        description={t(isEditMode ? COURSE_LABELS.editVersion : COURSE_LABELS.newVersion)}
+        eyebrow={t(COURSE_LABELS.versionControl)}
         steps={steps}
         currentStep={currentStep}
         onStepChange={setCurrentStep}
         onCancel={() => navigate(`/courses/${parsedCourseId}`)}
         onSubmit={handleSubmit}
-        submitLabel={isEditMode ? 'Update Version' : 'Create Version'}
+        submitLabel={t(isEditMode ? COURSE_LABELS.updateVersion : COURSE_LABELS.createVersion)}
         isSubmitting={saving}
       />
 

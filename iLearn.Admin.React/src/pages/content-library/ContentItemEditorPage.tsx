@@ -12,12 +12,12 @@ import { IconButton } from '../../components/ui/IconButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { ReadinessBadge } from '../../components/ui/ReadinessBadge'
 import { formatBytes } from '../../lib/format'
-import { contentTypeLabel } from '../../lib/labels'
+import { CONTENT_TYPE_LABELS, COURSE_LABELS, contentTypeLabel, t } from '../../lib/labels'
 import { UploadProgressOverlay } from '../../components/shared/UploadProgressOverlay'
 
 const TYPE_OPTIONS = [
-  { value: 1, label: 'Learn — instructional content' },
-  { value: 2, label: 'Exam — assessment content' },
+  { value: 1, label: COURSE_LABELS.instructionalContent },
+  { value: 2, label: CONTENT_TYPE_LABELS.exam },
 ]
 
 type ContentItemForm = {
@@ -51,7 +51,7 @@ export function ContentItemEditorPage() {
         if (cancelled) return
         setForm({ name: data.name, typeId: data.typeId })
       })
-      .catch(() => toast.error('Failed to load content item'))
+      .catch(() => toast.error(t(COURSE_LABELS.failedToLoadContentItem)))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
@@ -60,11 +60,11 @@ export function ContentItemEditorPage() {
 
   const handleUpload = async () => {
     if (!file) {
-      toast.error('Please choose a SCORM .zip file')
+      toast.error(t(COURSE_LABELS.selectScormZip))
       return
     }
     if (!file.name.toLowerCase().endsWith('.zip')) {
-      toast.error('File must be a .zip SCORM package')
+      toast.error(t(COURSE_LABELS.invalidScormZip))
       return
     }
     setUploading(true)
@@ -91,14 +91,14 @@ export function ContentItemEditorPage() {
       abortUploadRef.current = abort
 
       const result = await promise
-      toast.success('SCORM package uploaded')
+      toast.success(t(COURSE_LABELS.scormPackageUploaded))
       navigate(`/content-library/${result.id}`)
     } catch (err: any) {
       if (err.isAborted) {
-        toast.info('Upload cancelled')
+        toast.info(t(COURSE_LABELS.uploadCancelled))
       } else {
         console.error(err)
-        toast.error(err.message || 'Upload failed')
+        toast.error(err.message || t(COURSE_LABELS.uploadFailed))
       }
     } finally {
       setUploading(false)
@@ -110,7 +110,7 @@ export function ContentItemEditorPage() {
   const handleSave = async () => {
     if (!id) return
     if (!form.name.trim()) {
-      toast.error('Name is required')
+      toast.error(t(COURSE_LABELS.nameRequired))
       return
     }
     setSaving(true)
@@ -119,10 +119,10 @@ export function ContentItemEditorPage() {
       fd.append('key', id)
       fd.append('values', JSON.stringify({ name: form.name, typeId: form.typeId }))
       await fetchWithAccessControl('admin/ContentItemsCRUD/Put', { method: 'PUT', body: fd })
-      toast.success('Content item updated')
+      toast.success(t(COURSE_LABELS.contentItemUpdated))
       navigate(`/content-library/${id}`)
     } catch {
-      toast.error('Save failed')
+      toast.error(t(COURSE_LABELS.saveFailed))
     } finally {
       setSaving(false)
     }
@@ -130,7 +130,7 @@ export function ContentItemEditorPage() {
 
   const validateMetadata = () => {
     if (!form.name.trim()) {
-      toast.error('Name is required')
+      toast.error(t(COURSE_LABELS.nameRequired))
       return false
     }
     return true
@@ -138,11 +138,11 @@ export function ContentItemEditorPage() {
 
   const validateUpload = () => {
     if (isCreate && !file) {
-      toast.error('Please choose a SCORM .zip file')
+      toast.error(t(COURSE_LABELS.selectScormZip))
       return false
     }
     if (isCreate && file && !file.name.toLowerCase().endsWith('.zip')) {
-      toast.error('File must be a .zip SCORM package')
+      toast.error(t(COURSE_LABELS.invalidScormZip))
       return false
     }
     return true
@@ -153,19 +153,19 @@ export function ContentItemEditorPage() {
 
       <div className="space-y-1.5">
         <label className="wiz-label">
-          Display Name <span className="text-red-500">*</span>
+          {t(COURSE_LABELS.name)} <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-          placeholder="Required"
+          placeholder={t(COURSE_LABELS.required)}
           className="wiz-input"
         />
       </div>
 
       <div className="space-y-1.5">
-        <label className="wiz-label">Content Type</label>
+        <label className="wiz-label">{t(COURSE_LABELS.contentType)}</label>
         <select
           value={form.typeId}
           onChange={(e) => setForm((f) => ({ ...f, typeId: Number(e.target.value) }))}
@@ -173,7 +173,7 @@ export function ContentItemEditorPage() {
         >
           {TYPE_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
-              {o.label}
+              {t(o.label)}
             </option>
           ))}
         </select>
@@ -185,10 +185,10 @@ export function ContentItemEditorPage() {
     <div className="space-y-4">
 
       <div className="space-y-1.5">
-        <label className="wiz-label">SCORM Package (.zip)</label>
+        <label className="wiz-label">{t(COURSE_LABELS.scormPackage)}</label>
         <label className="flex flex-col items-center justify-center gap-2 border border-dashed border-slate-300 bg-slate-50/20 px-4 py-8 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500 transition cursor-pointer select-none">
           <Upload className="h-6 w-6 text-indigo-500 animate-pulse" />
-          <span>Select SCORM ZIP Package</span>
+          <span>{t(COURSE_LABELS.selectScormPackage)}</span>
           <span className="text-[11px] font-semibold text-slate-400">Supports SCORM 1.2 & 2004 (Max 1 GB, extracted up to 2.5 GB, or 1,000 internal directory entries)</span>
           <input
             type="file"
@@ -204,11 +204,11 @@ export function ContentItemEditorPage() {
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 select-none">
               <tr>
-                <th className="px-3 py-2 text-left">Content Name</th>
-                <th className="w-28 px-3 py-2 text-left">Source</th>
-                <th className="w-36 px-3 py-2 text-left">Content Type</th>
-                <th className="w-28 px-3 py-2 text-left">Status</th>
-                <th className="w-28 px-3 py-2 text-right">Actions</th>
+                <th className="px-3 py-2 text-left">{t(COURSE_LABELS.contentName)}</th>
+                <th className="w-28 px-3 py-2 text-left">{t(COURSE_LABELS.source)}</th>
+                <th className="w-36 px-3 py-2 text-left">{t(COURSE_LABELS.contentType)}</th>
+                <th className="w-28 px-3 py-2 text-left">{t(COURSE_LABELS.status)}</th>
+                <th className="w-28 px-3 py-2 text-right">{t(COURSE_LABELS.actions)}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
@@ -217,7 +217,7 @@ export function ContentItemEditorPage() {
                   <span>{file.name}</span>
                   <span className="block text-[10px] font-semibold text-slate-400 mt-0.5 font-mono">{formatBytes(file.size)}</span>
                 </td>
-                <td className="px-3 py-2 text-slate-400 font-semibold">New upload</td>
+                <td className="px-3 py-2 text-slate-400 font-semibold">{t(COURSE_LABELS.newUpload)}</td>
                 <td className="px-3 py-2">
                   <select
                     value={form.typeId}
@@ -241,8 +241,8 @@ export function ContentItemEditorPage() {
                     icon={X}
                     tone="danger"
                     size="sm"
-                    aria-label="Remove content"
-                    title="Remove content"
+                    aria-label={t(COURSE_LABELS.removeContent)}
+                    title={t(COURSE_LABELS.removeContent)}
                   />
                 </td>
               </tr>
@@ -254,24 +254,24 @@ export function ContentItemEditorPage() {
   )
 
   const renderReviewStep = () => {
-    const selectedTypeName = TYPE_OPTIONS.find(o => o.value === form.typeId)?.label || 'Instructional Content'
+    const selectedTypeName = t(TYPE_OPTIONS.find(o => o.value === form.typeId)?.label || COURSE_LABELS.instructionalContent)
     return (
       <div className="space-y-4">
 
         <dl className="divide-y divide-slate-100 text-sm select-none">
           <div className="grid grid-cols-3 py-2.5 font-semibold">
-            <dt className="wiz-label">Display Name</dt>
-            <dd className="col-span-2 text-slate-700 font-bold">{form.name.trim() || (file ? file.name : '—') || 'Unnamed package'}</dd>
+            <dt className="wiz-label">{t(COURSE_LABELS.name)}</dt>
+            <dd className="col-span-2 text-slate-700 font-bold">{form.name.trim() || (file ? file.name : '-') || t(COURSE_LABELS.unnamedPackage)}</dd>
           </div>
           <div className="grid grid-cols-3 py-2.5 font-semibold">
-            <dt className="wiz-label">Content Type</dt>
+            <dt className="wiz-label">{t(COURSE_LABELS.contentType)}</dt>
             <dd className="col-span-2 text-slate-700">{selectedTypeName}</dd>
           </div>
           {isCreate && (
             <div className="grid grid-cols-3 py-2.5 font-semibold">
-              <dt className="wiz-label">Target SCORM Package</dt>
+              <dt className="wiz-label">{t(COURSE_LABELS.scormPackage)}</dt>
               <dd className="col-span-2 text-slate-700 font-mono">
-                {file ? `${file.name} (${formatBytes(file.size)})` : 'No file selected'}
+                {file ? `${file.name} (${formatBytes(file.size)})` : t(COURSE_LABELS.noFileSelected)}
               </dd>
             </div>
           )}
@@ -294,30 +294,30 @@ export function ContentItemEditorPage() {
 
   const steps: WizardStep[] = isCreate
     ? [
-        { label: 'Package Upload', validate: validateUpload, render: renderUploadStep },
-        { label: 'Review', render: renderReviewStep }
+        { label: t(COURSE_LABELS.packageUpload), validate: validateUpload, render: renderUploadStep },
+        { label: t(COURSE_LABELS.review), render: renderReviewStep }
       ]
     : [
-        { label: 'Metadata', validate: validateMetadata, render: renderMetadataStep },
-        { label: 'Review', render: renderReviewStep }
+        { label: t(COURSE_LABELS.metadata), validate: validateMetadata, render: renderMetadataStep },
+        { label: t(COURSE_LABELS.review), render: renderReviewStep }
       ]
 
   if (loading) {
-    return <LoadingState label="Loading content item..." />
+    return <LoadingState label={t(COURSE_LABELS.failedToLoadContentItem)} />
   }
 
   return (
     <>
       <AppWizard
-        title={isCreate ? 'Upload SCORM Package' : 'Edit SCORM Package'}
-        description={isCreate ? 'Upload a SCORM package (.zip).' : 'Update SCORM package details.'}
-        eyebrow="Content Library"
+        title={t(isCreate ? COURSE_LABELS.uploadScormPackage : COURSE_LABELS.editScormPackage)}
+        description={t(isCreate ? COURSE_LABELS.uploadScormPackage : COURSE_LABELS.editScormPackage)}
+        eyebrow={t(COURSE_LABELS.contentLibrary)}
         steps={steps}
         currentStep={currentStep}
         onStepChange={setCurrentStep}
         onCancel={() => navigate(isCreate ? '/content-library' : `/content-library/${id}`)}
         onSubmit={isCreate ? handleUpload : handleSave}
-        submitLabel={isCreate ? 'Upload Package' : 'Save Changes'}
+        submitLabel={t(isCreate ? COURSE_LABELS.uploadPackage : COURSE_LABELS.saveChanges)}
         isSubmitting={saving || uploading}
         submitIcon={isCreate ? <Upload className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
       />

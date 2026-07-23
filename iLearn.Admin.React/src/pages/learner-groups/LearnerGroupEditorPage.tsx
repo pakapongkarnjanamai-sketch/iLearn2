@@ -17,6 +17,7 @@ import { AppButton } from '../../components/ui/AppButton'
 import { Badge } from '../../components/ui/Badge'
 import { IconButton } from '../../components/ui/IconButton'
 import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
+import { LEARNER_LABELS, t, tf } from '../../lib/labels'
 
 type LoadResult<T> = T[] | { data?: T[] }
 
@@ -173,7 +174,7 @@ export function LearnerGroupEditorPage() {
       setCategories(unwrapList(response))
     } catch (error) {
       console.error(error)
-      toast.error('Failed to load group categories')
+      toast.error(t(LEARNER_LABELS.failedToLoadGroupCategories))
     }
   }, [])
 
@@ -189,7 +190,7 @@ export function LearnerGroupEditorPage() {
       }
     } catch (error) {
       console.error(error)
-      toast.error('Failed to load divisions')
+      toast.error(t(LEARNER_LABELS.failedToLoadDivisions))
     }
   }, [isSuperAdmin])
 
@@ -241,11 +242,11 @@ export function LearnerGroupEditorPage() {
 
   const validateInformation = () => {
     if (!formData.name.trim()) {
-      toast.error('Group Name is required')
+      toast.error(t(LEARNER_LABELS.groupNameRequired))
       return false
     }
     if (!formData.description.trim()) {
-      toast.error('Group Description is required')
+      toast.error(t(LEARNER_LABELS.groupDescriptionRequired))
       return false
     }
 
@@ -255,7 +256,7 @@ export function LearnerGroupEditorPage() {
   const addMemberCodes = () => {
     const parsedCodes = parseLearnerCodes(memberInput)
     if (parsedCodes.length === 0) {
-      toast.error('Enter at least one learner code')
+      toast.error(t(LEARNER_LABELS.learnerCodeRequired))
       return
     }
 
@@ -272,7 +273,7 @@ export function LearnerGroupEditorPage() {
       return [...prev, ...uniqueNew]
     })
     setMemberInput('')
-    toast.success(`Imported ${parsedCodes.length} learner code(s)`)
+    toast.success(tf(LEARNER_LABELS.importedCodes, parsedCodes.length))
   }
 
   const removeMemberCode = (code: string) => {
@@ -302,12 +303,12 @@ export function LearnerGroupEditorPage() {
       })
 
       if (resp.success && resp.data) {
-        toast.success(resp.message || 'Learner group registered successfully')
+        toast.success(resp.message || t(LEARNER_LABELS.groupRegistered))
         navigate(`/learner-groups/${resp.data.id}`)
       }
     } catch (error: unknown) {
       console.error(error)
-      toast.error(getApiErrorText(error, 'Failed to save learner group details'))
+      toast.error(getApiErrorText(error, t(LEARNER_LABELS.failedToSaveGroup)))
     } finally {
       setSaving(false)
     }
@@ -319,7 +320,7 @@ export function LearnerGroupEditorPage() {
       {(isSuperAdmin || divisions.length > 0) && (
         <div className="space-y-1.5">
           <label htmlFor="divisionId" className="wiz-label">
-            Division (แผนก)
+            {t(LEARNER_LABELS.division)}
           </label>
           <select
             id="divisionId"
@@ -329,7 +330,7 @@ export function LearnerGroupEditorPage() {
             disabled={!isSuperAdmin}
             className="wiz-input max-w-lg disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200"
           >
-            <option value="">Global / ไม่ระบุแผนก</option>
+            <option value="">{t(LEARNER_LABELS.global)}</option>
             {divisions.map(div => (
               <option key={div.id} value={div.id}>
                 {div.name}
@@ -341,7 +342,7 @@ export function LearnerGroupEditorPage() {
 
       <div className="space-y-1.5">
         <label htmlFor="name" className="wiz-label">
-          Group Name <span className="text-red-500">*</span>
+          {t(LEARNER_LABELS.groupName)} <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
@@ -355,7 +356,7 @@ export function LearnerGroupEditorPage() {
       </div>
 
       <div className="space-y-1.5">
-        <label className="wiz-label">Category (Location Folder)</label>
+        <label className="wiz-label">{t(LEARNER_LABELS.categoryFolder)}</label>
         <div className="flex flex-col sm:flex-row gap-2 max-w-lg items-stretch sm:items-center">
           <div className="flex-1 flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-md bg-slate-50/50 text-slate-700 min-w-0 select-none">
             <Folder className="h-4 w-4 text-indigo-500 shrink-0" />
@@ -372,14 +373,14 @@ export function LearnerGroupEditorPage() {
               setIsExplorerOpen(true)
             }}
           >
-            Select Category Folder...
+            {t(LEARNER_LABELS.selectCategoryFolder)}
           </AppButton>
         </div>
       </div>
 
       <div className="space-y-1.5">
         <label htmlFor="description" className="wiz-label">
-          Description <span className="text-red-500">*</span>
+          {t(LEARNER_LABELS.description)} <span className="text-red-500">*</span>
         </label>
         <textarea
           id="description"
@@ -399,8 +400,8 @@ export function LearnerGroupEditorPage() {
       <div className="flex justify-end select-none shrink-0">
         <SegmentedToggle
           options={[
-            { value: 'picker', label: 'Directory Search' },
-            { value: 'bulk', label: 'Bulk Import (EIds)' },
+            { value: 'picker', label: t(LEARNER_LABELS.directorySearch) },
+            { value: 'bulk', label: t(LEARNER_LABELS.bulkImportEids) },
           ]}
           value={activeTab}
           onChange={setActiveTab}
@@ -433,19 +434,19 @@ export function LearnerGroupEditorPage() {
                 disabled={!memberInput.trim()}
                 className="self-start"
               >
-                Import Codes
+                {t(LEARNER_LABELS.importCodes)}
               </AppButton>
             </div>
 
             {/* List of currently selected ones for preview */}
             <div className="border border-slate-200 rounded overflow-hidden">
               <div className="bg-slate-50 px-3 py-1.5 border-b border-slate-200 flex justify-between items-center text-xs font-bold text-slate-400 uppercase select-none">
-                <span>Selected Codes Ledger</span>
+                <span>{t(LEARNER_LABELS.selectedCodes)}</span>
                 <span>{selectedLearners.length} Users</span>
               </div>
               <div className="max-h-56 overflow-y-auto custom-scrollbar bg-white divide-y divide-slate-100">
                 {selectedLearners.length === 0 ? (
-                  <div className="px-3 py-6 text-center text-slate-400 text-xs font-bold select-none">No initial members selected</div>
+                  <div className="px-3 py-6 text-center text-slate-400 text-xs font-bold select-none">{t(LEARNER_LABELS.noInitialMembers)}</div>
                 ) : (
                   selectedLearners.map((learner, index) => (
                     <div key={learner.code} className="px-3 py-1.5 text-xs flex items-center justify-between font-semibold">
@@ -479,28 +480,28 @@ export function LearnerGroupEditorPage() {
 
       <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
         <div className="border-b border-slate-100 pb-2.5 sm:col-span-2">
-          <dt className="wiz-label">Group Name</dt>
+          <dt className="wiz-label">{t(LEARNER_LABELS.groupName)}</dt>
           <dd className="mt-1 text-sm font-semibold text-slate-700">{formData.name || 'Not set'}</dd>
         </div>
         <div className="border-b border-slate-100 pb-2.5">
-          <dt className="wiz-label">Category</dt>
+          <dt className="wiz-label">{t(LEARNER_LABELS.category)}</dt>
           <dd className="mt-1 text-sm font-semibold text-slate-700">{selectedCategoryPath}</dd>
         </div>
         <div className="border-b border-slate-100 pb-2.5">
-          <dt className="wiz-label">Initial Members</dt>
+          <dt className="wiz-label">{t(LEARNER_LABELS.initialMembers)}</dt>
           <dd className="mt-1 text-sm font-semibold text-slate-700">{selectedLearners.length}</dd>
         </div>
         <div className="border-b border-slate-100 pb-2.5 sm:col-span-2">
-          <dt className="wiz-label">Description</dt>
+          <dt className="wiz-label">{t(LEARNER_LABELS.description)}</dt>
           <dd className="mt-1 text-sm font-semibold text-slate-700">{formData.description || 'Not set'}</dd>
         </div>
       </dl>
 
       <div>
-        <div className="mb-2 text-sm font-bold text-slate-800 select-none">Initial Members</div>
+        <div className="mb-2 text-sm font-bold text-slate-800 select-none">{t(LEARNER_LABELS.initialMembers)}</div>
         <div className="flex flex-wrap gap-1.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
           {selectedLearners.length === 0 ? (
-            <span className="font-semibold text-slate-400 text-xs select-none">No initial members selected</span>
+            <span className="font-semibold text-slate-400 text-xs select-none">{t(LEARNER_LABELS.noInitialMembers)}</span>
           ) : selectedLearners.map(learner => (
             <span
               key={learner.code}
@@ -590,23 +591,23 @@ export function LearnerGroupEditorPage() {
   }
 
   const steps: WizardStep[] = [
-    { label: 'Information', validate: () => validateInformation(), render: () => renderInformationStep() },
-    { label: 'Members', render: () => renderMembersStep() },
-    { label: 'Review', render: () => renderReviewStep() }
+    { label: t(LEARNER_LABELS.information), validate: () => validateInformation(), render: () => renderInformationStep() },
+    { label: t(LEARNER_LABELS.members), render: () => renderMembersStep() },
+    { label: t(LEARNER_LABELS.review), render: () => renderReviewStep() }
   ]
 
   return (
     <>
       <AppWizard
-        title="New Learner Group"
-        description="Create a new group of learners."
-        eyebrow="Learner Directory"
+        title={t(LEARNER_LABELS.newLearnerGroup)}
+        description={t(LEARNER_LABELS.newGroupDescription)}
+        eyebrow={t(LEARNER_LABELS.learnerDirectory)}
         steps={steps}
         currentStep={currentStep}
         onStepChange={setCurrentStep}
         onCancel={() => navigate('/learner-groups')}
         onSubmit={handleSubmit}
-        submitLabel="Create Group"
+        submitLabel={t(LEARNER_LABELS.createGroup)}
         isSubmitting={saving}
       />
       {renderCategoryExplorerModal()}

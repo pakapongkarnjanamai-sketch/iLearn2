@@ -33,7 +33,7 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { formatDate } from '../../lib/format'
-import { COMMON_LABELS, LEARNER_STATUS_KEYS, learnerStatusLabel, t } from '../../lib/labels'
+import { ASSIGNMENT_LABELS, COMMON_LABELS, LEARNER_STATUS_KEYS, learnerStatusLabel, t, tf } from '../../lib/labels'
 import { DetailTabs } from '../../components/ui/DetailTabs'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 
@@ -249,7 +249,7 @@ export function AssignmentDetailPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Failed to load assignment batch details')
+      toast.error(t(ASSIGNMENT_LABELS.failedToLoadDetails))
     } finally {
       setLoading(false)
     }
@@ -698,18 +698,18 @@ export function AssignmentDetailPage() {
   if (!assignment) {
     return (
       <NotFoundState
-        title="Assignment Batch Not Found"
-        message="The requested operational batch identity could not be verified."
+        title={t(ASSIGNMENT_LABELS.assignmentNotFound)}
+        message={t(ASSIGNMENT_LABELS.assignmentReportUnavailable)}
         backTo="/assignments"
-        backLabel="Back to registry"
+        backLabel={t(ASSIGNMENT_LABELS.backToRegistry)}
       />
     )
   }
 
   const assignmentStatus = deriveAssignmentStatus(assignment)
   const detailTabs: Array<{ key: 'courses' | 'learners'; label: string }> = [
-    { key: 'courses', label: 'Courses' },
-    { key: 'learners', label: 'Learners' },
+    { key: 'courses', label: t(ASSIGNMENT_LABELS.courses) },
+    { key: 'learners', label: t(ASSIGNMENT_LABELS.learners) },
   ]
   const visibleCourses = assignment.courses.slice(0, visibleCourseRows)
   const visibleGroupedLearners = filteredLearners.slice(0, visibleLearnerRows)
@@ -733,44 +733,44 @@ export function AssignmentDetailPage() {
       <DetailLayout
         sidebar={
           <ControlsSidebar>
-            <ControlAction to={`/assignments/${id}/report`} icon={FileBarChart}>Open Report</ControlAction>
-            <ControlAction icon={Edit3} onClick={() => { setEditDescriptionInput(assignment.description || ''); setShowEditDescriptionModal(true) }}>Edit Description</ControlAction>
-            <ControlAction icon={UserPlus} onClick={() => setAddingLearners(true)}>Add More Learners</ControlAction>
-            <ControlAction icon={BookPlus} onClick={openAddCoursesModal}>Add Courses</ControlAction>
-            <ControlAction icon={CalendarClock} onClick={() => setShowDueDateModal(true)}>Extend Due Date</ControlAction>
-            <ControlAction icon={Trash2} onClick={handleDeleteBatch} variant="danger">Delete Batch</ControlAction>
+            <ControlAction to={`/assignments/${id}/report`} icon={FileBarChart}>{t(ASSIGNMENT_LABELS.openReport)}</ControlAction>
+            <ControlAction icon={Edit3} onClick={() => { setEditDescriptionInput(assignment.description || ''); setShowEditDescriptionModal(true) }}>{t(ASSIGNMENT_LABELS.editDescription)}</ControlAction>
+            <ControlAction icon={UserPlus} onClick={() => setAddingLearners(true)}>{t(ASSIGNMENT_LABELS.addMoreLearners)}</ControlAction>
+            <ControlAction icon={BookPlus} onClick={openAddCoursesModal}>{t(ASSIGNMENT_LABELS.addCourses)}</ControlAction>
+            <ControlAction icon={CalendarClock} onClick={() => setShowDueDateModal(true)}>{t(ASSIGNMENT_LABELS.extendDueDate)}</ControlAction>
+            <ControlAction icon={Trash2} onClick={handleDeleteBatch} variant="danger">{t(ASSIGNMENT_LABELS.deleteBatch)}</ControlAction>
           </ControlsSidebar>
         }
       >
         <main className="space-y-6">
-          <Card icon={FileBarChart} title="Overview" bodyClassName="p-5">
+          <Card icon={FileBarChart} title={t(ASSIGNMENT_LABELS.overview)} bodyClassName="p-5">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 items-center">
               <div className="flex flex-col gap-4">
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
-                    <div className="text-[10px] font-extrabold text-slate-400 uppercase">Learners</div>
+                    <div className="text-[10px] font-extrabold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.learners)}</div>
                     <div className="text-lg font-bold text-slate-800 tabular-nums mt-0.5">{assignment.totalEmployees}</div>
                   </div>
                   <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
-                    <div className="text-[10px] font-extrabold text-slate-400 uppercase">Courses</div>
+                    <div className="text-[10px] font-extrabold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.courses)}</div>
                     <div className="text-lg font-bold text-slate-800 tabular-nums mt-0.5">{assignment.totalCourses}</div>
                   </div>
                   <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
-                    <div className="text-[10px] font-extrabold text-slate-400 uppercase">Status</div>
+                    <div className="text-[10px] font-extrabold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.status)}</div>
                     <div className="mt-1 flex justify-center">
                       <StatusBadge>{assignmentStatus}</StatusBadge>
                     </div>
                   </div>
                 </div>
                 <FactGrid className="pt-2">
-                  <Fact label="Start Date" valueClassName="font-semibold">
+                  <Fact label={t(ASSIGNMENT_LABELS.startDateLabel)} valueClassName="font-semibold">
                     {formatDate(assignment.startDate)}
                   </Fact>
-                  <Fact label="Due Date" valueClassName="font-semibold">
+                  <Fact label={t(ASSIGNMENT_LABELS.dueDateLabel)} valueClassName="font-semibold">
                     {formatDate(assignment.dueDate)}
                   </Fact>
                   {assignment.createdBy && (
-                    <Fact label="Created By" valueClassName="font-semibold">
+                    <Fact label={t(ASSIGNMENT_LABELS.createdBy)} valueClassName="font-semibold">
                       {assignment.createdByName ?? assignment.createdBy}
                       {assignment.createdByName && (
                         <span className="block text-xxs font-mono text-slate-400">{assignment.createdBy}</span>
@@ -778,18 +778,18 @@ export function AssignmentDetailPage() {
                     </Fact>
                   )}
                   {assignment.learnerGroupName && (
-                    <Fact label="Learner Group" colSpan="full" valueClassName="font-semibold">
+                    <Fact label={t(ASSIGNMENT_LABELS.learnerGroup)} colSpan="full" valueClassName="font-semibold">
                       {assignment.learnerGroupName}
                     </Fact>
                   )}
-                  <Fact label="Description" colSpan="full" valueClassName="font-semibold">
+                  <Fact label={t(ASSIGNMENT_LABELS.description)} colSpan="full" valueClassName="font-semibold">
                     <div className="flex items-start justify-between gap-2">
                       <span className={assignment.description ? 'text-slate-700 whitespace-pre-wrap' : 'text-slate-400 italic font-normal'}>
-                        {assignment.description || 'No description provided'}
+                        {assignment.description || t(ASSIGNMENT_LABELS.noDescription)}
                       </span>
                       <IconButton
                         icon={Edit3}
-                        title="Edit Description"
+                        title={t(ASSIGNMENT_LABELS.editDescription)}
                         size="sm"
                         tone="neutral"
                         onClick={() => {
@@ -818,7 +818,7 @@ export function AssignmentDetailPage() {
           />
 
           {activeDetailTab === 'courses' && (
-            <Card icon={BookOpen} title="Courses">
+            <Card icon={BookOpen} title={t(ASSIGNMENT_LABELS.courses)}>
 
               <ul className="divide-y divide-slate-100 px-4">
                 {visibleCourses.map((c) => (
@@ -826,20 +826,20 @@ export function AssignmentDetailPage() {
                     <div className="flex flex-col">
                       <span className={`text-sm font-bold ${c.isCourseDeleted ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
                         {c.courseTitle}
-                        {c.isCourseDeleted && <span className="ml-1.5 text-xxs font-semibold no-underline">(deleted)</span>}
+                        {c.isCourseDeleted && <span className="ml-1.5 text-xxs font-semibold no-underline">({t(ASSIGNMENT_LABELS.deleted)})</span>}
                       </span>
                       <span className="text-xxs font-mono text-slate-400 mt-0.5">{c.courseCode}</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-xxs font-bold text-slate-500">
-                        {c.completedLearners} / {c.totalLearners} completed
+                        {tf(ASSIGNMENT_LABELS.completedOf, c.completedLearners, c.totalLearners)}
                       </span>
                       <IconButton
                         onClick={() => handleRemoveCourse(c.assignmentRuleId)}
                         icon={Trash2}
                         tone="danger"
                         size="sm"
-                        title="Remove course from assignment"
+                        title={t(ASSIGNMENT_LABELS.removeCourseFromAssignment)}
                       />
                     </div>
                   </li>
@@ -866,18 +866,18 @@ export function AssignmentDetailPage() {
           )}
 
           {activeDetailTab === 'learners' && (
-            <Card icon={Users} title="Learners">
+            <Card icon={Users} title={t(ASSIGNMENT_LABELS.learners)}>
 
               <div className="border-b border-slate-100 bg-slate-50/20 px-4">
                 <ListToolbar
                   searchValue={learnerSearch}
                   onSearchChange={setLearnerSearch}
-                  searchPlaceholder="Search code, name, division, department..."
+                  searchPlaceholder={t(ASSIGNMENT_LABELS.searchLearners)}
                   toolbarContent={
                     <SegmentedToggle
                       variant="filter"
                       options={[
-                        { value: 'All', label: 'All' },
+                        { value: 'All', label: t(COMMON_LABELS.all) },
                         ...LEARNER_STATUS_KEYS.map(s => ({ value: s, label: learnerStatusLabel(s) })),
                       ]}
                       value={learnerStatusFilter}
@@ -891,7 +891,7 @@ export function AssignmentDetailPage() {
               {selectedCodes.size > 0 && (
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-indigo-100 bg-indigo-50/60 px-4 py-2">
                   <span className="text-xs font-bold text-indigo-700 select-none">
-                    {selectedCodes.size} learner(s) selected
+                    {tf(ASSIGNMENT_LABELS.selectedLearners, selectedCodes.size)}
                   </span>
                   <div className="flex items-center gap-2">
                     <AppButton
@@ -902,7 +902,7 @@ export function AssignmentDetailPage() {
                       disabled={bulkWorking !== null}
                       className="px-3 py-1.5 text-xs"
                     >
-                      Reset Selected
+                      {t(ASSIGNMENT_LABELS.resetSelected)}
                     </AppButton>
                     <AppButton
                       variant="danger"
@@ -912,14 +912,14 @@ export function AssignmentDetailPage() {
                       disabled={bulkWorking !== null}
                       className="px-3 py-1.5 text-xs"
                     >
-                      Remove Selected
+                      {t(ASSIGNMENT_LABELS.removeSelected)}
                     </AppButton>
                     <button
                       type="button"
                       onClick={() => setSelectedCodes(new Set())}
                       className="text-xs font-bold text-slate-500 hover:text-slate-700 px-2 py-1 rounded hover:bg-white/70 transition cursor-pointer"
                     >
-                      Clear
+                      {t(ASSIGNMENT_LABELS.clear)}
                     </button>
                   </div>
                 </div>
@@ -935,12 +935,12 @@ export function AssignmentDetailPage() {
                           checked={allFilteredSelected}
                           onChange={toggleSelectAllFiltered}
                           className="h-4 w-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer"
-                          title="Select all filtered learners"
+                          title={t(ASSIGNMENT_LABELS.selectAllFiltered)}
                         />
                       </th>
-                      <th className="p-3">Learner</th>
-                      <th className="p-3">Summary</th>
-                      <th className="p-3 text-center">Actions</th>
+                      <th className="p-3">{t(ASSIGNMENT_LABELS.learners)}</th>
+                      <th className="p-3">{t(ASSIGNMENT_LABELS.summary)}</th>
+                      <th className="p-3 text-center">{t(ASSIGNMENT_LABELS.actions)}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -981,14 +981,14 @@ export function AssignmentDetailPage() {
                             <div className="flex flex-col gap-1.5 items-start">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-xs font-bold text-slate-700">
-                                  {completedCount} / {totalCount} Completed
+                                  {tf(ASSIGNMENT_LABELS.completedOf, completedCount, totalCount)}
                                 </span>
                                 <StatusBadge size="xxs" tone={allCompleted ? 'success' : 'neutral'}>
                                   {learnerStatusLabel(allCompleted ? 'Completed' : 'InProgress')}
                                 </StatusBadge>
                               </div>
                               {totalCount === 0 ? (
-                                <span className="text-slate-400 text-xs italic">No courses assigned</span>
+                                <span className="text-slate-400 text-xs italic">{t(ASSIGNMENT_LABELS.noCoursesAssigned)}</span>
                               ) : (
                                 <div className="flex items-center gap-2">
                                   <Badge tone="neutral" variant="soft" size="xxs">{totalCount} courses</Badge>
@@ -997,7 +997,7 @@ export function AssignmentDetailPage() {
                                     onClick={() => setCourseModalCode(l.learnerCode)}
                                     className="px-2 py-0.5 text-xxs font-bold"
                                   >
-                                    View courses
+                                    {t(ASSIGNMENT_LABELS.viewCourses)}
                                   </AppButton>
                                 </div>
                               )}
@@ -1010,14 +1010,14 @@ export function AssignmentDetailPage() {
                                 icon={RotateCcw}
                                 tone="primary"
                                 size="sm"
-                                title="Reset all courses for this learner"
+                                title={t(ASSIGNMENT_LABELS.resetAllLearnerCourses)}
                               />
                               <IconButton
                                 onClick={() => handleRemoveLearner(l.learnerCode)}
                                 icon={Trash2}
                                 tone="danger"
                                 size="sm"
-                                title="Remove learner from batch"
+                                title={t(ASSIGNMENT_LABELS.removeLearnerFromBatch)}
                               />
                             </div>
                           </td>
@@ -1027,7 +1027,7 @@ export function AssignmentDetailPage() {
                     {filteredLearners.length === 0 && (
                       <tr>
                         <td className="p-6 text-center text-slate-400" colSpan={4}>
-                          No learners match the current filter.
+                          {t(ASSIGNMENT_LABELS.noLearnersMatchFilter)}
                         </td>
                       </tr>
                     )}
@@ -1040,7 +1040,7 @@ export function AssignmentDetailPage() {
                   <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
                     Showing {visibleGroupedLearners.length} of {filteredLearners.length}
                     {filteredLearners.length !== groupedLearners.length && (
-                      <span className="normal-case font-normal text-slate-400"> (filtered from {groupedLearners.length})</span>
+                      <span className="normal-case font-normal text-slate-400"> {tf(ASSIGNMENT_LABELS.filteredFrom, groupedLearners.length)}</span>
                     )}
                   </span>
                   {filteredLearners.length > visibleGroupedLearners.length && (

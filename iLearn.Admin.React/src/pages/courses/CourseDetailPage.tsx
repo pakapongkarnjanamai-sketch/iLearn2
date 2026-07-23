@@ -35,7 +35,7 @@ import { Card } from '../../components/ui/Card'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { formatDate } from '../../lib/format'
-import { COMMON_LABELS, learnerStatusLabel, t } from '../../lib/labels'
+import { COMMON_LABELS, COURSE_LABELS, REPORT_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
 import { DetailTabs } from '../../components/ui/DetailTabs'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 
@@ -163,9 +163,9 @@ export function CourseDetailPage() {
 
   const handleDeleteCourse = async () => {
     if (!(await confirm({
-      title: 'ยืนยันการลบคอร์ส',
-      message: 'คุณแน่ใจหรือไม่ว่าต้องการลบคอร์สนี้? การดำเนินการนี้ไม่สามารถยกเลิกได้ และจะทำการลบเวอร์ชันทั้งหมดที่เกี่ยวข้อง',
-      confirmLabel: 'ยืนยันการลบคอร์ส',
+      title: t(COURSE_LABELS.deleteCourse),
+      message: t(COURSE_LABELS.deleteCourseConfirm),
+      confirmLabel: t(COURSE_LABELS.deleteCourse),
       danger: true,
     }))) return
     try {
@@ -173,17 +173,17 @@ export function CourseDetailPage() {
         method: 'DELETE'
       })
       if (resp.success) {
-        toast.success(resp.message || 'ลบคอร์สเรียบร้อยแล้ว')
+        toast.success(resp.message || t(COURSE_LABELS.deleteCourse))
         navigate('/courses')
       }
     } catch (err: any) {
       console.error(err)
-      const errorMsg = err?.message || 'ไม่สามารถลบคอร์สนี้ได้'
+      const errorMsg = err?.message || t(COURSE_LABELS.unableToDeleteCourse)
       if (errorMsg.includes('in progress') || errorMsg.includes('currently taking') || errorMsg.includes('learner(s)') || errorMsg.includes('เรียนค้างอยู่') || errorMsg.includes('In Progress')) {
         const forceDelete = await confirm({
-          title: 'บังคับลบคอร์ส (Force Delete)?',
-          message: `${errorMsg}\n\nคุณต้องการบังคับลบคอร์สนี้ (Force Delete) เพื่อเคลียร์ข้อมูลการลงทะเบียนและการมอบหมายงานที่เชื่อมโยงอยู่ทั้งหมดหรือไม่?`,
-          confirmLabel: 'บังคับลบคอร์ส (Force Delete)',
+          title: t(COURSE_LABELS.forceDeleteCourseTitle),
+          message: tf(COURSE_LABELS.forceDeleteCourseWithReason, errorMsg),
+          confirmLabel: t(COURSE_LABELS.forceDeleteCourse),
           danger: true,
         })
         if (forceDelete) {
@@ -192,12 +192,12 @@ export function CourseDetailPage() {
               method: 'DELETE'
             })
             if (forceResp.success) {
-              toast.success(forceResp.message || 'บังคับลบคอร์สเรียบร้อยแล้ว')
+              toast.success(forceResp.message || t(COURSE_LABELS.forceDeleteCourse))
               navigate('/courses')
             }
           } catch (forceErr: any) {
             console.error(forceErr)
-            toast.error(forceErr?.message || 'การบังคับลบคอร์สล้มเหลว')
+            toast.error(forceErr?.message || t(COURSE_LABELS.deleteFailed))
           }
         }
       } else {
@@ -261,7 +261,7 @@ export function CourseDetailPage() {
       setCategories(unwrapList(categoryData))
       setCourseTypes(unwrapList(courseTypeData))
     } catch {
-      toast.error('Failed to load course lookup metadata')
+      toast.error(t(COURSE_LABELS.failedToLoadLookupMetadata))
     }
   }, [])
 
@@ -282,7 +282,7 @@ export function CourseDetailPage() {
       }
     } catch (err) {
       console.error('Failed to load course details', err)
-      toast.error('Unable to fetch course dashboard')
+      toast.error(t(COURSE_LABELS.unableToLoadCourse))
     } finally {
       setLoading(false)
     }
@@ -298,7 +298,7 @@ export function CourseDetailPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Unable to load learners list')
+      toast.error(t(COURSE_LABELS.failedToLoadLearners))
     } finally {
       setLoadingLearners(false)
     }
@@ -314,7 +314,7 @@ export function CourseDetailPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Unable to load assignment history')
+      toast.error(t(COURSE_LABELS.failedToLoadAssignments))
     } finally {
       setLoadingAssignments(false)
     }
@@ -380,19 +380,19 @@ export function CourseDetailPage() {
     if (!data || !id) return
 
     if (!editForm.courseCode.trim()) {
-      toast.error('Course Code is required')
+      toast.error(t(COURSE_LABELS.courseCodeRequired))
       return
     }
     if (!editForm.courseName.trim()) {
-      toast.error('Course Title is required')
+      toast.error(t(COURSE_LABELS.courseTitleRequired))
       return
     }
     if (editForm.categoryId === 0) {
-      toast.error('Please select a Category')
+      toast.error(t(COURSE_LABELS.categoryRequired))
       return
     }
     if (editForm.courseType === 0) {
-      toast.error('Please select a Course Type')
+      toast.error(t(COURSE_LABELS.courseTypeRequired))
       return
     }
 
@@ -414,13 +414,13 @@ export function CourseDetailPage() {
       })
 
       if (resp.success) {
-        toast.success(resp.message || 'Course properties updated')
+        toast.success(resp.message || t(COURSE_LABELS.coursePropertiesUpdated))
         setShowEditPropertiesModal(false)
         await loadDashboardData()
       }
     } catch (err) {
       console.error(err)
-      toast.error('Failed to update course properties')
+      toast.error(t(COURSE_LABELS.failedToUpdateCourseProperties))
     } finally {
       setSavingProperties(false)
     }
@@ -441,7 +441,7 @@ export function CourseDetailPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Failed to change course lifecycle status.')
+      toast.error(t(COURSE_LABELS.saveFailed))
     } finally {
       setMutatingStatus(false)
     }
@@ -461,16 +461,16 @@ export function CourseDetailPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Failed to switch active version')
+      toast.error(t(COURSE_LABELS.failedToSwitchActiveVersion))
     }
   }
 
   // Delete version handler
   const handleDeleteVersion = async (versionId: number) => {
     if (!(await confirm({
-      title: 'Delete Version',
-      message: 'Delete this version? Action cannot be undone.',
-      confirmLabel: 'Delete',
+      title: t(COURSE_LABELS.deleteVersion),
+      message: t(COURSE_LABELS.deleteVersionConfirm),
+      confirmLabel: t(COURSE_LABELS.delete),
       danger: true,
     }))) return
     try {
@@ -483,7 +483,7 @@ export function CourseDetailPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Cannot delete this version. It may have enrolled learners.')
+      toast.error(t(COURSE_LABELS.unableToDeleteVersion))
     }
   }
 
@@ -494,10 +494,10 @@ export function CourseDetailPage() {
   if (!data) {
     return (
       <NotFoundState
-        title="Course Not Found"
-        message="The requested course catalog identity is missing or has been deleted."
+        title={t(COURSE_LABELS.courseNotFound)}
+        message={t(COURSE_LABELS.courseNotFound)}
         backTo="/courses"
-        backLabel="Back to courses"
+        backLabel={t(COURSE_LABELS.backToCourses)}
       />
     )
   }
@@ -507,9 +507,9 @@ export function CourseDetailPage() {
   const isOpen = course.status === 1
   const isClosed = course.status === 2
   const detailTabs: Array<{ key: 'versions' | 'learners' | 'assignments'; label: string }> = [
-    { key: 'versions', label: 'Versions' },
-    { key: 'learners', label: 'Learners' },
-    { key: 'assignments', label: 'Assignments' },
+    { key: 'versions', label: t(COURSE_LABELS.versions) },
+    { key: 'learners', label: t(COURSE_LABELS.learners) },
+    { key: 'assignments', label: t(COURSE_LABELS.assignments) },
   ]
 
   const visibleVersions = versions.slice(0, visibleVersionRows)
@@ -533,7 +533,7 @@ export function CourseDetailPage() {
         }
       >
         <main className="space-y-6">
-          <Card icon={BookOpen} title="Overview" bodyClassName="p-5 space-y-5">
+          <Card icon={BookOpen} title={t(COURSE_LABELS.overview)} bodyClassName="p-5 space-y-5">
               {course.description && (
                 <p className="text-sm text-slate-500 leading-relaxed max-w-2xl border-l-2 border-slate-200 pl-3 whitespace-pre-wrap">
                   {course.description}
@@ -541,19 +541,19 @@ export function CourseDetailPage() {
               )}
 
               <FactGrid className={`text-sm ${course.description ? 'border-t border-slate-100 pt-5' : 'pt-2'}`}>
-                <Fact label="Course Code" mono valueClassName="font-semibold">
+                <Fact label={t(COURSE_LABELS.courseCode)} mono valueClassName="font-semibold">
                   {course.courseCode}
                 </Fact>
-                <Fact label="Status">
+                <Fact label={t(COURSE_LABELS.status)}>
                   <CourseStatusText status={course.statusName} statusCode={course.status} />
                 </Fact>
-                <Fact label="Category" valueClassName="font-semibold">
+                <Fact label={t(COURSE_LABELS.category)} valueClassName="font-semibold">
                   {categoryNames[course.categoryId] || '-'}
                 </Fact>
-                <Fact label="Course Type" valueClassName="font-semibold">
+                <Fact label={t(COURSE_LABELS.courseType)} valueClassName="font-semibold">
                   {courseTypeNames[course.courseType] || '-'}
                 </Fact>
-                <Fact label="Content Items" valueClassName="font-semibold">
+                <Fact label={t(COURSE_LABELS.contentItems)} valueClassName="font-semibold">
                   {course.contentItems.length}
                 </Fact>
                 {data.kpi && (
@@ -579,24 +579,24 @@ export function CourseDetailPage() {
           />
 
           {activeDetailTab === 'versions' && (
-            <Card icon={FileText} title="Versions">
+            <Card icon={FileText} title={t(COURSE_LABELS.versions)}>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
                       <th className="p-3">Version No.</th>
-                      <th className="p-3">Status</th>
-                      <th className="p-3">Content Items</th>
-                      <th className="p-3">Created Date</th>
-                      <th className="p-3 text-center">Actions</th>
+                      <th className="p-3">{t(COURSE_LABELS.status)}</th>
+                      <th className="p-3">{t(COURSE_LABELS.contentItems)}</th>
+                      <th className="p-3">{t(COURSE_LABELS.createdDate)}</th>
+                      <th className="p-3 text-center">{t(COURSE_LABELS.actions)}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
                     {versions.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="p-8 text-center text-slate-400">
-                          No versions.
+                          {t(COURSE_LABELS.noVersions)}
                         </td>
                       </tr>
                     ) : (
@@ -659,7 +659,7 @@ export function CourseDetailPage() {
               {versions.length > 0 && (
                 <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
                   <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
-                    Showing {visibleVersions.length} of {versions.length}
+                    {tf(COURSE_LABELS.showingOf, visibleVersions.length, versions.length)}
                   </span>
                   {versions.length > visibleVersions.length && (
                     <AppButton
@@ -667,7 +667,7 @@ export function CourseDetailPage() {
                       onClick={() => setVisibleVersionRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
                       className="px-3 py-1 text-xxs font-bold"
                     >
-                      Load more
+                      {t(COURSE_LABELS.loadMore)}
                     </AppButton>
                   )}
                 </div>
@@ -676,7 +676,7 @@ export function CourseDetailPage() {
           )}
 
           {activeDetailTab === 'learners' && (
-            <Card icon={Users} title="Learners">
+            <Card icon={Users} title={t(COURSE_LABELS.learners)}>
 
               {loadingLearners || !hasLoadedLearners ? (
                 <LoadingState size="section" />
@@ -687,10 +687,10 @@ export function CourseDetailPage() {
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
                           <th className="p-3">Learner Code (EId)</th>
-                          <th className="p-3">Name</th>
-                          <th className="p-3">Department</th>
-                          <th className="p-3">Progress</th>
-                          <th className="p-3">Timeline</th>
+                          <th className="p-3">{t(COURSE_LABELS.name)}</th>
+                          <th className="p-3">{t(REPORT_LABELS.colDepartment)}</th>
+                          <th className="p-3">{t(COURSE_LABELS.progress)}</th>
+                          <th className="p-3">{t(COURSE_LABELS.timeline)}</th>
                           <th className="p-3">Access Status</th>
                         </tr>
                       </thead>
@@ -698,7 +698,7 @@ export function CourseDetailPage() {
                         {learners.length === 0 ? (
                           <tr>
                             <td colSpan={6} className="p-8 text-center text-slate-400">
-                              No learners.
+                              {t(COURSE_LABELS.noLearners)}
                             </td>
                           </tr>
                         ) : (
@@ -751,7 +751,7 @@ export function CourseDetailPage() {
           )}
 
           {activeDetailTab === 'assignments' && (
-            <Card icon={Calendar} title="Assignments">
+            <Card icon={Calendar} title={t(COURSE_LABELS.assignments)}>
 
               {loadingAssignments || !hasLoadedAssignments ? (
                 <LoadingState size="section" />
@@ -773,7 +773,7 @@ export function CourseDetailPage() {
                         {assignments.length === 0 ? (
                           <tr>
                             <td colSpan={6} className="p-8 text-center text-slate-400">
-                              No assignments.
+                              {t(COURSE_LABELS.noAssignments)}
                             </td>
                           </tr>
                         ) : (
@@ -990,7 +990,7 @@ function CourseControls({
         to={`/assignments/bulk?courseId=${courseId}`}
         icon={UserPlus}
         disabled={!isOpen}
-        title={isOpen ? undefined : 'Only Open courses can be assigned'}
+        title={isOpen ? undefined : t(COURSE_LABELS.onlyOpenCoursesAssignable)}
       >
         Assign Courses
       </ControlAction>
@@ -1000,7 +1000,7 @@ function CourseControls({
       <ControlAction
         icon={Power}
         disabled={isOpen || mutatingStatus}
-        title={isOpen ? 'Course is already Open' : undefined}
+        title={isOpen ? t(COURSE_LABELS.courseAlreadyOpen) : undefined}
         onClick={() => onStatusChange(1)}
       >
         Publish Course
@@ -1008,7 +1008,7 @@ function CourseControls({
       <ControlAction
         icon={Lock}
         disabled={isClosed || mutatingStatus}
-        title={isClosed ? 'Course is already Closed' : undefined}
+        title={isClosed ? t(COURSE_LABELS.courseAlreadyClosed) : undefined}
         onClick={() => onStatusChange(2)}
       >
         Close Course
@@ -1016,7 +1016,7 @@ function CourseControls({
       <ControlAction
         icon={FileText}
         disabled={isDraft || mutatingStatus}
-        title={isDraft ? 'Course is already Draft' : undefined}
+        title={isDraft ? t(COMMON_LABELS.draft) : undefined}
         onClick={() => onStatusChange(0)}
       >
         Revert to Draft
@@ -1026,7 +1026,7 @@ function CourseControls({
         onClick={onDeleteCourse}
         variant="danger"
         disabled={!isClosed || mutatingStatus}
-        title={!isClosed ? 'ต้องเปลี่ยนสถานะคอร์สเป็น Closed (ปิดการเรียน) ก่อนจึงจะสามารถลบได้' : undefined}
+        title={!isClosed ? t(COURSE_LABELS.courseMustBeClosedToDelete) : undefined}
       >
         Delete Course
       </ControlAction>

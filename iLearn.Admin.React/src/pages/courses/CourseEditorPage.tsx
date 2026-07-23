@@ -22,6 +22,7 @@ import { DetailTabs } from '../../components/ui/DetailTabs'
 import { IconButton } from '../../components/ui/IconButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { getContentReadinessBadgeModel, ReadinessBadge } from '../../components/ui/ReadinessBadge'
+import { CONTENT_TYPE_LABELS, COURSE_LABELS, contentTypeLabel, t, tf } from '../../lib/labels'
 
 type LoadResult<T> = T[] | { data?: T[] }
 
@@ -107,8 +108,8 @@ type CourseVersion = {
 }
 
 const contentTypeOptions = [
-  { id: 1, name: 'Learn' },
-  { id: 2, name: 'Exam' }
+  { id: 1, name: CONTENT_TYPE_LABELS.learn },
+  { id: 2, name: CONTENT_TYPE_LABELS.exam }
 ]
 
 function unwrapList<T>(value: LoadResult<T> | undefined): T[] {
@@ -179,8 +180,8 @@ export function CourseEditorPage() {
   })
 
   const editTabs: Array<{ key: 'properties' | 'content'; label: string }> = [
-    { key: 'properties', label: 'Course Properties' },
-    { key: 'content', label: 'SCORM Content & Library' },
+    { key: 'properties', label: t(COURSE_LABELS.editCourseProperties) },
+    { key: 'content', label: t(COURSE_LABELS.contentLibrary) },
   ]
 
   useEffect(() => {
@@ -204,7 +205,7 @@ export function CourseEditorPage() {
       setContentLibrary(unwrapList(libraryData))
     } catch (err) {
       console.error('Failed to load lookup data', err)
-      toast.error('Failed to load dynamic dropdown options')
+      toast.error(t(COURSE_LABELS.failedToLoadDropdowns))
     }
   }, [])
 
@@ -248,7 +249,7 @@ export function CourseEditorPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Failed to load course details')
+      toast.error(t(COURSE_LABELS.failedToLoadCourseDetails))
     } finally {
       setLoading(false)
     }
@@ -278,15 +279,15 @@ export function CourseEditorPage() {
   }, [categories, formData.divisionId])
 
   const selectedCourseTypeName = useMemo(() => (
-    courseTypes.find(item => item.id === formData.courseType)?.name || 'Not selected'
+    courseTypes.find(item => item.id === formData.courseType)?.name || t(COURSE_LABELS.notSelected)
   ), [courseTypes, formData.courseType])
 
   const selectedDivisionName = useMemo(() => (
-    divisions.find(item => item.id === formData.divisionId)?.name || 'No division'
+    divisions.find(item => item.id === formData.divisionId)?.name || t(COURSE_LABELS.noDivision)
   ), [divisions, formData.divisionId])
 
   const selectedCategoryName = useMemo(() => (
-    categories.find(item => item.id === formData.categoryId)?.name || 'No category'
+    categories.find(item => item.id === formData.categoryId)?.name || t(COURSE_LABELS.noCategory)
   ), [categories, formData.categoryId])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -303,19 +304,19 @@ export function CourseEditorPage() {
 
   const validateDetails = () => {
     if (!formData.courseCode.trim()) {
-      toast.error('Course Code is required')
+      toast.error(t(COURSE_LABELS.courseCodeRequired))
       return false
     }
     if (!formData.courseName.trim()) {
-      toast.error('Course Title is required')
+      toast.error(t(COURSE_LABELS.courseTitleRequired))
       return false
     }
     if (formData.categoryId === 0) {
-      toast.error('Please select a Course Category')
+      toast.error(t(COURSE_LABELS.categoryRequired))
       return false
     }
     if (formData.courseType === 0) {
-      toast.error('Please select a Course Type')
+      toast.error(t(COURSE_LABELS.courseTypeRequired))
       return false
     }
 
@@ -324,7 +325,7 @@ export function CourseEditorPage() {
 
   const validateContent = () => {
     if (contentItems.length === 0) {
-      toast.error('Please add at least one content item before reviewing the course')
+      toast.error(t(COURSE_LABELS.contentRequiredBeforeReview))
       return false
     }
 
@@ -343,7 +344,7 @@ export function CourseEditorPage() {
     }))
 
     setContentItems(prev => [...prev, ...queuedFiles])
-    toast.success(`${queuedFiles.length} file${queuedFiles.length === 1 ? '' : 's'} added to queue`)
+    toast.success(tf(COURSE_LABELS.fileCountQueued, queuedFiles.length, queuedFiles.length === 1 ? '' : 's'))
   }
 
   const removeContentItem = (uid: number | string) => {
@@ -468,7 +469,7 @@ export function CourseEditorPage() {
         await promise
       } catch (err: any) {
         if (err.isAborted) {
-          toast.info('Upload cancelled')
+          toast.info(t(COURSE_LABELS.uploadCancelled))
         }
         throw err
       } finally {
@@ -494,14 +495,14 @@ export function CourseEditorPage() {
     try {
       const courseId = await saveCourse()
       await saveContentItemsToVersion(courseId)
-      toast.success(isEditMode ? 'Course updated successfully' : 'Course and content created successfully')
+      toast.success(t(isEditMode ? COURSE_LABELS.courseUpdated : COURSE_LABELS.courseCreated))
       navigate(`/courses/${courseId}`)
     } catch (err: unknown) {
       console.error(err)
       if (err instanceof Error && (err as any).isAborted) {
         // Do not toast error since we already toasted 'Upload cancelled'
       } else {
-        toast.error(getApiErrorText(err, 'Failed to save course data'))
+        toast.error(getApiErrorText(err, t(COURSE_LABELS.failedToSaveCourse)))
       }
     } finally {
       setSaving(false)
@@ -514,7 +515,7 @@ export function CourseEditorPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label htmlFor="courseType" className="wiz-label">
-            Course Type <span className="text-red-500">*</span>
+            {t(COURSE_LABELS.courseType)} <span className="text-red-500">*</span>
           </label>
           <select
             id="courseType"
@@ -523,14 +524,14 @@ export function CourseEditorPage() {
             onChange={handleChange}
             className="wiz-input"
           >
-            <option value={0}>Select Type</option>
+            <option value={0}>{t(COURSE_LABELS.selectType)}</option>
             {courseTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
           </select>
         </div>
 
         <div className="space-y-1.5">
           <label htmlFor="courseCode" className="wiz-label">
-            Course Code <span className="text-red-500">*</span>
+            {t(COURSE_LABELS.courseCode)} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -545,7 +546,7 @@ export function CourseEditorPage() {
 
         <div className="space-y-1.5 sm:col-span-2">
           <label htmlFor="courseName" className="wiz-label">
-            Course Title <span className="text-red-500">*</span>
+            {t(COURSE_LABELS.courseTitle)} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -561,7 +562,7 @@ export function CourseEditorPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <label htmlFor="divisionId" className="wiz-label">Division</label>
+          <label htmlFor="divisionId" className="wiz-label">{t(COURSE_LABELS.division)}</label>
           <select
             id="divisionId"
             name="divisionId"
@@ -569,14 +570,14 @@ export function CourseEditorPage() {
             onChange={handleChange}
             className="wiz-input"
           >
-            <option value={0}>Select Division</option>
+            <option value={0}>{t(COURSE_LABELS.selectDivision)}</option>
             {divisions.map(division => <option key={division.id} value={division.id}>{division.name}</option>)}
           </select>
         </div>
 
         <div className="space-y-1.5">
           <label htmlFor="categoryId" className="wiz-label">
-            Category <span className="text-red-500">*</span>
+            {t(COURSE_LABELS.category)} <span className="text-red-500">*</span>
           </label>
           <select
             id="categoryId"
@@ -586,14 +587,14 @@ export function CourseEditorPage() {
             disabled={formData.divisionId > 0 && filteredCategories.length === 0}
             className="wiz-input"
           >
-            <option value={0}>Select Category</option>
+            <option value={0}>{t(COURSE_LABELS.selectCategory)}</option>
             {filteredCategories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
           </select>
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <label htmlFor="description" className="wiz-label">Description</label>
+        <label htmlFor="description" className="wiz-label">{t(COURSE_LABELS.description)}</label>
         <textarea
           id="description"
           name="description"
@@ -611,7 +612,7 @@ export function CourseEditorPage() {
     if (contentItems.length === 0) {
       return (
         <div className="flex min-h-28 items-center justify-center border border-dashed border-slate-200 rounded text-[13px] font-semibold text-slate-400 select-none py-6">
-          No content selected
+          {t(COURSE_LABELS.noContentSelected)}
         </div>
       )
     }
@@ -621,12 +622,12 @@ export function CourseEditorPage() {
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 select-none">
             <tr>
-              <th className="w-12 px-3 py-2 text-left">Order</th>
-              <th className="px-3 py-2 text-left">Content Name</th>
-              <th className="w-28 px-3 py-2 text-left">Source</th>
-              <th className="w-36 px-3 py-2 text-left">Content Type</th>
-              <th className="w-28 px-3 py-2 text-left">Status</th>
-              <th className="w-28 px-3 py-2 text-right">Actions</th>
+              <th className="w-12 px-3 py-2 text-left">{t(COURSE_LABELS.order)}</th>
+              <th className="px-3 py-2 text-left">{t(COURSE_LABELS.contentName)}</th>
+              <th className="w-28 px-3 py-2 text-left">{t(COURSE_LABELS.source)}</th>
+              <th className="w-36 px-3 py-2 text-left">{t(COURSE_LABELS.contentType)}</th>
+              <th className="w-28 px-3 py-2 text-left">{t(COURSE_LABELS.status)}</th>
+              <th className="w-28 px-3 py-2 text-right">{t(COURSE_LABELS.actions)}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
@@ -636,7 +637,7 @@ export function CourseEditorPage() {
                 <tr key={item.uid} className="hover:bg-slate-50/30 transition-colors">
                   <td className="px-3 py-2 font-bold text-slate-400">{index + 1}</td>
                   <td className="px-3 py-2 font-bold text-slate-700 truncate max-w-xs">{item.name}</td>
-                  <td className="px-3 py-2 text-slate-400 font-semibold">{item.source === 'upload' ? 'New upload' : 'Content library'}</td>
+                  <td className="px-3 py-2 text-slate-400 font-semibold">{t(item.source === 'upload' ? COURSE_LABELS.newUpload : COURSE_LABELS.contentLibrary)}</td>
                   <td className="px-3 py-2">
                     {item.source === 'upload' ? (
                       <select
@@ -644,10 +645,10 @@ export function CourseEditorPage() {
                         onChange={event => updateUploadContentType(item.uid, Number(event.target.value))}
                         className="wiz-input py-1"
                       >
-                        {contentTypeOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+                        {contentTypeOptions.map(option => <option key={option.id} value={option.id}>{t(option.name)}</option>)}
                       </select>
                     ) : (
-                      <span className="font-semibold text-slate-600">{item.typeName || (item.typeId === 2 ? 'Exam' : 'Learn')}</span>
+                      <span className="font-semibold text-slate-600">{item.typeName || contentTypeLabel(item.typeId)}</span>
                     )}
                   </td>
                   <td className="px-3 py-2 select-none">
@@ -662,7 +663,7 @@ export function CourseEditorPage() {
                         icon={ArrowUp}
                         tone="primary"
                         size="sm"
-                        title="Move content up"
+                        title={t(COURSE_LABELS.moveContentUp)}
                       />
                       <IconButton
                         type="button"
@@ -671,7 +672,7 @@ export function CourseEditorPage() {
                         icon={ArrowDown}
                         tone="primary"
                         size="sm"
-                        title="Move content down"
+                        title={t(COURSE_LABELS.moveContentDown)}
                       />
                       <IconButton
                         type="button"
@@ -679,7 +680,7 @@ export function CourseEditorPage() {
                         icon={X}
                         tone="danger"
                         size="sm"
-                        title="Remove content"
+                        title={t(COURSE_LABELS.removeContent)}
                       />
                     </div>
                   </td>
@@ -695,13 +696,13 @@ export function CourseEditorPage() {
   const renderContentStep = () => (
     <div className="space-y-4">
       <div className="flex justify-end mb-1 select-none">
-        <Badge tone="neutral">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</Badge>
+        <Badge tone="neutral">{tf(COURSE_LABELS.itemCount, contentItems.length, contentItems.length === 1 ? '' : 's')}</Badge>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 select-none">
         <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-blue-500 transition duration-150">
           <Upload className="h-5 w-5 text-indigo-500" />
-          <span>Upload New SCORM</span>
+          <span>{t(COURSE_LABELS.uploadNewScorm)}</span>
           <span className="text-xs font-semibold text-slate-400">.zip packages · multiple allowed</span>
           <input
             type="file"
@@ -724,7 +725,7 @@ export function CourseEditorPage() {
           className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500 transition duration-150"
         >
           <BookOpen className="h-5 w-5 text-indigo-600" />
-          <span>Select Existing Content</span>
+          <span>{t(COURSE_LABELS.selectExistingContent)}</span>
           <span className="text-xs font-semibold text-slate-400">Reuse packages from the Content Library</span>
         </button>
       </div>
@@ -762,36 +763,36 @@ export function CourseEditorPage() {
       </dl>
 
       <div className="flex items-center justify-between pt-1 select-none">
-        <span className="wiz-label">Content Items</span>
-        <Badge tone="neutral">{contentItems.length} item{contentItems.length === 1 ? '' : 's'}</Badge>
+        <span className="wiz-label">{t(COURSE_LABELS.contentItems)}</span>
+        <Badge tone="neutral">{tf(COURSE_LABELS.itemCount, contentItems.length, contentItems.length === 1 ? '' : 's')}</Badge>
       </div>
       {renderContentRows()}
     </div>
   )
 
   const steps: WizardStep[] = [
-    { label: 'Information', validate: () => validateDetails(), render: () => renderInformationStep() },
-    { label: 'Content', validate: () => validateContent(), render: () => renderContentStep() },
-    { label: 'Review', render: () => renderReviewStep() }
+    { label: t(COURSE_LABELS.information), validate: () => validateDetails(), render: () => renderInformationStep() },
+    { label: t(COURSE_LABELS.content), validate: () => validateContent(), render: () => renderContentStep() },
+    { label: t(COURSE_LABELS.review), render: () => renderReviewStep() }
   ]
 
   if (loading) {
-    return <LoadingState label="Loading course details..." />
+    return <LoadingState label={t(COURSE_LABELS.failedToLoadCourseDetails)} />
   }
 
   if (!isEditMode) {
     return (
       <>
         <AppWizard
-          title="New Course"
-          description="Create a new training course."
-          eyebrow="Course Catalog"
+          title={t(COURSE_LABELS.newCourse)}
+          description={t(COURSE_LABELS.newCourse)}
+          eyebrow={t(COURSE_LABELS.courseCatalog)}
           steps={steps}
           currentStep={currentStep}
           onStepChange={setCurrentStep}
           onCancel={() => navigate('/courses')}
           onSubmit={handleSubmit}
-          submitLabel="Create Course"
+          submitLabel={t(COURSE_LABELS.createCourse)}
           isSubmitting={saving}
         />
 

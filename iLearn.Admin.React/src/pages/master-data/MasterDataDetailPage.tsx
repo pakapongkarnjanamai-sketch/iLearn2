@@ -19,6 +19,7 @@ import { adminListConfigs, type AdminListConfig } from '../moduleConfigs'
 import { createAdminDataSource } from '../../lib/createDataSource'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
+import { ADMIN_LABELS, t, tf } from '../../lib/labels'
 
 // Mirrors CategoryDto (iLearn.Application/DTOs/DivisionDto.cs)
 export interface CategoryDto {
@@ -67,11 +68,14 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
     })
   }, [config])
 
+  const configTitle = config ? t(config.title) : ''
+  const entityTitle = configTitle.replace(/s$/, '')
+
   useEffect(() => {
     if (config && isNewItem) {
-      setLabel('new', `New ${config.title.replace(/s$/, '')}`)
+      setLabel('new', `${t(ADMIN_LABELS.create)} ${entityTitle}`)
     }
-  }, [config, isNewItem, setLabel])
+  }, [config, entityTitle, isNewItem, setLabel])
 
   const loadItem = useCallback(async () => {
     if (isNewItem || !store || !id) return
@@ -88,11 +92,11 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
           setLabel(id, record.name)
         }
       } else {
-        toast.error('Record not found')
+        toast.error(t(ADMIN_LABELS.recordNotFound))
       }
     } catch (err) {
       console.error(err)
-      toast.error('Failed to load item details')
+      toast.error(t(ADMIN_LABELS.failedToLoadItem))
     } finally {
       setLoading(false)
     }
@@ -110,7 +114,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
     e.preventDefault()
     if (!store || !config || busy) return
     if (!activeValues.name?.trim()) {
-      toast.error('Name is required')
+      toast.error(t(ADMIN_LABELS.nameRequired))
       return
     }
 
@@ -123,17 +127,17 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
       }
       if (isNewItem) {
         const newRecord = await store.insert!(payload)
-        toast.success(`${config.title.replace(/s$/, '')} created successfully`)
+        toast.success(tf(ADMIN_LABELS.createdSuccessfully, entityTitle))
         navigate(`/master-data/${type}/${newRecord.id}`, { replace: true })
       } else {
         await store.update!(Number(id), payload)
-        toast.success('Changes saved successfully')
+        toast.success(t(ADMIN_LABELS.changesSaved))
         setIsEditing(false)
         await loadItem()
       }
     } catch (err) {
       console.error(err)
-      toast.error(isNewItem ? 'Failed to create record' : 'Failed to save changes')
+      toast.error(t(isNewItem ? ADMIN_LABELS.createFailed : ADMIN_LABELS.saveFailed))
     } finally {
       setBusy(false)
     }
@@ -141,22 +145,22 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
 
   const handleDelete = async () => {
     if (isNew || !store || !config || busy) return
-    const entityName = config.title.replace(/s$/, '').toLowerCase()
+    const entityName = entityTitle.toLowerCase()
     if (!(await confirm({
-      title: `Delete ${config.title.replace(/s$/, '')}`,
-      message: `Are you absolutely sure you want to delete this ${entityName}? This action cannot be undone.`,
-      confirmLabel: 'Delete',
+      title: `${t(ADMIN_LABELS.delete)} ${entityTitle}`,
+      message: tf(ADMIN_LABELS.deleteRecordConfirm, entityName),
+      confirmLabel: t(ADMIN_LABELS.delete),
       danger: true,
     }))) return
     
     setBusy(true)
     try {
       await store.remove!(Number(id))
-      toast.success(`${config.title.replace(/s$/, '')} deleted successfully`)
+      toast.success(tf(ADMIN_LABELS.deletedSuccessfully, entityTitle))
       navigate(`/master-data/${type}`)
     } catch (err) {
       console.error(err)
-      toast.error(`Failed to delete ${entityName}`)
+      toast.error(tf(ADMIN_LABELS.failedToDelete, entityName))
     } finally {
       setBusy(false)
     }
@@ -165,10 +169,10 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
   if (!config) {
     return (
       <NotFoundState
-        title="Invalid Master Data Type"
-        message="The requested directory section could not be resolved."
+        title={t(ADMIN_LABELS.invalidMasterDataType)}
+        message={t(ADMIN_LABELS.invalidMasterDataMessage)}
         backTo="/master-data"
-        backLabel="Back to Master Data"
+        backLabel={t(ADMIN_LABELS.backToMasterData)}
         tone="danger"
       />
     )
@@ -177,8 +181,6 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
   if (loading) {
     return <LoadingState />
   }
-
-  const entityTitle = config.title.replace(/s$/, '')
 
   return (
     <>
@@ -190,7 +192,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                 // Edit Mode Actions
                 <>
                   <ControlAction key="save" type="submit" icon={Save} loading={busy} variant="primary">
-                    {busy ? 'Saving...' : 'Save Changes'}
+                    {busy ? t(ADMIN_LABELS.saving) : t(ADMIN_LABELS.saveChanges)}
                   </ControlAction>
                   <ControlAction
                     key="cancel"
@@ -205,28 +207,28 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                       }
                     }}
                   >
-                    Cancel
+                    {t(ADMIN_LABELS.cancel)}
                   </ControlAction>
                 </>
               ) : (
                 // View Mode Actions
                 <>
-                  <ControlAction key="edit" icon={Edit3} onClick={() => setIsEditing(true)}>Edit Properties</ControlAction>
-                  <ControlAction key="delete" icon={Trash2} onClick={handleDelete} variant="danger">Delete Record</ControlAction>
+                  <ControlAction key="edit" icon={Edit3} onClick={() => setIsEditing(true)}>{t(ADMIN_LABELS.editProperties)}</ControlAction>
+                  <ControlAction key="delete" icon={Trash2} onClick={handleDelete} variant="danger">{t(ADMIN_LABELS.deleteRecord)}</ControlAction>
                 </>
               )}
             </ControlsSidebar>
           }
         >
           {/* Main Details Panel */}
-          <Card icon={Settings} title={`${entityTitle} Details`} bodyClassName="p-5 space-y-5">
+          <Card icon={Settings} title={`${entityTitle} ${t(ADMIN_LABELS.details)}`} bodyClassName="p-5 space-y-5">
             <div className="space-y-4 max-w-xl">
               {isEditing ? (
                 // Edit Form Fields
                 <>
                   <div className="space-y-1.5">
                     <label htmlFor="name-field" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">
-                      {entityTitle} Name
+                      {entityTitle} {t(ADMIN_LABELS.name)}
                     </label>
                     <input
                       id="name-field"
@@ -234,7 +236,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                       required
                       value={activeValues.name || ''}
                       onChange={(e) => handleFieldChange('name', e.target.value)}
-                      placeholder={`Enter ${entityTitle.toLowerCase()} name...`}
+                      placeholder={tf(ADMIN_LABELS.enterName, entityTitle.toLowerCase())}
                       className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/30 transition duration-150"
                     />
                   </div>
@@ -242,7 +244,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                   {type === 'categories' && (
                     <div className="space-y-1.5">
                       <label htmlFor="sort-order-field" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">
-                        Sort Order (ลำดับ)
+                        {t(ADMIN_LABELS.sortOrder)}
                       </label>
                       <input
                         id="sort-order-field"
@@ -254,7 +256,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                           const val = e.target.value === '' ? '' : Number(e.target.value)
                           handleFieldChange('sortOrder', val)
                         }}
-                        placeholder="Enter sort order (e.g. 1, 2, 3...)"
+                        placeholder={t(ADMIN_LABELS.enterSortOrder)}
                         className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/30 transition duration-150"
                       />
                     </div>
@@ -272,20 +274,20 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                       htmlFor="active-field"
                       className="text-xs sm:text-[13px] font-bold text-slate-700 select-none cursor-pointer"
                     >
-                      Active Status
+                      {t(ADMIN_LABELS.activeStatus)}
                     </label>
                   </div>
 
                   {config.hasDescription && (
                     <div className="space-y-1.5">
                       <label htmlFor="description-field" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">
-                        Description
+                        {t(ADMIN_LABELS.description)}
                       </label>
                       <textarea
                         id="description-field"
                         value={activeValues.description || ''}
                         onChange={(e) => handleFieldChange('description', e.target.value)}
-                        placeholder={`Enter description...`}
+                        placeholder={t(ADMIN_LABELS.enterDescription)}
                         maxLength={500}
                         rows={3}
                         className="w-full px-3.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 bg-slate-50/30 transition duration-150 custom-scrollbar resize-y font-semibold"
@@ -297,7 +299,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                 // Read-only Details View
                 <FactGrid cols={2} className="text-sm gap-y-4">
                   <Fact
-                    label="Name"
+                    label={t(ADMIN_LABELS.name)}
                     colSpan="full"
                     valueClassName="text-slate-800 font-bold text-base select-all"
                   >
@@ -306,7 +308,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
 
                   {config.hasDescription && (
                     <Fact
-                      label="Description"
+                      label={t(ADMIN_LABELS.description)}
                       colSpan="full"
                     >
                       {item?.description || '—'}
@@ -315,18 +317,18 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
 
                   {type === 'categories' && (
                     <Fact
-                      label="Sort Order"
+                      label={t(ADMIN_LABELS.sortOrder)}
                     >
                       {item?.sortOrder !== undefined && item?.sortOrder !== null ? item.sortOrder : '—'}
                     </Fact>
                   )}
 
-                  <Fact label="Status">
+                  <Fact label={t(ADMIN_LABELS.status)}>
                     <StatusText active={item?.isActive} />
                   </Fact>
 
                   <Fact
-                    label="Last Modified"
+                    label={t(ADMIN_LABELS.lastModified)}
                     valueClassName="text-slate-500 font-bold mt-1 text-xs"
                   >
                     {item?.updatedAt ? formatDateTime(item.updatedAt) : '—'}

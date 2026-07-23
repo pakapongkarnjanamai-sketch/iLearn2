@@ -17,7 +17,7 @@ import { exportRowsAsCsv } from '../../lib/csvExport'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { toast } from '../../lib/toast'
 import { formatDate, formatPercent } from '../../lib/format'
-import { COMMON_LABELS, LEARNER_STATUS_KEYS, learnerStatusLabel, t } from '../../lib/labels'
+import { ASSIGNMENT_LABELS, COMMON_LABELS, LEARNER_STATUS_KEYS, REPORT_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 import { StatusDonut, CourseCompletionBars, buildStatusData, buildCourseBarData } from './AssignmentReportCharts'
 
@@ -96,7 +96,7 @@ export function AssignmentReportPage() {
         if (cancelled) return
         if (resp.success) setData(resp.data)
       })
-      .catch(() => toast.error('Failed to load assignment report'))
+      .catch(() => toast.error(t(ASSIGNMENT_LABELS.failedToLoadReport)))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
@@ -215,7 +215,7 @@ export function AssignmentReportPage() {
 
   const exportCsv = (rows: LearnerRow[], scope: 'all' | 'filtered') => {
     if (!data || rows.length === 0) {
-      toast.info('No rows to export')
+      toast.info(t(ASSIGNMENT_LABELS.noRowsToExport))
       return
     }
     const header = [
@@ -258,16 +258,16 @@ export function AssignmentReportPage() {
   }
 
   if (loading) {
-    return <LoadingState label="Loading assignment report..." />
+    return <LoadingState label={t(ASSIGNMENT_LABELS.loadingReport)} />
   }
 
   if (!data) {
     return (
       <NotFoundState
-        title="Assignment Not Found"
-        message="The requested assignment report could not be loaded."
+        title={t(ASSIGNMENT_LABELS.assignmentNotFound)}
+        message={t(ASSIGNMENT_LABELS.assignmentReportUnavailable)}
         backTo="/assignments"
-        backLabel="Back to Assignments"
+        backLabel={t(ASSIGNMENT_LABELS.backToAssignments)}
       />
     )
   }
@@ -281,18 +281,18 @@ export function AssignmentReportPage() {
         sidebar={
           <ControlsSidebar className="print:hidden">
             <ControlAction icon={Printer} onClick={handlePrint}>
-              Print Report
+              {t(ASSIGNMENT_LABELS.printReport)}
             </ControlAction>
             <ControlAction icon={Download} onClick={() => exportCsv(data.learners, 'all')}>
-              Export CSV (All)
+              {t(ASSIGNMENT_LABELS.exportAllCsv)}
             </ControlAction>
             <ControlAction
               icon={Download}
               onClick={() => exportCsv(filtered, 'filtered')}
               disabled={!isFiltered}
-              title={isFiltered ? undefined : 'Apply a filter or search to export a subset'}
+              title={isFiltered ? undefined : t(ASSIGNMENT_LABELS.filterBeforeExport)}
             >
-              Export CSV (Filtered)
+              {t(ASSIGNMENT_LABELS.exportFilteredCsv)}
             </ControlAction>
           </ControlsSidebar>
         }
@@ -300,7 +300,7 @@ export function AssignmentReportPage() {
         <div className="space-y-6">
           {/* Summary stats */}
           <DetailCard>
-            <SectionHeader>Report Summary</SectionHeader>
+            <SectionHeader>{t(ASSIGNMENT_LABELS.reportSummary)}</SectionHeader>
 
             {/* Header row: Assignment No + date range */}
             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 pt-2 px-1">
@@ -315,19 +315,19 @@ export function AssignmentReportPage() {
             {/* Stat tiles */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 px-1">
               <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase">Learners</div>
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.learners)}</div>
                 <div className="text-lg font-bold text-slate-800 tabular-nums mt-0.5">{data.totalEmployees}</div>
               </div>
               <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase">Completed</div>
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.completed)}</div>
                 <div className="text-lg font-bold text-slate-800 tabular-nums mt-0.5">{data.chartData.completed}</div>
               </div>
               <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase">Overdue</div>
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.overdue)}</div>
                 <div className={`text-lg font-bold tabular-nums mt-0.5 ${overdueLearnerCount > 0 ? 'text-red-600' : 'text-slate-800'}`}>{overdueLearnerCount}</div>
               </div>
               <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase">Courses</div>
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.courses)}</div>
                 <div className="text-lg font-bold text-slate-800 tabular-nums mt-0.5">{data.totalCourses}</div>
               </div>
             </div>
@@ -344,7 +344,7 @@ export function AssignmentReportPage() {
             {/* Charts: donut + bars */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 print:hidden">
               <div>
-                <DetailSubSection title="Status Overview">
+                <DetailSubSection title={t(ASSIGNMENT_LABELS.statusOverview)}>
                   <StatusDonut
                     data={statusChartData}
                     completionRate={data.completionRate}
@@ -354,7 +354,7 @@ export function AssignmentReportPage() {
               </div>
               {data.courses.length > 0 && (
                 <div>
-                  <DetailSubSection title="Completion by Course">
+                  <DetailSubSection title={t(ASSIGNMENT_LABELS.completionByCourse)}>
                     <CourseCompletionBars
                       data={courseBarData}
                       activeCourse={courseFilter}
@@ -367,17 +367,17 @@ export function AssignmentReportPage() {
 
           {/* Learner Group breakdown */}
           {groupSummaries.length > 0 && (
-            <Card icon={Users} title="By Learner Group">
+            <Card icon={Users} title={t(ASSIGNMENT_LABELS.byLearnerGroup)}>
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
-                      <th className="p-3 pl-5">Learner Group</th>
-                      <th className="p-3 text-center">Learners</th>
-                      <th className="p-3 text-center">Enrollments</th>
-                      <th className="p-3 text-center">Completed</th>
-                      <th className="p-3 text-center">Overdue</th>
-                      <th className="p-3 pr-5">Completion</th>
+                      <th className="p-3 pl-5">{t(ASSIGNMENT_LABELS.byLearnerGroup)}</th>
+                      <th className="p-3 text-center">{t(ASSIGNMENT_LABELS.learners)}</th>
+                      <th className="p-3 text-center">{t(ASSIGNMENT_LABELS.enrollments)}</th>
+                      <th className="p-3 text-center">{t(ASSIGNMENT_LABELS.completed)}</th>
+                      <th className="p-3 text-center">{t(ASSIGNMENT_LABELS.overdue)}</th>
+                      <th className="p-3 pr-5">{t(ASSIGNMENT_LABELS.completion)}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -413,7 +413,7 @@ export function AssignmentReportPage() {
               <ListToolbar
                 searchValue={search}
                 onSearchChange={setSearch}
-                searchPlaceholder="Search code, name, group, department, course..."
+                searchPlaceholder={t(ASSIGNMENT_LABELS.searchReport)}
                 toolbarContent={
                   <div className="flex flex-wrap items-center gap-1.5">
                     <SegmentedToggle
@@ -435,7 +435,7 @@ export function AssignmentReportPage() {
                           }
                           className="appearance-none rounded-lg border border-slate-200 bg-white pl-3 pr-8 py-1.5 text-xs font-semibold text-slate-600 hover:border-slate-300 focus:outline-none focus:border-indigo-500 cursor-pointer"
                         >
-                          <option value="All">All Courses</option>
+                          <option value="All">{t(ASSIGNMENT_LABELS.allCourses)}</option>
                           {data.courses.map((c) => (
                             <option key={c.assignmentRuleId} value={c.assignmentRuleId}>
                               {c.courseCode} — {c.courseTitle}
@@ -452,13 +452,13 @@ export function AssignmentReportPage() {
                         onChange={(e) => setGroupFilter(e.target.value)}
                         className="appearance-none rounded-lg border border-slate-200 bg-white pl-3 pr-8 py-1.5 text-xs font-semibold text-slate-600 hover:border-slate-300 focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
-                        <option value="All">All Groups</option>
+                        <option value="All">{t(ASSIGNMENT_LABELS.allGroups)}</option>
                         {groupOptions.map((g) => (
                           <option key={g} value={g}>
                             {g}
                           </option>
                         ))}
-                        <option value="Ungrouped">Ungrouped</option>
+                        <option value="Ungrouped">{t(ASSIGNMENT_LABELS.ungrouped)}</option>
                       </select>
                       <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                     </div>
@@ -471,12 +471,12 @@ export function AssignmentReportPage() {
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
-                    <th className="p-3 pl-5">Learner</th>
-                    <th className="p-3">Course Code & Title</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Progress</th>
-                    <th className="p-3">Timeline</th>
-                    <th className="p-3 pr-5">Completed Date</th>
+                    <th className="p-3 pl-5">{t(REPORT_LABELS.colLearner)}</th>
+                    <th className="p-3">{t(ASSIGNMENT_LABELS.courses)}</th>
+                    <th className="p-3">{t(ASSIGNMENT_LABELS.status)}</th>
+                    <th className="p-3">{t(REPORT_LABELS.colProgress)}</th>
+                    <th className="p-3">{t(ASSIGNMENT_LABELS.timeline)}</th>
+                    <th className="p-3 pr-5">{t(ASSIGNMENT_LABELS.completedDate)}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -505,8 +505,8 @@ export function AssignmentReportPage() {
                         <ProgressBar value={row.progress} completed={row.isCompleted} />
                       </td>
                       <td className="p-3 text-slate-400 text-xxs leading-relaxed">
-                        {row.startDate && <div>Start: {formatDate(row.startDate)}</div>}
-                        {row.dueDate && <div className="mt-0.5">Due: {formatDate(row.dueDate)}</div>}
+                        {row.startDate && <div>{tf(ASSIGNMENT_LABELS.startDate, formatDate(row.startDate))}</div>}
+                        {row.dueDate && <div className="mt-0.5">{tf(ASSIGNMENT_LABELS.dueDate, formatDate(row.dueDate))}</div>}
                       </td>
                       <td className="p-3 pr-5 text-slate-600 text-xs">
                         {row.completedDate ? formatDate(row.completedDate) : '—'}
@@ -516,7 +516,7 @@ export function AssignmentReportPage() {
                   {filtered.length === 0 && (
                     <tr>
                       <td className="p-6 text-center text-slate-400" colSpan={6}>
-                        No learners found.
+                        {t(ASSIGNMENT_LABELS.noLearnersFound)}
                       </td>
                     </tr>
                   )}

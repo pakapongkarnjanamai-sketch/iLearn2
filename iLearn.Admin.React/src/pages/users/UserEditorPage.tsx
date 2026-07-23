@@ -8,6 +8,7 @@ import { Badge } from '../../components/ui/Badge'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import type { RoleInfo, UserRoleInfo, AdminUser } from './AdminUsersPage'
+import { ADMIN_LABELS, t, tf } from '../../lib/labels'
 
 export function UserEditorPage() {
   const { id } = useParams()
@@ -30,7 +31,7 @@ export function UserEditorPage() {
         const roles = Array.isArray(res) ? res : (res as any)?.data ?? []
         setAllRoles(roles)
       })
-      .catch(() => toast.error('Failed to load roles'))
+      .catch(() => toast.error(t(ADMIN_LABELS.failedToLoadRoles)))
   }, [])
 
   useEffect(() => {
@@ -61,7 +62,7 @@ export function UserEditorPage() {
       } catch (err) {
         console.error(err)
         if (!cancelled) {
-          toast.error('Failed to load user info')
+          toast.error(t(ADMIN_LABELS.failedToLoadUserInfo))
           setNotFound(true)
         }
       } finally {
@@ -84,7 +85,7 @@ export function UserEditorPage() {
 
   const validateUser = () => {
     if (!nid.trim()) {
-      toast.error('Employee NID is required')
+      toast.error(t(ADMIN_LABELS.employeeNidRequired))
       return false
     }
     return true
@@ -115,13 +116,13 @@ export function UserEditorPage() {
               method: 'PUT',
               body: roleData,
             })
-            toast.success(`User ${nid.trim()} created with assigned roles`)
+            toast.success(tf(ADMIN_LABELS.userCreatedWithRoles, nid.trim()))
           } catch (err) {
             console.error(err)
-            toast.error('User was created, but role assignment failed. Please update roles on the edit page.')
+            toast.error(t(ADMIN_LABELS.roleAssignmentFailedAfterCreate))
           }
         } else {
-          toast.success(`User ${nid.trim()} created successfully`)
+          toast.success(tf(ADMIN_LABELS.userCreated, nid.trim()))
         }
       } else {
         // Edit mode
@@ -132,12 +133,12 @@ export function UserEditorPage() {
           method: 'PUT',
           body: formData,
         })
-        toast.success(`Roles updated for ${user?.fullName || nid}`)
+        toast.success(tf(ADMIN_LABELS.rolesUpdatedFor, user?.fullName || nid))
       }
       navigate('/users')
     } catch (err) {
       console.error(err)
-      toast.error(isCreate ? 'Failed to create user' : 'Failed to save role changes')
+      toast.error(t(isCreate ? ADMIN_LABELS.failedToCreateUser : ADMIN_LABELS.failedToSaveRoles))
     } finally {
       setSubmitting(false)
     }
@@ -147,7 +148,7 @@ export function UserEditorPage() {
     <div className="space-y-4">
       <div className="space-y-1.5">
         <label className="wiz-label">
-          Employee NID <span className="text-red-500">*</span>
+          {t(ADMIN_LABELS.employeeNid)} <span className="text-red-500">*</span>
         </label>
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -155,12 +156,12 @@ export function UserEditorPage() {
             type="text"
             value={nid}
             onChange={(e) => setNid(e.target.value.toUpperCase())}
-            placeholder="e.g. N4734"
+            placeholder={t(ADMIN_LABELS.enterNid)}
             className="w-full rounded-md border border-slate-200 py-1.5 pl-8 pr-3 text-xs text-slate-700 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 focus:outline-none"
             autoFocus
           />
         </div>
-        <p className="text-[10px] text-slate-400">Enter the Windows NID of the employee to add as an admin user.</p>
+        <p className="text-[10px] text-slate-400">{t(ADMIN_LABELS.adminNidHelp)}</p>
       </div>
     </div>
   )
@@ -175,13 +176,13 @@ export function UserEditorPage() {
           </div>
           {user.fullName && (
             <div className="space-y-0.5">
-              <div className="text-[10px] font-extrabold uppercase text-slate-400">Name</div>
+              <div className="text-[10px] font-extrabold uppercase text-slate-400">{t(ADMIN_LABELS.name)}</div>
               <div className="text-xs font-bold text-slate-700">{user.fullName}</div>
             </div>
           )}
           {user.division && (
             <div className="space-y-0.5">
-              <div className="text-[10px] font-extrabold uppercase text-slate-400">Division</div>
+              <div className="text-[10px] font-extrabold uppercase text-slate-400">{t(ADMIN_LABELS.division)}</div>
               <div className="text-xs font-bold text-slate-700">{user.division}</div>
             </div>
           )}
@@ -189,7 +190,7 @@ export function UserEditorPage() {
       )}
 
       <div className="space-y-2 select-none">
-        <label className="wiz-label">Assigned Roles</label>
+        <label className="wiz-label">{t(ADMIN_LABELS.assignedRoles)}</label>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {allRoles.map((role) => {
             const isChecked = pendingRoleIds.includes(role.id)
@@ -249,20 +250,20 @@ export function UserEditorPage() {
     <div className="space-y-4">
       <dl className="divide-y divide-slate-100 text-sm select-none">
         <div className="grid grid-cols-3 py-2.5 font-semibold">
-          <dt className="wiz-label">Employee NID</dt>
+          <dt className="wiz-label">{t(ADMIN_LABELS.employeeNid)}</dt>
           <dd className="col-span-2 text-slate-700 font-bold">{nid.trim() || '—'}</dd>
         </div>
         {!isCreate && user && (
           <>
             {user.fullName && (
               <div className="grid grid-cols-3 py-2.5 font-semibold">
-                <dt className="wiz-label">Name</dt>
+                <dt className="wiz-label">{t(ADMIN_LABELS.name)}</dt>
                 <dd className="col-span-2 text-slate-700">{user.fullName}</dd>
               </div>
             )}
             {user.division && (
               <div className="grid grid-cols-3 py-2.5 font-semibold">
-                <dt className="wiz-label">Division</dt>
+                <dt className="wiz-label">{t(ADMIN_LABELS.division)}</dt>
                 <dd className="col-span-2 text-slate-700">{user.division}</dd>
               </div>
             )}
@@ -272,9 +273,9 @@ export function UserEditorPage() {
 
       {isCreate ? (
         <div className="space-y-1.5 select-none">
-          <div className="text-[10px] font-extrabold uppercase text-slate-400">Selected Roles ({pendingRoleIds.length})</div>
+          <div className="text-[10px] font-extrabold uppercase text-slate-400">{tf(ADMIN_LABELS.selectedRoles, pendingRoleIds.length)}</div>
           {pendingRoleIds.length === 0 ? (
-            <p className="text-xs text-slate-400 font-semibold italic">No roles selected. User will have no administrative permissions.</p>
+            <p className="text-xs text-slate-400 font-semibold italic">{t(ADMIN_LABELS.noRolesSelected)}</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {pendingRoleIds.map((roleId) => (
@@ -287,14 +288,14 @@ export function UserEditorPage() {
         </div>
       ) : (
         <div className="space-y-3 select-none">
-          <div className="text-[10px] font-extrabold uppercase text-slate-400">Role Changes Summary</div>
+          <div className="text-[10px] font-extrabold uppercase text-slate-400">{t(ADMIN_LABELS.roleChanges)}</div>
           {addedRoles.length === 0 && removedRoles.length === 0 ? (
-            <p className="text-xs text-slate-400 font-semibold italic">No role changes detected.</p>
+            <p className="text-xs text-slate-400 font-semibold italic">{t(ADMIN_LABELS.noRoleChanges)}</p>
           ) : (
             <div className="space-y-2 text-xs">
               {addedRoles.length > 0 && (
                 <div>
-                  <div className="font-bold text-emerald-600 mb-1">To Be Added:</div>
+                  <div className="font-bold text-emerald-600 mb-1">{t(ADMIN_LABELS.toBeAdded)}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {addedRoles.map((name) => (
                       <Badge key={name} variant="outline" tone="success">
@@ -306,7 +307,7 @@ export function UserEditorPage() {
               )}
               {removedRoles.length > 0 && (
                 <div>
-                  <div className="font-bold text-rose-600 mb-1">To Be Removed:</div>
+                  <div className="font-bold text-rose-600 mb-1">{t(ADMIN_LABELS.toBeRemoved)}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {removedRoles.map((name) => (
                       <Badge key={name} variant="outline" tone="danger" size="xxs">
@@ -325,41 +326,35 @@ export function UserEditorPage() {
 
   const steps: WizardStep[] = isCreate
     ? [
-        { label: 'User', validate: validateUser, render: renderUserStep },
-        { label: 'Roles', validate: validateRoles, render: renderRolesStep },
-        { label: 'Review', render: renderReviewStep },
+        { label: t(ADMIN_LABELS.userStep), validate: validateUser, render: renderUserStep }, { label: t(ADMIN_LABELS.roles), validate: validateRoles, render: renderRolesStep }, { label: t(ADMIN_LABELS.review), render: renderReviewStep },
       ]
     : [
-        { label: 'Roles', validate: validateRoles, render: renderRolesStep },
-        { label: 'Review', render: renderReviewStep },
+        { label: t(ADMIN_LABELS.roles), validate: validateRoles, render: renderRolesStep }, { label: t(ADMIN_LABELS.review), render: renderReviewStep },
       ]
 
   if (loadingUser) {
-    return <LoadingState label="Loading user data..." />
+    return <LoadingState label={t(ADMIN_LABELS.loadingUserData)} />
   }
 
   if (notFound) {
     return (
       <NotFoundState
-        title="Admin User Not Found"
-        message="The admin user you are trying to edit does not exist or has been deleted."
+        title={t(ADMIN_LABELS.adminUserNotFound)} message={t(ADMIN_LABELS.adminUserNotFoundMessage)}
         backTo="/users"
-        backLabel="Back to Directory"
+        backLabel={t(ADMIN_LABELS.backToDirectory)}
       />
     )
   }
 
   return (
     <AppWizard
-      title={isCreate ? 'New Admin User' : 'Edit Admin Roles'}
-      description={isCreate ? 'Register a new administrative user.' : 'Manage roles and access privileges for this admin.'}
-      eyebrow="Admin Users"
+      title={t(isCreate ? ADMIN_LABELS.newAdminUser : ADMIN_LABELS.editAdminRoles)} description={t(isCreate ? ADMIN_LABELS.registerAdminUser : ADMIN_LABELS.manageAdminRoles)} eyebrow={t(ADMIN_LABELS.adminUsersTitle)}
       steps={steps}
       currentStep={currentStep}
       onStepChange={setCurrentStep}
       onCancel={() => navigate('/users')}
       onSubmit={handleSubmit}
-      submitLabel={isCreate ? 'Create User' : 'Save Changes'}
+      submitLabel={t(isCreate ? ADMIN_LABELS.createUser : ADMIN_LABELS.saveChanges)}
       isSubmitting={submitting}
       submitIcon={isCreate ? <UserPlus className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
     />

@@ -20,7 +20,7 @@ import {
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { formatDate } from '../../lib/format'
-import { COMMON_LABELS, t } from '../../lib/labels'
+import { COMMON_LABELS, LEARNER_LABELS, REPORT_LABELS, t, tf } from '../../lib/labels'
 
 type LearnerKpis = {
   totalCourses: number
@@ -81,7 +81,7 @@ export function LearnerProfilePage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Unable to fetch learner transcript profile')
+      toast.error(t(LEARNER_LABELS.failedToLoadProfile))
     } finally {
       setLoading(false)
     }
@@ -98,10 +98,10 @@ export function LearnerProfilePage() {
   if (!profile) {
     return (
       <NotFoundState
-        title="Learner Profile Missing"
-        message="The learner's corporate identity could not be verified."
+        title={t(LEARNER_LABELS.learnerProfileMissing)}
+        message={t(LEARNER_LABELS.learnerIdentityUnverified)}
         backTo="/learners"
-        backLabel="Back to Directory"
+        backLabel={t(LEARNER_LABELS.backToDirectory)}
       />
     )
   }
@@ -121,23 +121,23 @@ export function LearnerProfilePage() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
         {/* Transcript (main) */}
         <div className="min-w-0">
-          <Card icon={FileBadge} title="Transcript" bodyClassName="overflow-x-auto custom-scrollbar">
+          <Card icon={FileBadge} title={t(LEARNER_LABELS.transcript)} bodyClassName="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
-                  <th className="p-3">Course Identity</th>
-                  <th className="p-3">Progress</th>
-                  <th className="p-3">Grade / Score</th>
-                  <th className="p-3">Time Spent</th>
-                  <th className="p-3">Timeline</th>
-                  <th className="p-3">Status</th>
+                  <th className="p-3">{t(LEARNER_LABELS.courseIdentity)}</th>
+                  <th className="p-3">{t(REPORT_LABELS.colProgress)}</th>
+                  <th className="p-3">{t(LEARNER_LABELS.gradeScore)}</th>
+                  <th className="p-3">{t(LEARNER_LABELS.timeSpent)}</th>
+                  <th className="p-3">{t(LEARNER_LABELS.timeline)}</th>
+                  <th className="p-3">{t(LEARNER_LABELS.status)}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {profile.enrollments.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="p-8 text-center text-slate-400">
-                      No enrollments.
+                      {t(LEARNER_LABELS.noEnrollments)}
                     </td>
                   </tr>
                 ) : (
@@ -153,7 +153,7 @@ export function LearnerProfilePage() {
                               {e.courseTitle}
                             </span>
                             <span className="text-xxs font-mono text-slate-400 mt-0.5">
-                              {e.courseCode} {e.isCourseDeleted && '(Syllabus Deleted)'}
+                              {e.courseCode} {e.isCourseDeleted && `(${t(LEARNER_LABELS.syllabusDeleted)})`}
                             </span>
                           </div>
                         </td>
@@ -168,11 +168,11 @@ export function LearnerProfilePage() {
                         </td>
                         <td className="p-3 text-slate-400 text-xxs">
                           {e.completedDate ? (
-                            <div className="text-emerald-600 font-semibold">Done: {formatDate(e.completedDate)}</div>
+                            <div className="text-emerald-600 font-semibold">{tf(LEARNER_LABELS.doneDate, formatDate(e.completedDate))}</div>
                           ) : (
                             <>
-                              {e.startDate && <div>Start: {formatDate(e.startDate)}</div>}
-                              {e.dueDate && <div className="mt-0.5">Due: {formatDate(e.dueDate)}</div>}
+                              {e.startDate && <div>{tf(LEARNER_LABELS.startDate, formatDate(e.startDate))}</div>}
+                              {e.dueDate && <div className="mt-0.5">{tf(LEARNER_LABELS.dueDate, formatDate(e.dueDate))}</div>}
                             </>
                           )}
                         </td>
@@ -212,34 +212,34 @@ export function LearnerProfilePage() {
           </div>
 
           <FactGrid cols={2} className="grid-cols-1 sm:grid-cols-1 gap-y-3.5 text-xs">
-            <Fact label="Division" valueClassName="text-slate-800 font-semibold mt-0.5">
+            <Fact label={t(LEARNER_LABELS.division)} valueClassName="text-slate-800 font-semibold mt-0.5">
               {profile.division || '—'}
             </Fact>
-            <Fact label="Department" valueClassName="text-slate-800 font-semibold mt-0.5">
+            <Fact label={t(LEARNER_LABELS.department)} valueClassName="text-slate-800 font-semibold mt-0.5">
               {profile.department || '—'}
             </Fact>
             {profile.section && (
-              <Fact label="Section" valueClassName="text-slate-800 font-semibold mt-0.5">
+              <Fact label={t(LEARNER_LABELS.section)} valueClassName="text-slate-800 font-semibold mt-0.5">
                 {profile.section}
               </Fact>
             )}
-            <Fact label="Position" valueClassName="text-slate-800 font-semibold mt-0.5">
+            <Fact label={t(LEARNER_LABELS.position)} valueClassName="text-slate-800 font-semibold mt-0.5">
               {profile.position || '—'}
             </Fact>
           </FactGrid>
 
-          <DetailSubSection title="Summary">
+          <DetailSubSection title={t(LEARNER_LABELS.summary)}>
             <FactGrid cols={2} className="text-xs">
-              <Fact label="Courses" valueClassName="mt-1 text-lg font-extrabold leading-tight text-slate-800">
+              <Fact label={t(LEARNER_LABELS.courses)} valueClassName="mt-1 text-lg font-extrabold leading-tight text-slate-800">
                 {profile.kpi.totalCourses}
               </Fact>
-              <Fact label="Completed" valueClassName="mt-1 text-lg font-extrabold leading-tight text-emerald-600">
+              <Fact label={t(LEARNER_LABELS.completed)} valueClassName="mt-1 text-lg font-extrabold leading-tight text-emerald-600">
                 {profile.kpi.completedCourses}
               </Fact>
-              <Fact label="In Progress" valueClassName="mt-1 text-lg font-extrabold leading-tight text-amber-600">
+              <Fact label={t(LEARNER_LABELS.inProgress)} valueClassName="mt-1 text-lg font-extrabold leading-tight text-amber-600">
                 {profile.kpi.inProgressCourses}
               </Fact>
-              <Fact label="Hours" valueClassName="mt-1 text-lg font-bold leading-tight text-slate-800">
+              <Fact label={t(LEARNER_LABELS.hours)} valueClassName="mt-1 text-lg font-bold leading-tight text-slate-800">
                 {formatTimeSpent(profile.kpi.totalTimeSpentSeconds)}
               </Fact>
             </FactGrid>

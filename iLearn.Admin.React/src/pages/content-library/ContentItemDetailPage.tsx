@@ -28,7 +28,7 @@ import { fetchWithAccessControl, buildApiUrl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { formatBytes, formatDateTime, formatNumber } from '../../lib/format'
-import { COMMON_LABELS, contentTypeLabel, t } from '../../lib/labels'
+import { COMMON_LABELS, COURSE_LABELS, UI_LABELS, contentTypeLabel, t } from '../../lib/labels'
 import { useSession } from '../../lib/sessionContext'
 
 // Mirrors ContentItemCourseReferenceDto (iLearn.Application/DTOs/ContentItemDto.cs)
@@ -92,7 +92,7 @@ export function ContentItemDetailPage() {
       )
       setItem(data)
     } catch {
-      toast.error('Failed to load content item')
+      toast.error(t(COURSE_LABELS.failedToLoadContentItem))
     } finally {
       setLoading(false)
     }
@@ -106,7 +106,7 @@ export function ContentItemDetailPage() {
   const handleSaveMetadata = async () => {
     if (!item) return
     if (!editName.trim()) {
-      toast.error('Display Name is required')
+      toast.error(t(COURSE_LABELS.displayNameRequired))
       return
     }
     setSavingMetadata(true)
@@ -115,11 +115,11 @@ export function ContentItemDetailPage() {
       fd.append('key', String(item.id))
       fd.append('values', JSON.stringify({ name: editName.trim(), typeId: editTypeId }))
       await fetchWithAccessControl('admin/ContentItemsCRUD/Put', { method: 'PUT', body: fd })
-      toast.success('Metadata updated')
+      toast.success(t(COURSE_LABELS.metadataUpdated))
       setShowEditMetadataModal(false)
       await load()
     } catch {
-      toast.error('Save failed')
+      toast.error(t(COURSE_LABELS.saveFailed))
     } finally {
       setSavingMetadata(false)
     }
@@ -130,10 +130,10 @@ export function ContentItemDetailPage() {
     setBusy(true)
     try {
       await fetchWithAccessControl(`ContentItems/SetPublic?key=${item.id}`, { method: 'POST' })
-      toast.success('Content published')
+      toast.success(t(COURSE_LABELS.contentPublished))
       await load()
     } catch {
-      toast.error('Publish failed')
+      toast.error(t(COURSE_LABELS.publishFailed))
     } finally {
       setBusy(false)
     }
@@ -142,17 +142,17 @@ export function ContentItemDetailPage() {
   const handleUnpublish = async () => {
     if (!item) return
     if (!(await confirm({
-      title: 'Unpublish Content',
-      message: 'Unpublish this content? Extracted files will be removed from the server.',
-      confirmLabel: 'Unpublish',
+      title: t(COURSE_LABELS.unpublish),
+      message: t(COURSE_LABELS.unpublishContentConfirm),
+      confirmLabel: t(COURSE_LABELS.unpublish),
     }))) return
     setBusy(true)
     try {
       await fetchWithAccessControl(`ContentItems/Unpublish?key=${item.id}`, { method: 'POST' })
-      toast.success('Content unpublished')
+      toast.success(t(COURSE_LABELS.contentUnpublished))
       await load()
     } catch {
-      toast.error('Unpublish failed — content may be linked to active course versions')
+      toast.error(t(COURSE_LABELS.unpublishFailed))
     } finally {
       setBusy(false)
     }
@@ -164,12 +164,12 @@ export function ContentItemDetailPage() {
     try {
       const result = await fetchWithAccessControl<ContentLaunchResponse>(`ContentItems/${item.id}/content`)
       if (!result.url) {
-        toast.error('Launch URL is not available for this content item')
+        toast.error(t(COURSE_LABELS.launchUrlUnavailable))
         return
       }
       window.open(result.url, '_blank', 'noopener,noreferrer')
     } catch {
-      toast.error('Failed to open SCORM content')
+      toast.error(t(COURSE_LABELS.failedToOpenScorm))
     } finally {
       setBusy(false)
     }
@@ -178,9 +178,9 @@ export function ContentItemDetailPage() {
   const handleDelete = async () => {
     if (!item) return
     if (!(await confirm({
-      title: 'Delete Content Item',
-      message: 'Delete this content item permanently? This cannot be undone.',
-      confirmLabel: 'Delete',
+      title: t(COURSE_LABELS.delete),
+      message: t(COURSE_LABELS.deleteContentConfirm),
+      confirmLabel: t(COURSE_LABELS.delete),
       danger: true,
     }))) return
     setBusy(true)
@@ -188,10 +188,10 @@ export function ContentItemDetailPage() {
       const fd = new FormData()
       fd.append('key', String(item.id))
       await fetchWithAccessControl('admin/ContentItemsCRUD/Delete', { method: 'DELETE', body: fd })
-      toast.success('Content deleted')
+      toast.success(t(COURSE_LABELS.delete))
       navigate('/content-library')
     } catch {
-      toast.error('Delete failed')
+      toast.error(t(COURSE_LABELS.deleteFailed))
     } finally {
       setBusy(false)
     }
@@ -204,10 +204,10 @@ export function ContentItemDetailPage() {
   if (!item) {
     return (
       <NotFoundState
-        title="Content Item Not Found"
-        message="The requested content item is missing or has been deleted."
+        title={t(COURSE_LABELS.contentNotFound)}
+        message={t(COURSE_LABELS.contentNotFound)}
         backTo="/content-library"
-        backLabel="Back to library"
+        backLabel={t(COURSE_LABELS.backToLibrary)}
       />
     )
   }
@@ -226,7 +226,7 @@ export function ContentItemDetailPage() {
                   setShowEditMetadataModal(true)
                 }}
               >
-                Edit Metadata
+                {t(COURSE_LABELS.editGeneralInfo)}
               </ControlAction>
             )}
             <ControlAction
@@ -235,13 +235,13 @@ export function ContentItemDetailPage() {
               onClick={handleOpenContent}
               title={
                 !item.isActive
-                  ? 'Content must be published'
+                  ? t(COURSE_LABELS.publish)
                   : !item.url
-                    ? 'No launch URL'
+                    ? t(COURSE_LABELS.launchUrlUnavailable)
                     : undefined
               }
             >
-              Open SCORM Player
+              {t(COURSE_LABELS.openScormPlayer)}
             </ControlAction>
             {isSuperAdmin && (
               <ControlAction
@@ -249,7 +249,7 @@ export function ContentItemDetailPage() {
                 disabled={busy}
                 onClick={item.isActive ? handleUnpublish : handlePublish}
               >
-                {item.isActive ? 'Unpublish' : 'Publish'}
+                {t(item.isActive ? COURSE_LABELS.unpublish : COURSE_LABELS.publish)}
               </ControlAction>
             )}
             <ControlAction
@@ -260,9 +260,9 @@ export function ContentItemDetailPage() {
                   window.open(buildApiUrl(`ContentItems/${item.id}/content`), '_blank')
                 }
               }}
-              title={!item.fileStorageId ? 'No file available' : undefined}
+              title={!item.fileStorageId ? t(COURSE_LABELS.noFileSelected) : undefined}
             >
-              Download ZIP
+              {t(COURSE_LABELS.downloadZip)}
             </ControlAction>
             {isSuperAdmin && (
               <ControlAction
@@ -270,18 +270,18 @@ export function ContentItemDetailPage() {
                 disabled={item.isActive || busy}
                 onClick={handleDelete}
                 variant="danger"
-                title={item.isActive ? 'Unpublish before deleting' : undefined}
+                title={item.isActive ? t(COURSE_LABELS.unpublish) : undefined}
               >
-                Delete
+                {t(COURSE_LABELS.delete)}
               </ControlAction>
             )}
           </ControlsSidebar>
         }
       >
         <main className="space-y-6">
-        <Card icon={Layers} title="Overview" bodyClassName="p-5 space-y-5">
+        <Card icon={Layers} title={t(COURSE_LABELS.overview)} bodyClassName="p-5 space-y-5">
           <FactGrid>
-            <Fact label="Status">
+            <Fact label={t(COURSE_LABELS.status)}>
               <StatusText
                 active={item.isActive}
                 activeLabel={t(COMMON_LABELS.published)}
@@ -289,7 +289,7 @@ export function ContentItemDetailPage() {
               />
             </Fact>
 
-            <Fact label="Type" valueClassName="font-semibold">
+            <Fact label={t(COURSE_LABELS.type)} valueClassName="font-semibold">
               {contentTypeLabel(item.typeId)}
             </Fact>
 
@@ -329,13 +329,13 @@ export function ContentItemDetailPage() {
         </Card>
 
         {(item.courseContentItems?.length ?? 0) > 0 && (
-          <Card icon={BookOpen} title="Related Courses" bodyClassName="p-0">
+          <Card icon={BookOpen} title={t(COURSE_LABELS.courses)} bodyClassName="p-0">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-slate-100 text-[10px] font-extrabold uppercase text-slate-400">
-                  <th className="px-5 py-2.5 text-left">Course</th>
-                  <th className="px-5 py-2.5 text-left">Code</th>
-                  <th className="px-5 py-2.5 text-right">Version</th>
+                  <th className="px-5 py-2.5 text-left">{t(COURSE_LABELS.courseTitle)}</th>
+                  <th className="px-5 py-2.5 text-left">{t(COURSE_LABELS.code)}</th>
+                  <th className="px-5 py-2.5 text-right">{t(COURSE_LABELS.version)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -371,13 +371,13 @@ export function ContentItemDetailPage() {
               <div className="flex items-center gap-2">
                 <Edit3 className="h-5 w-5 text-indigo-600" />
                 <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">
-                  Edit Metadata
+                  {t(COURSE_LABELS.editGeneralInfo)}
                 </h3>
               </div>
               <IconButton
                 onClick={() => setShowEditMetadataModal(false)}
                 icon={X}
-                title="Close"
+                title={t(COURSE_LABELS.close)}
                 tone="neutral"
               />
             </div>
@@ -385,19 +385,19 @@ export function ContentItemDetailPage() {
             <div className="p-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700">
-                  Display Name <span className="text-red-500">*</span>
+                  {t(COURSE_LABELS.name)} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  placeholder="Required"
+                  placeholder={t(COURSE_LABELS.required)}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700">Content Type</label>
+                <label className="block text-xs font-bold text-slate-700">{t(COURSE_LABELS.contentType)}</label>
                 <select
                   value={editTypeId}
                   onChange={(e) => setEditTypeId(Number(e.target.value))}
@@ -414,14 +414,14 @@ export function ContentItemDetailPage() {
                 variant="ghost"
                 onClick={() => setShowEditMetadataModal(false)}
               >
-                Cancel
+                {t(UI_LABELS.cancel)}
               </AppButton>
               <AppButton
                 variant="primary"
                 loading={savingMetadata}
                 onClick={handleSaveMetadata}
               >
-                Save Changes
+                {t(COURSE_LABELS.saveChanges)}
               </AppButton>
             </div>
           </div>

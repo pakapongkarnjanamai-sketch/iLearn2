@@ -17,6 +17,7 @@ import { LoadingState } from '../../components/ui/LoadingState'
 import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
+import { ASSIGNMENT_LABELS, t, tf } from '../../lib/labels'
 
 // Mirrors LookupCourseDto (iLearn.Application/DTOs/LookupCourseDto.cs)
 type LookupCourse = {
@@ -272,7 +273,7 @@ export function BulkAssignPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Failed to load lookup items')
+      toast.error(t(ASSIGNMENT_LABELS.failedToLoadLookups))
     } finally {
       setLoadingLookups(false)
     }
@@ -321,7 +322,7 @@ export function BulkAssignPage() {
       return false
     } catch (err: any) {
       console.error(err)
-      toast.error(err.message || 'Validation failed. Check date parameters.')
+      toast.error(err.message || t(ASSIGNMENT_LABELS.validationFailed))
       return false
     } finally {
       setValidating(false)
@@ -351,11 +352,11 @@ export function BulkAssignPage() {
       
       if (resp.assignmentNo) {
         setAssignmentNo(resp.assignmentNo)
-        toast.success(resp.message || 'Courses assigned successfully!')
+        toast.success(resp.message || t(ASSIGNMENT_LABELS.assignedSuccessfully))
       }
     } catch (err: any) {
       console.error(err)
-      toast.error(err.message || 'Conflict occurred. Check reassign confirmation overrides.')
+      toast.error(err.message || t(ASSIGNMENT_LABELS.conflictOccurred))
     } finally {
       setSubmitting(false)
     }
@@ -369,7 +370,7 @@ export function BulkAssignPage() {
 
   const validateCourses = () => {
     if (selectedCourseIds.length === 0) {
-      toast.error('Select at least one course to assign')
+      toast.error(t(ASSIGNMENT_LABELS.selectCourseRequired))
       return false
     }
     return true
@@ -377,11 +378,11 @@ export function BulkAssignPage() {
 
   const validateScope = () => {
     if (targetMode === 'group' && selectedGroupId === 0) {
-      toast.error('Select a target Learner Group')
+      toast.error(t(ASSIGNMENT_LABELS.selectGroupRequired))
       return false
     }
     if (targetMode === 'custom' && selectedLearners.length === 0 && getTargetCodes().length === 0) {
-      toast.error('Select at least one learner')
+      toast.error(t(ASSIGNMENT_LABELS.selectLearnerRequired))
       return false
     }
     return true
@@ -390,8 +391,8 @@ export function BulkAssignPage() {
   const renderModeToggle = () => (
     <SegmentedToggle
       options={[
-        { value: 'group', label: 'Group' },
-        { value: 'custom', label: 'Individual' },
+        { value: 'group', label: t(ASSIGNMENT_LABELS.group) },
+        { value: 'custom', label: t(ASSIGNMENT_LABELS.individual) },
       ]}
       value={targetMode}
       onChange={setTargetMode}
@@ -405,7 +406,7 @@ export function BulkAssignPage() {
         {/* Left Column: Available Catalog */}
         <div className="flex-1 flex flex-col border border-slate-200 rounded bg-white min-h-0">
           <div className="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
-            <span className="font-bold text-xs text-slate-400 uppercase tracking-wider">Syllabus Catalog</span>
+            <span className="font-bold text-xs text-slate-400 uppercase tracking-wider">{t(ASSIGNMENT_LABELS.syllabusCatalog)}</span>
             <Badge tone="neutral">{availableCourses.length}</Badge>
           </div>
           
@@ -415,10 +416,10 @@ export function BulkAssignPage() {
               onChange={e => setSelectedCategoryFilter(e.target.value)}
               className="px-2 py-1.5 text-xs border border-slate-200 rounded bg-white focus:outline-none focus:border-indigo-500 font-medium text-slate-700 max-w-full sm:max-w-[180px] truncate cursor-pointer"
             >
-              <option value="all">All Categories ({availableCourses.length})</option>
+              <option value="all">{tf(ASSIGNMENT_LABELS.allCategories, availableCourses.length)}</option>
               {hasUncategorizedCourses && (
                 <option value="uncategorized">
-                  Uncategorized ({availableCourses.filter(c => c.categoryId == null).length})
+                  {tf(ASSIGNMENT_LABELS.uncategorizedCount, availableCourses.filter(c => c.categoryId == null).length)}
                 </option>
               )}
               {categories.map(cat => {
@@ -435,7 +436,7 @@ export function BulkAssignPage() {
             <div className="relative flex-1">
               <input
                 type="text"
-                placeholder="Search catalog by title or code..."
+                placeholder={t(ASSIGNMENT_LABELS.searchCatalog)}
                 value={courseSearch}
                 onChange={e => setCourseSearch(e.target.value)}
                 className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded bg-white focus:outline-none focus:border-indigo-500"
@@ -446,7 +447,7 @@ export function BulkAssignPage() {
           <div className="flex-1 overflow-y-auto custom-scrollbar p-1.5 space-y-1.5 min-h-0">
             {visibleAvailableCourses.length === 0 ? (
               <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400 py-12 text-center select-none">
-                {courseSearch || selectedCategoryFilter !== 'all' ? 'No matching courses found' : 'All courses selected'}
+                {courseSearch || selectedCategoryFilter !== 'all' ? t(ASSIGNMENT_LABELS.noMatchingCourses) : t(ASSIGNMENT_LABELS.allCoursesSelected)}
               </div>
             ) : (
               visibleAvailableCourses.map(c => (
@@ -478,7 +479,7 @@ export function BulkAssignPage() {
         {/* Right Column: Selected Courses */}
         <div className="flex-1 flex flex-col border border-slate-200 rounded-lg bg-white min-h-0">
           <div className="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
-            <span className="font-bold text-xs text-slate-400 uppercase tracking-wider">Selected Courses</span>
+            <span className="font-bold text-xs text-slate-400 uppercase tracking-wider">{t(ASSIGNMENT_LABELS.selectedCourses)}</span>
             <div className="flex items-center gap-2">
               <Badge tone="info">{selectedCourseIds.length}</Badge>
               {selectedCourseIds.length > 0 && (
@@ -487,7 +488,7 @@ export function BulkAssignPage() {
                   onClick={() => setSelectedCourseIds([])}
                   className="text-xs font-bold text-red-600 hover:text-red-700 cursor-pointer"
                 >
-                  Clear
+                  {t(ASSIGNMENT_LABELS.clear)}
                 </button>
               )}
             </div>
@@ -496,7 +497,7 @@ export function BulkAssignPage() {
           <div className="flex-1 overflow-y-auto custom-scrollbar p-1.5 space-y-1.5 min-h-0">
             {selectedCourses.length === 0 ? (
               <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400 py-12 text-center select-none">
-                No courses selected.
+                {t(ASSIGNMENT_LABELS.noCoursesSelected)}
               </div>
             ) : (
               selectedCourses.map(c => (
@@ -514,7 +515,7 @@ export function BulkAssignPage() {
                     icon={X}
                     tone="danger"
                     size="sm"
-                    title="Remove course"
+                    title={t(ASSIGNMENT_LABELS.removeCourse)}
                   />
                 </div>
               ))
@@ -531,7 +532,7 @@ export function BulkAssignPage() {
       {/* Fixed top row for Mode Toggle */}
       <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg p-2 shrink-0 select-none">
         <div className="flex items-center gap-2 pl-1">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Target audience:</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">{t(ASSIGNMENT_LABELS.targetAudience)}</span>
         </div>
         {renderModeToggle()}
       </div>
@@ -543,7 +544,7 @@ export function BulkAssignPage() {
           {groupCategories.length > 0 && (
             <div className="w-full md:w-60 border-b md:border-b-0 md:border-r border-slate-200 bg-slate-50/50 p-2 flex flex-col shrink-0 min-h-0 overflow-y-auto custom-scrollbar">
               <div className="px-2 py-1 mb-1 text-xxs font-bold text-slate-400 uppercase tracking-wider select-none">
-                Group Folders
+                {t(ASSIGNMENT_LABELS.groupFolders)}
               </div>
               <AppTreeView
                 items={groupCategoryTreeNodes}
@@ -559,7 +560,7 @@ export function BulkAssignPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search groups..."
+                  placeholder={t(ASSIGNMENT_LABELS.searchGroups)}
                   value={groupSearch}
                   onChange={e => setGroupSearch(e.target.value)}
                   className="w-full pl-9 pr-3 py-1.5 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:border-indigo-500"
@@ -571,7 +572,7 @@ export function BulkAssignPage() {
             <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1 min-h-0">
               {filteredGroups.length === 0 ? (
                 <div className="flex h-full items-center justify-center text-sm text-slate-400 py-12 text-center select-none">
-                  {groupSearch || selectedGroupCategoryId > 0 ? 'No matching groups' : 'No groups available'}
+                  {groupSearch || selectedGroupCategoryId > 0 ? t(ASSIGNMENT_LABELS.noMatchingGroups) : t(ASSIGNMENT_LABELS.noGroupsAvailable)}
                 </div>
               ) : (
                 filteredGroups.map(g => (
@@ -587,7 +588,7 @@ export function BulkAssignPage() {
                     <div className="flex flex-col min-w-0 pr-2">
                       <span className="text-sm font-semibold text-slate-800 leading-tight truncate">{g.name}</span>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-slate-400">{g.memberCount} members</span>
+                        <span className="text-xs text-slate-400">{g.memberCount} {t(ASSIGNMENT_LABELS.members)}</span>
                         {g.categoryName && (
                           <Badge tone="neutral" variant="soft">
                             {g.categoryName}
@@ -625,7 +626,7 @@ export function BulkAssignPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md">
         <div className="space-y-1.5">
           <label htmlFor="startDate" className="wiz-label">
-            Start Date <span className="text-red-500">*</span>
+            {t(ASSIGNMENT_LABELS.startDateLabel)} <span className="text-red-500">*</span>
           </label>
           <input
             type="date"
@@ -638,7 +639,7 @@ export function BulkAssignPage() {
 
         <div className="space-y-1.5">
           <label htmlFor="dueDate" className="wiz-label">
-            Due / Expiry Date <span className="text-red-500">*</span>
+            {t(ASSIGNMENT_LABELS.dueExpiryDate)} <span className="text-red-500">*</span>
           </label>
           <input
             type="date"
@@ -652,14 +653,14 @@ export function BulkAssignPage() {
 
       <div className="space-y-1.5">
         <label htmlFor="desc" className="wiz-label">
-          Batch Description / Memo
+          {t(ASSIGNMENT_LABELS.batchDescription)}
         </label>
         <textarea
           id="desc"
           rows={3}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="e.g. Mandatory Cybersecurity training 2026"
+          placeholder={t(ASSIGNMENT_LABELS.descriptionPlaceholder)}
           className="wiz-input resize-y"
         />
       </div>
@@ -673,22 +674,22 @@ export function BulkAssignPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 select-none">
           <div className="bg-emerald-50/30 border border-emerald-100 p-3 rounded text-center">
-            <span className="block text-xs font-bold text-emerald-600 uppercase">Ready to Enroll</span>
+            <span className="block text-xs font-bold text-emerald-600 uppercase">{t(ASSIGNMENT_LABELS.readyToEnroll)}</span>
             <span className="block text-xl font-extrabold text-emerald-700 mt-0.5">{validationResult.resolvedCount}</span>
           </div>
           <div className="bg-amber-50/30 border border-amber-100 p-3 rounded text-center">
-            <span className="block text-xs font-bold text-amber-600 uppercase">In Progress Attempts</span>
+            <span className="block text-xs font-bold text-amber-600 uppercase">{t(ASSIGNMENT_LABELS.inProgressAttempts)}</span>
             <span className="block text-xl font-extrabold text-amber-700 mt-0.5">{validationResult.inProgressConflicts.length}</span>
           </div>
           <div className="bg-slate-50/40 border border-slate-200 p-3 rounded text-center">
-            <span className="block text-xs font-bold text-slate-400 uppercase">Already Completed</span>
+            <span className="block text-xs font-bold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.alreadyCompleted)}</span>
             <span className="block text-xl font-extrabold text-slate-700 mt-0.5">{validationResult.completedConflicts.length}</span>
           </div>
         </div>
 
         {/* Overrides */}
         <div className="space-y-3 bg-slate-50/15 p-4 rounded border border-slate-200 select-none">
-          <span className="block text-xs font-bold text-slate-400 uppercase">Conflict Overrides Required</span>
+          <span className="block text-xs font-bold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.conflictOverrides)}</span>
           
           <div className="flex items-center gap-2.5">
             <input
@@ -699,7 +700,7 @@ export function BulkAssignPage() {
               className="h-4 w-4 rounded text-indigo-500 focus:ring-indigo-400 cursor-pointer"
             />
             <label htmlFor="confirmReassignInProgress" className="text-sm font-semibold text-slate-500 cursor-pointer">
-              Force reset and reassign learners with active in-progress attempts.
+              {t(ASSIGNMENT_LABELS.forceResetInProgress)}
             </label>
           </div>
 
@@ -712,7 +713,7 @@ export function BulkAssignPage() {
               className="h-4 w-4 rounded text-indigo-500 focus:ring-indigo-400 cursor-pointer"
             />
             <label htmlFor="confirmReassignCompleted" className="text-sm font-semibold text-slate-500 cursor-pointer">
-              Force reassign and reset learners who already completed the course catalog before.
+              {t(ASSIGNMENT_LABELS.forceResetCompleted)}
             </label>
           </div>
         </div>
@@ -721,24 +722,24 @@ export function BulkAssignPage() {
   }
 
   const steps: WizardStep[] = [
-    { label: 'Choose Courses', validate: () => validateCourses(), render: () => renderChooseCoursesStep() },
-    { label: 'Target Scope', validate: () => validateScope(), render: () => renderTargetScopeStep() },
-    { 
-      label: 'Schedule', 
+    { label: t(ASSIGNMENT_LABELS.chooseCourses), validate: () => validateCourses(), render: () => renderChooseCoursesStep() },
+    { label: t(ASSIGNMENT_LABELS.targetScope), validate: () => validateScope(), render: () => renderTargetScopeStep() },
+    {
+      label: t(ASSIGNMENT_LABELS.schedule),
       validate: async () => {
         if (!startDate || !dueDate) {
-          toast.error('Start and Due dates are required')
+          toast.error(t(ASSIGNMENT_LABELS.dateRequired))
           return false
         }
         return await runConflictValidation()
       }, 
       render: () => renderScheduleStep() 
     },
-    { label: 'Conflict Preview', render: () => renderConflictPreviewStep() }
+    { label: t(ASSIGNMENT_LABELS.conflictPreview), render: () => renderConflictPreviewStep() }
   ]
 
   if (loadingLookups) {
-    return <LoadingState label="Loading assignment configurations..." />
+    return <LoadingState label={t(ASSIGNMENT_LABELS.loadingConfiguration)} />
   }
 
   if (assignmentNo) {
@@ -747,12 +748,12 @@ export function BulkAssignPage() {
         <div className="h-12 w-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-3xs select-none">
           <Check className="h-6 w-6" />
         </div>
-        <h1 className="text-lg font-extrabold text-slate-800 tracking-tight leading-tight select-none">Deployment Successful!</h1>
+        <h1 className="text-lg font-extrabold text-slate-800 tracking-tight leading-tight select-none">{t(ASSIGNMENT_LABELS.deploymentSuccessful)}</h1>
         <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm select-none leading-relaxed">
-          Your courses have been successfully dispatched. Enrolled learners can now access training logs immediately.
+          {t(ASSIGNMENT_LABELS.deploymentDescription)}
         </p>
         <div className="mt-5 bg-slate-50 border border-slate-200 p-3 rounded font-mono text-xs max-w-xs w-full select-none">
-          <span className="block text-xs text-slate-400 font-sans uppercase font-bold mb-1">Assignment Batch No.</span>
+          <span className="block text-xs text-slate-400 font-sans uppercase font-bold mb-1">{t(ASSIGNMENT_LABELS.assignmentBatchNumber)}</span>
           <span className="font-bold text-indigo-500 text-sm">{assignmentNo}</span>
         </div>
         <AppButton
@@ -761,7 +762,7 @@ export function BulkAssignPage() {
           onClick={() => navigate('/assignments')}
           className="mt-6"
         >
-          Back to Assignment Registry
+          {t(ASSIGNMENT_LABELS.backToRegistry)}
         </AppButton>
       </div>
     )
@@ -770,15 +771,15 @@ export function BulkAssignPage() {
   return (
     <>
       <AppWizard
-        title="Assign Courses"
-        description="Choose catalog courses, define target audience scope, then review and dispatch."
-        eyebrow="Assignments"
+        title={t(ASSIGNMENT_LABELS.assignCourses)}
+        description={t(ASSIGNMENT_LABELS.ganttNote)}
+        eyebrow={t(ASSIGNMENT_LABELS.assignments)}
         steps={steps}
         currentStep={currentStep}
         onStepChange={setCurrentStep}
         onCancel={() => navigate('/assignments')}
         onSubmit={handleCommitAssignment}
-        submitLabel="Dispatch Assignment"
+        submitLabel={t(ASSIGNMENT_LABELS.dispatchAssignment)}
         isSubmitting={submitting}
         submitIcon={<Check className="h-3.5 w-3.5" />}
       />
@@ -789,9 +790,9 @@ export function BulkAssignPage() {
           <div className="bg-white p-5 rounded-lg border border-slate-100 flex flex-col items-center gap-3 shadow-lg max-w-xs">
             <LoadingState size="section" className="h-auto py-2" />
             <div className="text-center">
-              <p className="text-xs font-bold text-slate-800">Analyzing Syllabus Scope</p>
+              <p className="text-xs font-bold text-slate-800">{t(ASSIGNMENT_LABELS.analyzingScope)}</p>
               <p className="text-xs font-semibold text-slate-400 mt-0.5 leading-relaxed">
-                Checking for existing completion logs, in-progress attempts, and enrollments...
+                {t(ASSIGNMENT_LABELS.analyzingScopeDescription)}
               </p>
             </div>
           </div>

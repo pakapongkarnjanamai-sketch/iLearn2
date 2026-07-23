@@ -10,15 +10,11 @@ import { useNotifications } from '../../lib/notificationContext'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { formatNumber } from '../../lib/format'
 import type { NotificationDto, NotificationListDto } from '../../lib/notificationTypes'
+import { ADMIN_LABELS, t, tf } from '../../lib/labels'
 
 type ApiResponse<T> = { success: boolean; data: T; message?: string }
 
 const PAGE_SIZE = 20
-
-const filterOptions = [
-  { value: 'all', label: 'All' },
-  { value: 'unread', label: 'Unread' },
-]
 
 export function NotificationsPage() {
   const navigate = useNavigate()
@@ -30,6 +26,10 @@ export function NotificationsPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
   const [skip, setSkip] = useState(0)
+  const filterOptions = [
+    { value: 'all', label: t(ADMIN_LABELS.all) },
+    { value: 'unread', label: t(ADMIN_LABELS.unread) },
+  ]
 
   // Track ids already in the local list for realtime dedupe
   const seenIdsRef = useRef<Set<number>>(new Set())
@@ -132,7 +132,7 @@ export function NotificationsPage() {
   return (
     <div className="flex flex-col gap-4 max-w-4xl mx-auto w-full">
       <Card
-        title="Notifications"
+        title={t(ADMIN_LABELS.notifications)}
         icon={Bell}
         actions={
           <div className="flex items-center gap-3">
@@ -148,18 +148,18 @@ export function NotificationsPage() {
               onClick={handleMarkAllRead}
               disabled={unreadCount === 0}
             >
-              Mark all read
+              {t(ADMIN_LABELS.markAllRead)}
             </AppButton>
           </div>
         }
       >
         {loading ? (
           <div className="py-12">
-            <LoadingState size="section" label="Loading notifications..." />
+            <LoadingState size="section" label={t(ADMIN_LABELS.loadingNotifications)} />
           </div>
         ) : items.length === 0 ? (
           <div className="py-16 text-center text-slate-400 text-sm">
-            No notifications yet
+            {t(ADMIN_LABELS.noNotifications)}
           </div>
         ) : (
           <>
@@ -176,7 +176,7 @@ export function NotificationsPage() {
             {/* Showing X of Y + Load more */}
             <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500">
               <span>
-                Showing {formatNumber(items.length)} of {formatNumber(totalCount)}
+                {tf(ADMIN_LABELS.showingOf, formatNumber(items.length), formatNumber(totalCount))}
               </span>
               {hasMore && (
                 <AppButton
@@ -185,7 +185,7 @@ export function NotificationsPage() {
                   onClick={handleLoadMore}
                   loading={loadingMore}
                 >
-                  Load more
+                  {t(ADMIN_LABELS.loadMore)}
                 </AppButton>
               )}
             </div>

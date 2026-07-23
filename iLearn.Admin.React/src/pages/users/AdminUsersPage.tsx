@@ -6,6 +6,7 @@ import { Badge } from '../../components/ui/Badge'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { AppButton } from '../../components/ui/AppButton'
 import { createAdminDataSource } from '../../lib/createDataSource'
+import { ADMIN_LABELS, t } from '../../lib/labels'
 
 // Mirrors UsersCRUDController.Get (iLearn.API/Controllers/Base/UsersCRUDController.cs)
 export type RoleInfo = {
@@ -46,20 +47,16 @@ export function AdminUsersPage() {
 
   const columns: AdminGridColumn<AdminUser>[] = useMemo(
     () => [
-      { dataField: 'nid', caption: 'NID', width: 120 },
-      { dataField: 'fullName', caption: 'Full Name', minWidth: 200 },
-      { dataField: 'division', caption: 'Division', width: 150 },
-      { dataField: 'department', caption: 'Department', width: 150 },
-      { dataField: 'position', caption: 'Position', width: 160 },
+      { dataField: 'nid', caption: { th: 'NID', en: 'NID' }, width: 120 }, { dataField: 'fullName', caption: ADMIN_LABELS.fullName, minWidth: 200 }, { dataField: 'division', caption: ADMIN_LABELS.division, width: 150 }, { dataField: 'department', caption: ADMIN_LABELS.department, width: 150 }, { dataField: 'position', caption: ADMIN_LABELS.position, width: 160 },
       {
         dataField: 'userRoles',
-        caption: 'Roles',
+        caption: ADMIN_LABELS.roles,
         minWidth: 200,
         cellRender: ({ data }) => {
           const roles = (data.userRoles ?? [])
             .map((ur) => ur.role?.name ?? (ur.role?.roleType != null ? String(ur.role.roleType) : ''))
             .filter(Boolean)
-          if (roles.length === 0) return <span className="text-slate-400">No roles</span>
+          if (roles.length === 0) return <span className="text-slate-400">{t(ADMIN_LABELS.noRoles)}</span>
           return (
             <div className="flex flex-wrap gap-1">
               {roles.map((r, i) => (
@@ -77,7 +74,7 @@ export function AdminUsersPage() {
           )
         },
       },
-      { dataField: 'lastLogin', caption: 'Last Login', dataType: 'datetime', width: 170 },
+      { dataField: 'lastLogin', caption: ADMIN_LABELS.lastLogin, dataType: 'datetime', width: 170 },
     ],
     [],
   )
@@ -85,28 +82,28 @@ export function AdminUsersPage() {
   const gridActions = (
     <Link to="/users/new">
       <AppButton variant="primary" icon={UserPlus}>
-        Add Admin User
+        {t(ADMIN_LABELS.addAdminUser)}
       </AppButton>
     </Link>
   )
 
   return (
-    <DataGridSurface title="Admin Users" note="Manage administrative roles and access control." actions={gridActions}>
+    <DataGridSurface title={t(ADMIN_LABELS.adminUsersTitle)} note={t(ADMIN_LABELS.adminUsersDescription)} actions={gridActions}>
       <AppTable
         store={store}
         columns={columns}
-        noDataText="No admin users found"
-        searchPlaceholder="Search by NID, name, or division..."
+        noDataText={t(ADMIN_LABELS.noAdminUsers)}
+        searchPlaceholder={t(ADMIN_LABELS.searchAdmins)}
         searchExpr={['nid', 'fullName', 'division']}
         onRowDblClick={(e) => navigate(`/users/${e.data.id}`)}
         actionButtons={[
           {
-            hint: 'Open Details',
+            hint: t(ADMIN_LABELS.openDetails),
             icon: 'info',
             onClick: (e) => navigate(`/users/${e.row.data.id}`),
           },
           {
-            hint: 'Edit Roles',
+            hint: t(ADMIN_LABELS.editRoles),
             icon: <Edit3 className="h-3.5 w-3.5" />,
             onClick: (e) => navigate(`/users/${e.row.data.id}/edit`),
           },

@@ -25,7 +25,7 @@ import { ExplorerTable, type ExplorerColumn } from '../../components/ui/explorer
 import { useExplorer } from '../../components/ui/explorer/useExplorer'
 import { ApiError, fetchWithAccessControl } from '../../lib/apiClient'
 import { formatDate } from '../../lib/format'
-import { COMMON_LABELS, t } from '../../lib/labels'
+import { COMMON_LABELS, LEARNER_LABELS, UI_LABELS, t, tf } from '../../lib/labels'
 import { toast } from '../../lib/toast'
 import { useSession } from '../../lib/sessionContext'
 
@@ -113,11 +113,11 @@ function sortByNameAsc<T extends { name: string }>(a: T, b: T) {
   return a.name.localeCompare(b.name)
 }
 
-function toDateText(value: string | undefined | null) {
-  if (!value) return '-'
+function toDateText(value: string | undefined | null, emptyValue: string) {
+  if (!value) return emptyValue
 
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '-'
+  if (Number.isNaN(date.getTime())) return emptyValue
   return formatDate(date)
 }
 
@@ -221,7 +221,7 @@ export function LearnerGroupListPage() {
       return { categoryId: parentId > 0 ? parentId : 0 }
     },
     buildBreadcrumbs: currentPath => {
-      const rootCrumbs = [{ to: '/learner-groups', label: 'Learner Groups' }]
+      const rootCrumbs = [{ to: '/learner-groups', label: t(LEARNER_LABELS.learnerGroups) }]
       if (currentPath.categoryId === 0) return rootCrumbs
 
       const trail: { to: string; label: string }[] = []
@@ -265,7 +265,7 @@ export function LearnerGroupListPage() {
       setGroups(unwrapList(groupResp))
     } catch (error) {
       console.error('Failed to load explorer data', error)
-      toast.error(getApiErrorText(error, 'Failed to load explorer contents'))
+      toast.error(getApiErrorText(error, t(LEARNER_LABELS.failedToLoadExplorer)))
     } finally {
       setLoading(false)
     }
@@ -294,9 +294,9 @@ export function LearnerGroupListPage() {
       return {
         id: folder.id,
         name: folder.name,
-        description: folder.description || 'Category folder',
+        description: folder.description || t(LEARNER_LABELS.categoryFolderFallback),
         isFolder: true,
-        countText: `${nestedFolderCount + nestedGroupCount} items`,
+        countText: tf(LEARNER_LABELS.itemCount, nestedFolderCount + nestedGroupCount),
         updatedAt: folder.createdAt || '',
         original: folder,
       }
@@ -306,9 +306,9 @@ export function LearnerGroupListPage() {
       return {
         id: group.id,
         name: group.name,
-        description: group.description || 'Learner group',
+        description: group.description || t(LEARNER_LABELS.learnerGroupFallback),
         isFolder: false,
-        countText: `${group.memberCount || 0} members`,
+        countText: tf(LEARNER_LABELS.memberCount, group.memberCount || 0),
         updatedAt: group.updatedAt || group.createdAt || '',
         original: group,
       }
@@ -342,7 +342,7 @@ export function LearnerGroupListPage() {
     return [
       {
         id: 'reloc-root',
-        text: 'Root Folder (No Category)',
+        text: t(LEARNER_LABELS.rootFolderNoCategory),
         isRoot: true,
         categoryId: 0,
         items: roots.map(toNode),
@@ -351,7 +351,7 @@ export function LearnerGroupListPage() {
   }, [categoriesByParent])
 
   const relocateTargetCategoryPath = useMemo(() => {
-    if (relocateCategoryId === 0) return 'Root Folder'
+    if (relocateCategoryId === 0) return t(LEARNER_LABELS.rootFolder)
 
     const path: string[] = []
     const visited = new Set<number>()
@@ -367,7 +367,7 @@ export function LearnerGroupListPage() {
       cursor = category.parentId ?? null
     }
 
-    return path.length > 0 ? path.join(' / ') : 'Root Folder'
+    return path.length > 0 ? path.join(' / ') : t(LEARNER_LABELS.rootFolder)
   }, [categoriesById, relocateCategoryId])
 
   const handleOpenItem = useCallback((item: ExplorerItem) => {
@@ -380,8 +380,8 @@ export function LearnerGroupListPage() {
   }, [navigate, navigateToPath])
 
   const currentFolderName = useMemo(() => {
-    if (currentCategoryId === 0) return 'Learner Group Explorer'
-    return categoriesById.get(currentCategoryId)?.name ?? 'Learner Group Explorer'
+    if (currentCategoryId === 0) return t(LEARNER_LABELS.learnerGroupExplorer)
+    return categoriesById.get(currentCategoryId)?.name ?? t(LEARNER_LABELS.learnerGroupExplorer)
   }, [categoriesById, currentCategoryId])
 
   const handleCreateFolder = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
@@ -389,7 +389,7 @@ export function LearnerGroupListPage() {
 
     const normalizedName = newFolderName.trim()
     if (!normalizedName) {
-      toast.error('Folder name is required')
+      toast.error(t(LEARNER_LABELS.folderNameRequired))
       return
     }
 
@@ -407,10 +407,10 @@ export function LearnerGroupListPage() {
       })
 
       if (response.success === false) {
-        throw new Error(response.message || 'Failed to create folder')
+        throw new Error(response.message || t(LEARNER_LABELS.failedToCreateFolder))
       }
 
-      toast.success(`Folder "${normalizedName}" created successfully`)
+      toast.success(tf(LEARNER_LABELS.folderCreated, normalizedName))
       setIsNewFolderOpen(false)
       setNewFolderName('')
       setNewFolderDesc('')
@@ -418,7 +418,7 @@ export function LearnerGroupListPage() {
       await loadData()
     } catch (error) {
       console.error(error)
-      toast.error(getApiErrorText(error, 'Failed to create folder'))
+      toast.error(getApiErrorText(error, t(LEARNER_LABELS.failedToCreateFolder)))
     } finally {
       setCreatingFolder(false)
     }
@@ -444,7 +444,7 @@ export function LearnerGroupListPage() {
 
     const normalizedName = editFolderName.trim()
     if (!normalizedName) {
-      toast.error('Folder name is required')
+      toast.error(t(LEARNER_LABELS.folderNameRequired))
       return
     }
 
@@ -462,15 +462,15 @@ export function LearnerGroupListPage() {
       })
 
       if (response.success === false) {
-        throw new Error(response.message || 'Failed to update folder')
+        throw new Error(response.message || t(LEARNER_LABELS.failedToUpdateFolder))
       }
 
-      toast.success(`Folder "${normalizedName}" updated successfully`)
+      toast.success(tf(LEARNER_LABELS.folderUpdated, normalizedName))
       setEditingFolder(null)
       await loadData()
     } catch (error) {
       console.error(error)
-      toast.error(getApiErrorText(error, 'Failed to update folder'))
+      toast.error(getApiErrorText(error, t(LEARNER_LABELS.failedToUpdateFolder)))
     } finally {
       setUpdatingFolder(false)
     }
@@ -482,15 +482,15 @@ export function LearnerGroupListPage() {
     const hasGroups = (folder.learnerGroupCount ?? 0) > 0
 
     if (hasChildren || hasGroups) {
-      toast.error('This folder is not empty. Move sub-folders and groups before deleting.')
+      toast.error(t(LEARNER_LABELS.folderNotEmpty))
       return
     }
 
     const ok = await confirm({
-      title: 'Delete Folder',
-      message: `Delete folder "${folder.name}"? This action cannot be undone.`,
+      title: t(LEARNER_LABELS.deleteFolder),
+      message: tf(LEARNER_LABELS.deleteFolderConfirm, folder.name),
       danger: true,
-      confirmLabel: 'Delete Folder',
+      confirmLabel: t(LEARNER_LABELS.deleteFolder),
     })
 
     if (!ok) return
@@ -500,20 +500,20 @@ export function LearnerGroupListPage() {
         method: 'DELETE',
       })
 
-      toast.success(`Folder "${folder.name}" deleted successfully`)
+      toast.success(tf(LEARNER_LABELS.folderDeleted, folder.name))
       await loadData()
     } catch (error) {
       console.error(error)
-      toast.error(getApiErrorText(error, 'Failed to delete folder'))
+      toast.error(getApiErrorText(error, t(LEARNER_LABELS.failedToDeleteFolder)))
     }
   }, [confirm, loadData])
 
   const handleDeleteGroup = useCallback(async (group: GroupDto) => {
     const ok = await confirm({
-      title: 'Delete Learner Group',
-      message: `Delete learner group "${group.name}"? This action cannot be undone.`,
+      title: t(LEARNER_LABELS.deleteLearnerGroup),
+      message: tf(LEARNER_LABELS.deleteGroupConfirm, group.name),
       danger: true,
-      confirmLabel: 'Delete Group',
+      confirmLabel: t(LEARNER_LABELS.deleteGroup),
     })
 
     if (!ok) return
@@ -523,11 +523,11 @@ export function LearnerGroupListPage() {
         method: 'DELETE',
       })
 
-      toast.success(`Group "${group.name}" deleted successfully`)
+      toast.success(tf(LEARNER_LABELS.groupDeleted, group.name))
       await loadData()
     } catch (error) {
       console.error(error)
-      toast.error(getApiErrorText(error, 'Failed to delete learner group'))
+      toast.error(getApiErrorText(error, t(LEARNER_LABELS.failedToDeleteGroup)))
     }
   }, [confirm, loadData])
 
@@ -552,7 +552,7 @@ export function LearnerGroupListPage() {
       if (!name || !description) {
         const detailResp = await fetchWithAccessControl<ApiEnvelope<{ name: string; description?: string | null }>>(`LearnerGroups/${movingGroup.id}`)
         if (!detailResp.data?.name) {
-          throw new Error('Unable to load latest group details')
+          throw new Error(t(LEARNER_LABELS.failedToLoadLatestGroup))
         }
 
         name = detailResp.data.name.trim()
@@ -560,7 +560,7 @@ export function LearnerGroupListPage() {
       }
 
       if (!name || !description) {
-        throw new Error('Group name and description are required to move this group')
+        throw new Error(t(LEARNER_LABELS.groupNameDescriptionRequiredToMove))
       }
 
       const response = await fetchWithAccessControl<ApiEnvelope<unknown>>(`LearnerGroups/${movingGroup.id}`, {
@@ -574,31 +574,31 @@ export function LearnerGroupListPage() {
       })
 
       if (response.success === false) {
-        throw new Error(response.message || 'Failed to relocate learner group')
+        throw new Error(response.message || t(LEARNER_LABELS.failedToRelocateGroup))
       }
 
-      toast.success(`Group "${movingGroup.name}" moved successfully`)
+      toast.success(tf(LEARNER_LABELS.groupMoved, movingGroup.name))
       setMovingGroup(null)
       await loadData()
     } catch (error) {
       console.error(error)
-      toast.error(getApiErrorText(error, 'Failed to relocate learner group'))
+      toast.error(getApiErrorText(error, t(LEARNER_LABELS.failedToRelocateGroup)))
     } finally {
       setMovingInProgress(false)
     }
   }, [loadData, movingGroup, relocateCategoryId])
 
   const getDivisionName = useCallback((divisionId: number | null | undefined) => {
-    if (!divisionId) return '-'
+    if (!divisionId) return t(LEARNER_LABELS.emptyValue)
 
     const division = divisions.find(item => item.id === divisionId)
-    return division ? division.name : `Division ${divisionId}`
+    return division ? division.name : tf(LEARNER_LABELS.divisionWithId, divisionId)
   }, [divisions])
 
   const tableColumns = useMemo<ExplorerColumn<ExplorerItem>[]>(() => [
     {
       key: 'name',
-      title: 'Name',
+      title: t(LEARNER_LABELS.name),
       render: item => (
         <div className="flex items-center gap-2.5">
           {item.isFolder ? (
@@ -612,14 +612,14 @@ export function LearnerGroupListPage() {
     },
     {
       key: 'description',
-      title: 'Description',
+      title: t(LEARNER_LABELS.description),
       headerClassName: 'w-80',
       cellClassName: 'text-xs font-semibold text-slate-500',
       render: item => <span className="block truncate" title={item.description}>{item.description}</span>,
     },
     {
       key: 'type',
-      title: 'Type',
+      title: t(LEARNER_LABELS.type),
       headerClassName: 'w-32 text-center',
       cellClassName: 'text-center',
       render: item => (
@@ -630,14 +630,14 @@ export function LearnerGroupListPage() {
     },
     {
       key: 'size',
-      title: 'Size / Members',
+      title: t(LEARNER_LABELS.sizeMembers),
       headerClassName: 'w-36 text-center',
       cellClassName: 'text-center text-xs font-bold text-slate-500',
       render: item => item.countText,
     },
     {
       key: 'meta',
-      title: 'Division / Updated',
+      title: t(LEARNER_LABELS.divisionUpdated),
       headerClassName: 'w-44',
       cellClassName: 'text-xs font-semibold text-slate-500',
       render: item => {
@@ -649,8 +649,8 @@ export function LearnerGroupListPage() {
           <div className="flex flex-col gap-0.5">
             <span className="truncate">{itemDivision}</span>
             <span className="text-[11px] text-slate-400">
-              {item.isFolder ? 'Created ' : 'Updated '}
-              {toDateText(item.updatedAt)}
+              {item.isFolder ? t(LEARNER_LABELS.created) : t(LEARNER_LABELS.updated)}
+              {toDateText(item.updatedAt, t(LEARNER_LABELS.emptyValue))}
             </span>
           </div>
         )
@@ -658,7 +658,7 @@ export function LearnerGroupListPage() {
     },
     {
       key: 'actions',
-      title: 'Actions',
+      title: t(LEARNER_LABELS.action),
       headerClassName: 'w-32 text-center',
       render: item => (
         <div className="flex items-center justify-center gap-1.5" onClick={event => event.stopPropagation()}>
@@ -670,7 +670,7 @@ export function LearnerGroupListPage() {
                 icon={Edit3}
                 tone="primary"
                 size="sm"
-                title="Edit Folder"
+                title={t(LEARNER_LABELS.editFolder)}
               />
               <IconButton
                 type="button"
@@ -678,7 +678,7 @@ export function LearnerGroupListPage() {
                 icon={Trash2}
                 tone="danger"
                 size="sm"
-                title="Delete Folder"
+                title={t(LEARNER_LABELS.deleteFolder)}
               />
             </>
           ) : (
@@ -689,7 +689,7 @@ export function LearnerGroupListPage() {
                 icon={ArrowRightLeft}
                 tone="primary"
                 size="sm"
-                title="Move Group"
+                title={t(LEARNER_LABELS.moveGroup)}
               />
               <IconButton
                 type="button"
@@ -697,7 +697,7 @@ export function LearnerGroupListPage() {
                 icon={Trash2}
                 tone="danger"
                 size="sm"
-                title="Delete Group"
+                title={t(LEARNER_LABELS.deleteGroup)}
               />
             </>
           )}
@@ -708,7 +708,7 @@ export function LearnerGroupListPage() {
             icon={item.isFolder ? ArrowUpRight : Info}
             tone="neutral"
             size="sm"
-            title={item.isFolder ? 'Open Folder' : 'Open Group Details'}
+            title={t(item.isFolder ? LEARNER_LABELS.openFolder : LEARNER_LABELS.openGroupDetails)}
           />
         </div>
       ),
@@ -719,20 +719,20 @@ export function LearnerGroupListPage() {
     <>
       <DataGridSurface
         title={currentFolderName}
-        note="Manage folders and learner groups in this directory."
+        note={t(LEARNER_LABELS.manageDirectory)}
         actions={
           <div className="flex items-center gap-2">
             {currentCategoryId > 0 && (
               <AppButton variant="ghost" icon={ChevronLeft} onClick={goBack}>
-                Back
+                {t(UI_LABELS.previous)}
               </AppButton>
             )}
             <AppButton variant="secondary" icon={FolderPlus} onClick={openNewFolderModal}>
-              New Folder
+              {t(LEARNER_LABELS.newFolder)}
             </AppButton>
             <Link to={currentCategoryId > 0 ? `/learner-groups/new?categoryId=${currentCategoryId}` : '/learner-groups/new'}>
               <AppButton variant="primary" icon={Plus}>
-                Create Group
+                {t(LEARNER_LABELS.createGroup)}
               </AppButton>
             </Link>
           </div>
@@ -741,16 +741,16 @@ export function LearnerGroupListPage() {
         <div className="flex min-h-0 flex-1 flex-col">
           <ListToolbar
             count={filteredItems.length}
-            countUnit="items in this folder"
+            countUnit={t(LEARNER_LABELS.itemsInFolder)}
             searchValue={searchTerm}
             onSearchChange={setSearchTerm}
-            searchPlaceholder="Search folders or groups in this folder..."
+            searchPlaceholder={t(LEARNER_LABELS.searchFoldersOrGroups)}
           />
 
           <ExplorerTable
             loading={loading}
-            loadingLabel="Loading directory..."
-            emptyText="This folder is empty. Create a folder or learner group to start."
+            loadingLabel={t(UI_LABELS.loadingDirectory)}
+            emptyText={t(LEARNER_LABELS.emptyFolder)}
             columns={tableColumns}
             items={filteredItems}
             getRowKey={item => `${item.isFolder ? 'folder' : 'group'}-${item.id}`}
@@ -769,13 +769,13 @@ export function LearnerGroupListPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
               <div className="flex items-center gap-2">
                 <FolderPlus className="h-5 w-5 text-indigo-500" />
-                <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">Create Folder</h3>
+                <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">{t(LEARNER_LABELS.newFolder)}</h3>
               </div>
               <IconButton
                 type="button"
                 onClick={() => setIsNewFolderOpen(false)}
                 icon={X}
-                title="Close"
+                title={t(LEARNER_LABELS.close)}
                 tone="neutral"
               />
             </div>
@@ -784,7 +784,7 @@ export function LearnerGroupListPage() {
               {isSuperAdmin && currentCategoryId === 0 && (
                 <div className="space-y-1">
                   <label htmlFor="newFolderDivisionId" className="wiz-label">
-                    Division (แผนก)
+                    {t(LEARNER_LABELS.division)}
                   </label>
                   <select
                     id="newFolderDivisionId"
@@ -794,7 +794,7 @@ export function LearnerGroupListPage() {
                     }
                     className="wiz-input"
                   >
-                    <option value="">Global / ไม่ระบุแผนก</option>
+                    <option value="">{t(LEARNER_LABELS.global)}</option>
                     {divisions.map(div => (
                       <option key={div.id} value={div.id}>
                         {div.name}
@@ -805,7 +805,7 @@ export function LearnerGroupListPage() {
               )}
 
               <div className="space-y-1">
-                <label htmlFor="folderName" className="wiz-label">Folder Name <span className="text-red-500">*</span></label>
+                <label htmlFor="folderName" className="wiz-label">{t(LEARNER_LABELS.folderName)} <span className="text-red-500">*</span></label>
                 <input
                   id="folderName"
                   type="text"
@@ -813,19 +813,19 @@ export function LearnerGroupListPage() {
                   value={newFolderName}
                   onChange={event => setNewFolderName(event.target.value)}
                   className="wiz-input"
-                  placeholder="e.g. Finance & Accounting"
+                  placeholder={t(LEARNER_LABELS.folderNamePlaceholder)}
                 />
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="folderDesc" className="wiz-label">Description (Optional)</label>
+                <label htmlFor="folderDesc" className="wiz-label">{t(LEARNER_LABELS.optionalDescription)}</label>
                 <textarea
                   id="folderDesc"
                   value={newFolderDesc}
                   onChange={event => setNewFolderDesc(event.target.value)}
                   rows={3}
                   className="wiz-input resize-none"
-                  placeholder="Short note for admins"
+                  placeholder={t(LEARNER_LABELS.folderDescriptionPlaceholder)}
                 />
               </div>
             </div>
@@ -835,7 +835,7 @@ export function LearnerGroupListPage() {
                 variant="ghost"
                 onClick={() => setIsNewFolderOpen(false)}
               >
-                Cancel
+                {t(UI_LABELS.cancel)}
               </AppButton>
               <AppButton
                 type="submit"
@@ -844,7 +844,7 @@ export function LearnerGroupListPage() {
                 disabled={creatingFolder || !newFolderName.trim()}
                 className="px-4 py-2 text-xs font-bold shadow-3xs"
               >
-                Create Folder
+                {t(LEARNER_LABELS.newFolder)}
               </AppButton>
             </div>
           </form>
@@ -861,13 +861,13 @@ export function LearnerGroupListPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
               <div className="flex items-center gap-2">
                 <Edit3 className="h-5 w-5 text-indigo-500" />
-                <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">Edit Folder</h3>
+                <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">{t(LEARNER_LABELS.editFolder)}</h3>
               </div>
               <IconButton
                 type="button"
                 onClick={() => setEditingFolder(null)}
                 icon={X}
-                title="Close"
+                title={t(LEARNER_LABELS.close)}
                 tone="neutral"
               />
             </div>
@@ -876,7 +876,7 @@ export function LearnerGroupListPage() {
               {isSuperAdmin && editingFolder.parentId == null && (
                 <div className="space-y-1">
                   <label htmlFor="editFolderDivisionId" className="wiz-label">
-                    Division (แผนก)
+                    {t(LEARNER_LABELS.division)}
                   </label>
                   <select
                     id="editFolderDivisionId"
@@ -886,7 +886,7 @@ export function LearnerGroupListPage() {
                     }
                     className="wiz-input"
                   >
-                    <option value="">Global / ไม่ระบุแผนก</option>
+                    <option value="">{t(LEARNER_LABELS.global)}</option>
                     {divisions.map(div => (
                       <option key={div.id} value={div.id}>
                         {div.name}
@@ -897,7 +897,7 @@ export function LearnerGroupListPage() {
               )}
 
               <div className="space-y-1">
-                <label htmlFor="editFolderName" className="wiz-label">Folder Name <span className="text-red-500">*</span></label>
+                <label htmlFor="editFolderName" className="wiz-label">{t(LEARNER_LABELS.folderName)} <span className="text-red-500">*</span></label>
                 <input
                   id="editFolderName"
                   type="text"
@@ -905,19 +905,19 @@ export function LearnerGroupListPage() {
                   value={editFolderName}
                   onChange={event => setEditFolderName(event.target.value)}
                   className="wiz-input"
-                  placeholder="e.g. Finance & Accounting"
+                  placeholder={t(LEARNER_LABELS.folderNamePlaceholder)}
                 />
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="editFolderDesc" className="wiz-label">Description (Optional)</label>
+                <label htmlFor="editFolderDesc" className="wiz-label">{t(LEARNER_LABELS.optionalDescription)}</label>
                 <textarea
                   id="editFolderDesc"
                   value={editFolderDesc}
                   onChange={event => setEditFolderDesc(event.target.value)}
                   rows={3}
                   className="wiz-input resize-none"
-                  placeholder="Short note for admins"
+                  placeholder={t(LEARNER_LABELS.folderDescriptionPlaceholder)}
                 />
               </div>
             </div>
@@ -927,7 +927,7 @@ export function LearnerGroupListPage() {
                 variant="ghost"
                 onClick={() => setEditingFolder(null)}
               >
-                Cancel
+                {t(UI_LABELS.cancel)}
               </AppButton>
               <AppButton
                 type="submit"
@@ -936,7 +936,7 @@ export function LearnerGroupListPage() {
                 disabled={updatingFolder || !editFolderName.trim()}
                 className="px-4 py-2 text-xs font-bold shadow-3xs"
               >
-                Save Changes
+                {t(LEARNER_LABELS.saveChanges)}
               </AppButton>
             </div>
           </form>
@@ -949,19 +949,19 @@ export function LearnerGroupListPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
               <div className="flex items-center gap-2">
                 <ArrowRightLeft className="h-5 w-5 text-indigo-500" />
-                <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">Move Learner Group</h3>
+                <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">{t(LEARNER_LABELS.moveGroup)}</h3>
               </div>
               <IconButton
                 type="button"
                 onClick={() => setMovingGroup(null)}
                 icon={X}
-                title="Close"
+                title={t(LEARNER_LABELS.close)}
                 tone="neutral"
               />
             </div>
 
             <div className="px-6 py-3 border-b border-slate-100 bg-indigo-50/40 text-xs font-semibold text-slate-600">
-              Move group <span className="font-bold text-slate-800">{movingGroup.name}</span> to another folder.
+              {tf(LEARNER_LABELS.moveGroupMessage, movingGroup.name)}
             </div>
 
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/30">
@@ -974,7 +974,7 @@ export function LearnerGroupListPage() {
             </div>
 
             <div className="px-6 py-3 bg-slate-50/60 border-b border-slate-100 text-xs">
-              <span className="font-bold text-slate-400 uppercase text-xxs mr-1.5">Destination:</span>
+              <span className="font-bold text-slate-400 uppercase text-xxs mr-1.5">{t(LEARNER_LABELS.destination)}</span>
               <span className="font-semibold text-indigo-700">{relocateTargetCategoryPath}</span>
             </div>
 
@@ -983,7 +983,7 @@ export function LearnerGroupListPage() {
                 variant="ghost"
                 onClick={() => setMovingGroup(null)}
               >
-                Cancel
+                {t(UI_LABELS.cancel)}
               </AppButton>
               <AppButton
                 type="button"
@@ -993,7 +993,7 @@ export function LearnerGroupListPage() {
                 disabled={movingInProgress}
                 className="px-4 py-2 text-xs font-bold shadow-3xs"
               >
-                Relocate Group
+                {t(LEARNER_LABELS.relocateGroup)}
               </AppButton>
             </div>
           </div>

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { type AppClientStore } from '../../lib/createDataSource'
 import { formatDate } from '../../lib/format'
-import { COMMON_LABELS, t, UI_LABELS } from '../../lib/labels'
+import { COMMON_LABELS, t, type LabelPair, UI_LABELS } from '../../lib/labels'
 import { Badge } from './Badge'
 import { AppTableSearch } from './table/AppTableSearch'
 import { AppTableFooter } from './table/AppTableFooter'
@@ -18,7 +18,7 @@ type FilterExpression = unknown[]
 
 export type AdminGridColumn<T extends TableRecord = TableRecord> = {
   dataField: string
-  caption: string
+  caption: LabelPair
   dataType?: 'string' | 'number' | 'boolean' | 'date' | 'datetime'
   width?: number
   minWidth?: number
@@ -275,7 +275,7 @@ export function AppTable<T extends TableRecord>({
                   <div className={`flex items-center gap-1 ${
                     col.alignment === 'center' ? 'justify-center' : col.alignment === 'right' ? 'justify-end' : 'justify-start'
                   }`}>
-                    <span>{col.caption}</span>
+                    <span>{t(col.caption)}</span>
                     {sortField === col.dataField ? (
                       sortDesc ? <ArrowDown className="h-3 w-3 text-indigo-500 shrink-0" /> : <ArrowUp className="h-3 w-3 text-indigo-500 shrink-0" />
                     ) : (
@@ -286,7 +286,7 @@ export function AppTable<T extends TableRecord>({
               ))}
               {actionButtons && (
                 <th className="px-4 py-2.5 text-xxs font-extrabold text-slate-500 uppercase text-center w-24 select-none">
-                  Actions
+                  {t(UI_LABELS.actions)}
                 </th>
               )}
             </tr>

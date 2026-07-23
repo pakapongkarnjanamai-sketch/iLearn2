@@ -28,6 +28,7 @@ import { LearnerDirectorySelector, type LearnerSelection } from '../../component
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 import { DetailTabs } from '../../components/ui/DetailTabs'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
+import { LEARNER_LABELS, UI_LABELS, t, tf } from '../../lib/labels'
 
 type LearnerGroupMember = {
   id: number
@@ -113,7 +114,7 @@ export function LearnerGroupDetailPage() {
   const [savingProperties, setSavingProperties] = useState(false)
 
   const selectedCategoryPath = useMemo(() => {
-    if (!editCategoryId) return 'No category (Root folder)'
+    if (!editCategoryId) return t(LEARNER_LABELS.noCategoryRootFolder)
 
     const path: string[] = []
     const visited = new Set<number>()
@@ -126,11 +127,11 @@ export function LearnerGroupDetailPage() {
       current = pId ? categories.find(c => c.id === pId) : undefined
     }
 
-    return path.length > 0 ? path.join(' / ') : 'No category (Root folder)'
+    return path.length > 0 ? path.join(' / ') : t(LEARNER_LABELS.noCategoryRootFolder)
   }, [categories, editCategoryId])
 
   const tempCategoryPath = useMemo(() => {
-    if (tempCategoryId === 0) return 'Root folder'
+    if (tempCategoryId === 0) return t(LEARNER_LABELS.rootFolder)
 
     const path: string[] = []
     const visited = new Set<number>()
@@ -143,7 +144,7 @@ export function LearnerGroupDetailPage() {
       current = pId ? categories.find(c => c.id === pId) : undefined
     }
 
-    return path.length > 0 ? path.join(' / ') : 'Root folder'
+    return path.length > 0 ? path.join(' / ') : t(LEARNER_LABELS.rootFolder)
   }, [categories, tempCategoryId])
 
   const treeNodes = useMemo<TreeViewNode[]>(() => {
@@ -178,7 +179,7 @@ export function LearnerGroupDetailPage() {
     return [
       {
         id: 'root',
-        text: 'Root Folder (No Category)',
+        text: t(LEARNER_LABELS.rootFolderNoCategory),
         isRoot: true,
         categoryId: 0,
         items: roots.map(mapNode)
@@ -199,17 +200,17 @@ export function LearnerGroupDetailPage() {
       setCategories(list)
     } catch (error) {
       console.error(error)
-      toast.error('Failed to load group categories')
+      toast.error(t(LEARNER_LABELS.failedToLoadGroupCategories))
     }
   }
 
   const validateInformation = () => {
     if (!editName.trim()) {
-      toast.error('Group Name is required')
+      toast.error(t(LEARNER_LABELS.groupNameRequired))
       return false
     }
     if (!editDescription.trim()) {
-      toast.error('Description is required')
+      toast.error(t(LEARNER_LABELS.groupDescriptionRequired))
       return false
     }
     return true
@@ -231,13 +232,13 @@ export function LearnerGroupDetailPage() {
         })
       })
       if (resp.success) {
-        toast.success(resp.message || 'Group updated successfully')
+        toast.success(resp.message || t(LEARNER_LABELS.groupUpdated))
         setIsEditingProperties(false)
         await loadGroupDetails()
       }
     } catch (error: unknown) {
       console.error(error)
-      toast.error('Failed to update group properties')
+      toast.error(t(LEARNER_LABELS.failedToUpdateGroupProperties))
     } finally {
       setSavingProperties(false)
     }
@@ -258,20 +259,20 @@ export function LearnerGroupDetailPage() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 select-none">
             <div className="flex items-center gap-2">
               <FolderOpen className="h-5 w-5 text-indigo-500" />
-              <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wide">Category Folder Explorer</h3>
+              <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wide">{t(LEARNER_LABELS.categoryFolderExplorer)}</h3>
             </div>
 
             <IconButton
               type="button"
               onClick={() => setIsExplorerOpen(false)}
               icon={X}
-              title="Close"
+              title={t(LEARNER_LABELS.close)}
               tone="neutral"
             />
           </div>
 
           <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-100 text-xxs font-semibold text-slate-400 uppercase select-none">
-            Navigate folder structure to assign learner group category
+            {t(LEARNER_LABELS.categoryExplorerInstruction)}
           </div>
 
           <div className="p-4 flex-1 overflow-y-auto max-h-80 min-h-60 bg-slate-50/30 border-b border-slate-100">
@@ -288,7 +289,7 @@ export function LearnerGroupDetailPage() {
 
           <div className="px-5 py-4 bg-slate-50 flex flex-col gap-3 select-none">
             <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-slate-400 font-bold uppercase text-xxs">Selected:</span>
+              <span className="text-slate-400 font-bold uppercase text-xxs">{t(LEARNER_LABELS.selectedLabel)}</span>
               <Badge tone="neutral" variant="soft" className="truncate flex-1 font-bold">
                 {tempCategoryPath}
               </Badge>
@@ -299,7 +300,7 @@ export function LearnerGroupDetailPage() {
                 variant="ghost"
                 onClick={() => setIsExplorerOpen(false)}
               >
-                Cancel
+                {t(UI_LABELS.cancel)}
               </AppButton>
               <AppButton
                 variant="primary"
@@ -308,7 +309,7 @@ export function LearnerGroupDetailPage() {
                   setIsExplorerOpen(false)
                 }}
               >
-                Confirm Selection
+                {t(LEARNER_LABELS.confirmSelection)}
               </AppButton>
             </div>
           </div>
@@ -358,7 +359,7 @@ export function LearnerGroupDetailPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Failed to load learner group details')
+      toast.error(t(LEARNER_LABELS.failedToLoadGroupDetails))
     } finally {
       setLoading(false)
     }
@@ -385,7 +386,7 @@ export function LearnerGroupDetailPage() {
   const handleImportCodes = () => {
     const parsedCodes = parseLearnerCodes(learnerCodesInput)
     if (parsedCodes.length === 0) {
-      toast.error('Enter at least one EId code')
+      toast.error(t(LEARNER_LABELS.learnerCodeRequired))
       return
     }
 
@@ -403,19 +404,19 @@ export function LearnerGroupDetailPage() {
       const uniqueNew = newSelections.filter(l => !existingCodes.has(l.code) && !groupCodes.has(l.code))
       const duplicateCount = parsedCodes.length - uniqueNew.length
       if (duplicateCount > 0) {
-        toast.info(`${duplicateCount} code(s) were skipped (already selected or in the group)`)
+        toast.info(tf(LEARNER_LABELS.codeSkipped, duplicateCount))
       }
       return [...prev, ...uniqueNew]
     })
     setLearnerCodesInput('')
-    toast.success(`Imported ${parsedCodes.length} learner code(s) to queue`)
+    toast.success(tf(LEARNER_LABELS.importedCodesToQueue, parsedCodes.length))
   }
 
   // Bulk Add Preview Handler
   const handlePreviewAdd = async () => {
     const codes = pendingAddLearners.map(l => l.code)
     if (codes.length === 0) {
-      toast.error('Please add at least one learner to the queue')
+      toast.error(t(LEARNER_LABELS.addLearnerToQueue))
       return
     }
 
@@ -435,7 +436,7 @@ export function LearnerGroupDetailPage() {
       }
     } catch (err: any) {
       console.error(err)
-      toast.error(err.message || 'Failed to analyze member addition impact')
+      toast.error(err.message || t(LEARNER_LABELS.failedToAnalyzeAddition))
     } finally {
       setLoadingPreview(false)
     }
@@ -455,7 +456,7 @@ export function LearnerGroupDetailPage() {
         })
       })
       if (resp.success) {
-        toast.success(resp.message || 'Group membership updated successfully!')
+        toast.success(resp.message || t(LEARNER_LABELS.membershipUpdated))
         setManagerMode('none')
         setPendingAddLearners([])
         setAddPreview(null)
@@ -463,34 +464,34 @@ export function LearnerGroupDetailPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Failed to save group members')
+      toast.error(t(LEARNER_LABELS.failedToSaveMembers))
     }
   }
 
   // Single Delete member operation
   const handleRemoveSingleMember = async (memberId: number) => {
     if (!(await confirm({
-      title: 'Remove Member',
-      message: 'Remove this learner from group? Related assignments remain active.',
-      confirmLabel: 'Remove',
+      title: t(LEARNER_LABELS.removeMember),
+      message: t(LEARNER_LABELS.removeMemberConfirm),
+      confirmLabel: t(LEARNER_LABELS.remove),
       danger: true,
     }))) return
     try {
       await fetchWithAccessControl(`LearnerGroups/${id}/members/${memberId}`, {
         method: 'DELETE'
       })
-      toast.success('Learner removed from group')
+      toast.success(t(LEARNER_LABELS.learnerRemoved))
       loadGroupDetails()
     } catch (err) {
       console.error(err)
-      toast.error('Unable to remove group member')
+      toast.error(t(LEARNER_LABELS.failedToRemoveMember))
     }
   }
 
   // Bulk Remove Preview
   const handlePreviewRemove = async () => {
     if (selectedMemberIds.length === 0) {
-      toast.error('Please select at least one member from the table to remove.')
+      toast.error(t(LEARNER_LABELS.selectMemberToRemove))
       return
     }
 
@@ -511,7 +512,7 @@ export function LearnerGroupDetailPage() {
       }
     } catch (err: any) {
       console.error(err)
-      toast.error(err.message || 'Failed to preview removal impact')
+      toast.error(err.message || t(LEARNER_LABELS.failedToPreviewRemoval))
     } finally {
       setLoadingPreview(false)
     }
@@ -531,14 +532,14 @@ export function LearnerGroupDetailPage() {
         })
       })
       if (resp.success) {
-        toast.success(resp.message || 'Selected group members removed successfully!')
+        toast.success(resp.message || t(LEARNER_LABELS.membersRemoved))
         setManagerMode('none')
         setRemovePreview(null)
         loadGroupDetails()
       }
     } catch (err) {
       console.error(err)
-      toast.error('Failed to commit members removal')
+      toast.error(t(LEARNER_LABELS.failedToCommitRemoval))
     }
   }
 
@@ -555,10 +556,10 @@ export function LearnerGroupDetailPage() {
   if (!group) {
     return (
       <NotFoundState
-        title="Learner Group Not Found"
-        message="The requested learner group does not exist."
+        title={t(LEARNER_LABELS.groupNotFound)}
+        message={t(LEARNER_LABELS.groupNotFoundMessage)}
         backTo="/learner-groups"
-        backLabel="Back to Learner Groups"
+        backLabel={t(LEARNER_LABELS.backToLearnerGroups)}
       />
     )
   }
@@ -570,25 +571,25 @@ export function LearnerGroupDetailPage() {
       <DetailLayout
         sidebar={
           <ControlsSidebar>
-            <ControlAction onClick={openEditPropertiesModal} icon={Settings}>Edit Group Properties</ControlAction>
-            <ControlAction icon={UserPlus} onClick={() => { setManagerMode('add'); setAddPreview(null); }}>Add Members</ControlAction>
+            <ControlAction onClick={openEditPropertiesModal} icon={Settings}>{t(LEARNER_LABELS.editGroupProperties)}</ControlAction>
+            <ControlAction icon={UserPlus} onClick={() => { setManagerMode('add'); setAddPreview(null); }}>{t(LEARNER_LABELS.addMembers)}</ControlAction>
             <ControlAction icon={UserMinus} disabled={selectedMemberIds.length === 0} onClick={handlePreviewRemove} variant="danger">
-              Remove Selected{selectedMemberIds.length > 0 ? ` (${selectedMemberIds.length})` : ''}
+              {selectedMemberIds.length > 0 ? tf(LEARNER_LABELS.removeSelectedWithCount, selectedMemberIds.length) : t(LEARNER_LABELS.removeSelected)}
             </ControlAction>
           </ControlsSidebar>
         }
       >
         <main className="space-y-6">
-          <Card icon={Settings} title="Overview" bodyClassName="p-5">
+          <Card icon={Settings} title={t(LEARNER_LABELS.overview)} bodyClassName="p-5">
             <FactGrid>
-              <Fact label="Group Name" valueClassName="font-bold text-slate-800">
+              <Fact label={t(LEARNER_LABELS.groupName)} valueClassName="font-bold text-slate-800">
                 {group.name}
               </Fact>
-              <Fact label="Members" valueClassName="font-bold text-slate-800">
+              <Fact label={t(LEARNER_LABELS.members)} valueClassName="font-bold text-slate-800">
                 {group.members.length}
               </Fact>
               <Fact
-                label="LMS Category"
+                label={t(LEARNER_LABELS.lmsCategory)}
                 colSpan="full"
                 valueClassName="font-semibold"
               >
@@ -600,21 +601,21 @@ export function LearnerGroupDetailPage() {
                         <span className="text-slate-300 font-normal">/</span>
                       </span>
                     ))}
-                    <span className="text-slate-800 font-extrabold">{group.categoryName || '-'}</span>
+                    <span className="text-slate-800 font-extrabold">{group.categoryName || t(LEARNER_LABELS.emptyValue)}</span>
                   </div>
                 ) : (
-                  group.categoryName || '-'
+                  group.categoryName || t(LEARNER_LABELS.emptyValue)
                 )}
               </Fact>
               <Fact
-                label="Owner / Creator"
+                label={t(LEARNER_LABELS.ownerCreator)}
                 colSpan="full"
                 valueClassName="font-bold"
               >
-                {group.createdBy || 'System Admin'}
+                {group.createdBy || t(LEARNER_LABELS.systemAdmin)}
               </Fact>
               {group.description && (
-                <Fact label="Description" colSpan="full">
+                <Fact label={t(LEARNER_LABELS.description)} colSpan="full">
                   {group.description}
                 </Fact>
               )}
@@ -622,7 +623,7 @@ export function LearnerGroupDetailPage() {
           </Card>
 
           <DetailTabs
-            tabs={[{ key: 'members', label: `Members (${group.members.length})` }]}
+            tabs={[{ key: 'members', label: tf(LEARNER_LABELS.membersWithCount, group.members.length) }]}
             active={activeDetailTab}
             onChange={setActiveDetailTab}
           />
@@ -630,25 +631,25 @@ export function LearnerGroupDetailPage() {
           {activeDetailTab === 'members' && (
             <Card
               icon={Users}
-              title={`Members (${group.members.length})`}
+              title={tf(LEARNER_LABELS.membersWithCount, group.members.length)}
               className="min-w-0"
             >
               <div className="overflow-x-auto max-h-140 custom-scrollbar">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
-                      <th className="p-3 w-10">Select</th>
-                      <th className="p-3">Learner Code (EId)</th>
-                      <th className="p-3">Name</th>
-                      <th className="p-3">Division / Department</th>
-                      <th className="p-3 text-center">Action</th>
+                      <th className="p-3 w-10">{t(LEARNER_LABELS.select)}</th>
+                      <th className="p-3">{t(LEARNER_LABELS.learnerCode)}</th>
+                      <th className="p-3">{t(LEARNER_LABELS.name)}</th>
+                      <th className="p-3">{t(LEARNER_LABELS.divisionDepartment)}</th>
+                      <th className="p-3 text-center">{t(LEARNER_LABELS.action)}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
                     {group.members.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="p-8 text-center text-slate-400">
-                          No members.
+                          {t(LEARNER_LABELS.noMembers)}
                         </td>
                       </tr>
                     ) : (
@@ -667,7 +668,7 @@ export function LearnerGroupDetailPage() {
                             <td className="p-3 font-mono font-bold text-slate-800">{m.learnerCode}</td>
                             <td className="p-3 font-semibold text-slate-900">{m.learnerName}</td>
                             <td className="p-3 text-slate-500 text-xs font-semibold">
-                              {m.division || '-'} {m.department ? `/ ${m.department}` : ''}
+                              {m.division || t(LEARNER_LABELS.emptyValue)} {m.department ? `/ ${m.department}` : ''}
                             </td>
                             <td className="p-3 text-center">
                               <IconButton
@@ -675,7 +676,7 @@ export function LearnerGroupDetailPage() {
                                 icon={UserMinus}
                                 tone="danger"
                                 size="sm"
-                                title="Remove member"
+                                title={t(LEARNER_LABELS.removeMember)}
                               />
                             </td>
                           </tr>
@@ -689,7 +690,7 @@ export function LearnerGroupDetailPage() {
               {group.members.length > 0 && (
                 <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
                   <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
-                    Showing {visibleMembers.length} of {group.members.length}
+                    {tf(LEARNER_LABELS.showingOf, visibleMembers.length, group.members.length)}
                   </span>
                   {group.members.length > visibleMembers.length && (
                     <AppButton
@@ -697,7 +698,7 @@ export function LearnerGroupDetailPage() {
                       onClick={() => setVisibleMemberRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
                       className="px-3 py-1 text-xxs font-bold"
                     >
-                      Load more
+                      {t(LEARNER_LABELS.loadMore)}
                     </AppButton>
                   )}
                 </div>
@@ -716,19 +717,19 @@ export function LearnerGroupDetailPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
               <div className="flex items-center gap-2">
                 <UserMinus className="h-5 w-5 text-red-500" />
-                <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wide">Confirm Removal</h3>
+                <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wide">{t(LEARNER_LABELS.confirmRemoval)}</h3>
               </div>
               <IconButton
                 onClick={() => { setManagerMode('none'); setRemovePreview(null); }}
                 icon={X}
-                title="Close"
+                title={t(LEARNER_LABELS.close)}
                 tone="neutral"
               />
             </div>
 
             <div className="px-6 py-5 space-y-4">
               <p className="text-xs font-medium text-slate-500 leading-relaxed">
-                Remove selected members from this learner group. You can optionally unenroll them from related assignments.
+                {t(LEARNER_LABELS.removeMembersMessage)}
               </p>
 
               <div className="flex items-center gap-3 py-1">
@@ -740,18 +741,18 @@ export function LearnerGroupDetailPage() {
                   className="h-4.5 w-4.5 text-red-600 rounded border-slate-300 focus:ring-red-400 cursor-pointer"
                 />
                 <label htmlFor="unenrollFromAssignments" className="text-xs sm:text-[13px] font-bold text-slate-700 select-none cursor-pointer">
-                  Unenroll from Group Assignments
+                  {t(LEARNER_LABELS.unenrollGroupAssignments)}
                 </label>
               </div>
 
               <div className="bg-slate-50/70 border border-slate-100 p-4 rounded-lg space-y-2.5 text-xs font-semibold">
                 <div className="flex justify-between">
-                  <span className="text-slate-400 font-bold uppercase text-[11px] tracking-wider">Selected Members:</span>
-                  <span className="font-extrabold text-red-600">{removePreview.selectedMemberCount} Users</span>
+                  <span className="text-slate-400 font-bold uppercase text-[11px] tracking-wider">{t(LEARNER_LABELS.selectedMembers)}</span>
+                  <span className="font-extrabold text-red-600">{tf(LEARNER_LABELS.usersCount, removePreview.selectedMemberCount)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-slate-700 border-t border-slate-200/50 pt-2.5">
-                  <span className="text-slate-400 font-bold uppercase text-[11px] tracking-wider">Assignments Affected:</span>
-                  <span className="text-red-600 font-extrabold">{removePreview.estimatedUnenrollmentCount} Enrollments</span>
+                  <span className="text-slate-400 font-bold uppercase text-[11px] tracking-wider">{t(LEARNER_LABELS.assignmentsAffected)}</span>
+                  <span className="text-red-600 font-extrabold">{tf(LEARNER_LABELS.enrollmentsCount, removePreview.estimatedUnenrollmentCount)}</span>
                 </div>
               </div>
             </div>
@@ -761,14 +762,14 @@ export function LearnerGroupDetailPage() {
                 variant="ghost"
                 onClick={() => { setManagerMode('none'); setRemovePreview(null); }}
               >
-                Cancel
+                {t(UI_LABELS.cancel)}
               </AppButton>
               <AppButton
                 variant="danger"
                 icon={Check}
                 onClick={handleConfirmRemove}
               >
-                Confirm Removal
+                {t(LEARNER_LABELS.confirmRemoval)}
               </AppButton>
             </div>
 
@@ -785,14 +786,14 @@ export function LearnerGroupDetailPage() {
             <div className="flex items-center justify-between border-b border-slate-200/60 pb-3 shrink-0 select-none">
               <div className="flex items-center gap-2">
                 <UserPlus className="h-5 w-5 text-indigo-500" />
-                <h2 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider">Add Group Members</h2>
+                <h2 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider">{t(LEARNER_LABELS.addGroupMembers)}</h2>
               </div>
               
               {!addPreview && (
                 <SegmentedToggle
                   options={[
-                    { value: 'picker', label: 'Directory Search' },
-                    { value: 'bulk', label: 'Bulk Import (EIds)' },
+                    { value: 'picker', label: t(LEARNER_LABELS.directorySearch) },
+                    { value: 'bulk', label: t(LEARNER_LABELS.bulkImportEids) },
                   ]}
                   value={memberAddTab}
                   onChange={setMemberAddTab}
@@ -802,7 +803,7 @@ export function LearnerGroupDetailPage() {
               <IconButton
                 onClick={() => { setManagerMode('none'); setAddPreview(null); setPendingAddLearners([]); }}
                 icon={X}
-                title="Close"
+                title={t(LEARNER_LABELS.close)}
                 tone="neutral"
                 size="sm"
               />
@@ -821,7 +822,7 @@ export function LearnerGroupDetailPage() {
                 ) : (
                   <div className="space-y-4 h-full flex flex-col justify-start overflow-y-auto custom-scrollbar pr-1">
                     <p className="text-xs font-medium text-slate-500">
-                      Bulk import employee EIds separated by commas, spaces, or new lines. Duplicate or current group codes will be skipped automatically.
+                      {t(LEARNER_LABELS.bulkImportInstruction)}
                     </p>
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto] shrink-0">
                       <textarea
@@ -829,7 +830,7 @@ export function LearnerGroupDetailPage() {
                         rows={5}
                         value={learnerCodesInput}
                         onChange={(e) => setLearnerCodesInput(e.target.value)}
-                        placeholder="Paste employee EIds here (e.g. N130812, N142715)..."
+                        placeholder={t(LEARNER_LABELS.learnerCodesPlaceholder)}
                         className="w-full px-3 py-2 border border-slate-200 rounded text-sm font-mono text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50/50"
                       />
                       <AppButton
@@ -840,27 +841,27 @@ export function LearnerGroupDetailPage() {
                         disabled={!learnerCodesInput.trim()}
                         className="self-start"
                       >
-                        Add to Queue
+                        {t(LEARNER_LABELS.addToQueue)}
                       </AppButton>
                     </div>
 
                     {/* Queued codes view */}
                     <div className="border border-slate-200 rounded-lg overflow-hidden flex flex-col flex-1 min-h-0">
                       <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex justify-between items-center text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none shrink-0">
-                        <span>Queued for Group Additions ({pendingAddLearners.length})</span>
+                        <span>{tf(LEARNER_LABELS.queuedAdditions, pendingAddLearners.length)}</span>
                         {pendingAddLearners.length > 0 && (
                           <button
                             type="button"
                             onClick={() => setPendingAddLearners([])}
                             className="text-red-500 hover:text-red-700 font-bold cursor-pointer"
                           >
-                            Clear Queue
+                            {t(LEARNER_LABELS.clearQueue)}
                           </button>
                         )}
                       </div>
                       <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-100 bg-white min-h-0">
                         {pendingAddLearners.length === 0 ? (
-                          <div className="text-center py-12 text-slate-400 text-xs font-semibold">Queue is empty. Paste codes and click Add to Queue.</div>
+                          <div className="text-center py-12 text-slate-400 text-xs font-semibold">{t(LEARNER_LABELS.emptyQueue)}</div>
                         ) : (
                           pendingAddLearners.map((l, idx) => (
                             <div key={l.code} className="px-4 py-2.5 flex justify-between items-center text-xs font-medium">
@@ -874,7 +875,7 @@ export function LearnerGroupDetailPage() {
                                 onClick={() => setPendingAddLearners(prev => prev.filter(x => x.code !== l.code))}
                                 className="text-red-500 hover:text-red-700 font-bold text-xxs cursor-pointer"
                               >
-                                Remove
+                                {t(LEARNER_LABELS.remove)}
                               </button>
                             </div>
                           ))
@@ -889,24 +890,24 @@ export function LearnerGroupDetailPage() {
                   <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-lg flex flex-col gap-3">
                     <div className="flex items-center gap-2 border-b border-emerald-100/50 pb-2 mb-1">
                       <Check className="h-5 w-5 text-emerald-600 shrink-0" />
-                      <span className="font-extrabold uppercase text-xs text-emerald-800 tracking-wider">Analysis Result Summary</span>
+                      <span className="font-extrabold uppercase text-xs text-emerald-800 tracking-wider">{t(LEARNER_LABELS.analysisSummary)}</span>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4 text-xs font-semibold">
                       <div className="flex justify-between border-b border-emerald-100/40 pb-1.5">
-                        <span className="text-slate-500">Selected Count:</span>
+                        <span className="text-slate-500">{t(LEARNER_LABELS.selectedCount)}</span>
                         <span className="font-bold text-slate-800">{addPreview.selectedLearnerCount}</span>
                       </div>
                       <div className="flex justify-between border-b border-emerald-100/40 pb-1.5">
-                        <span className="text-slate-500">New Members:</span>
-                        <span className="font-bold text-emerald-600">+{addPreview.newMemberCount}</span>
+                        <span className="text-slate-500">{t(LEARNER_LABELS.newMembers)}</span>
+                        <span className="font-bold text-emerald-600">{tf(LEARNER_LABELS.addedMembersCount, addPreview.newMemberCount)}</span>
                       </div>
                       <div className="flex justify-between border-b border-emerald-100/40 pb-1.5">
-                        <span className="text-slate-500">Existing Members:</span>
+                        <span className="text-slate-500">{t(LEARNER_LABELS.existingMembers)}</span>
                         <span className="font-bold text-slate-600">{addPreview.existingMemberCount}</span>
                       </div>
                       <div className="flex justify-between border-b border-emerald-100/40 pb-1.5">
-                        <span className="text-slate-500">Estimated Enrollments:</span>
+                        <span className="text-slate-500">{t(LEARNER_LABELS.estimatedEnrollments)}</span>
                         <span className="font-bold text-indigo-600">{addPreview.estimatedEnrollmentCount}</span>
                       </div>
                     </div>
@@ -914,7 +915,7 @@ export function LearnerGroupDetailPage() {
 
                   {addPreview.assignments.length > 0 && (
                     <div className="space-y-2">
-                      <span className="block text-xxs font-extrabold text-slate-400 uppercase tracking-wider select-none">Active Assignments Impacted</span>
+                      <span className="block text-xxs font-extrabold text-slate-400 uppercase tracking-wider select-none">{t(LEARNER_LABELS.activeAssignmentsImpacted)}</span>
                       <ul className="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar">
                         {addPreview.assignments.map(a => (
                           <li key={a.id} className="text-xs bg-slate-50 border border-slate-200/60 p-3 rounded-lg flex flex-col gap-0.5">
@@ -942,7 +943,7 @@ export function LearnerGroupDetailPage() {
                       className="h-4 w-4 rounded text-indigo-500 border-slate-300 focus:ring-indigo-400 cursor-pointer"
                     />
                     <label htmlFor="enrollToAssignmentsModal" className="text-xs font-semibold text-slate-700 select-none cursor-pointer">
-                      Auto-enroll to Active Assignments
+                      {t(LEARNER_LABELS.autoEnrollActiveAssignments)}
                     </label>
                   </div>
 
@@ -951,7 +952,7 @@ export function LearnerGroupDetailPage() {
                       variant="ghost"
                       onClick={() => { setManagerMode('none'); setPendingAddLearners([]); }}
                     >
-                      Cancel
+                      {t(UI_LABELS.cancel)}
                     </AppButton>
                     <AppButton
                       variant="primary"
@@ -959,21 +960,21 @@ export function LearnerGroupDetailPage() {
                       loading={loadingPreview}
                       disabled={pendingAddLearners.length === 0}
                     >
-                      Analyze & Preview
+                      {t(LEARNER_LABELS.analyzePreview)}
                     </AppButton>
                   </div>
                 </>
               ) : (
                 <>
                   <div className="text-xxs font-extrabold text-slate-400 uppercase tracking-wide">
-                    Review and confirm additions to commit group membership
+                    {t(LEARNER_LABELS.reviewCommitAdditions)}
                   </div>
                   <div className="flex gap-2">
                     <AppButton variant="secondary" onClick={() => setAddPreview(null)}>
-                      Back
+                      {t(UI_LABELS.previous)}
                     </AppButton>
                     <AppButton variant="primary" icon={Check} onClick={handleConfirmAdd}>
-                      Commit Changes
+                      {t(LEARNER_LABELS.commitChanges)}
                     </AppButton>
                   </div>
                 </>
@@ -991,7 +992,7 @@ export function LearnerGroupDetailPage() {
               type="button"
               onClick={() => setIsEditingProperties(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer"
-              aria-label="Close modal"
+              aria-label={t(LEARNER_LABELS.closeModal)}
             >
               <X className="h-4 w-4" />
             </button>
@@ -999,29 +1000,29 @@ export function LearnerGroupDetailPage() {
             <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3 pr-8 select-none">
               <Settings className="h-5 w-5 text-indigo-600" />
               <div>
-                <h3 className="text-sm font-extrabold text-slate-800">Edit Learner Group</h3>
-                <p className="text-xxs font-semibold text-slate-400">Update learner group details and folder category.</p>
+                <h3 className="text-sm font-extrabold text-slate-800">{t(LEARNER_LABELS.editLearnerGroup)}</h3>
+                <p className="text-xxs font-semibold text-slate-400">{t(LEARNER_LABELS.updateGroupDetails)}</p>
               </div>
             </div>
 
             <form onSubmit={handleSaveProperties} className="space-y-4">
               <div className="space-y-1.5">
                 <label htmlFor="editName" className="wiz-label">
-                  Group Name <span className="text-red-500">*</span>
+                  {t(LEARNER_LABELS.groupName)} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   id="editName"
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
-                  placeholder="e.g. New Hires 2026 Q1"
+                  placeholder={t(LEARNER_LABELS.groupNamePlaceholder)}
                   className="wiz-input"
                   required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="wiz-label">Category (Location Folder)</label>
+                <label className="wiz-label">{t(LEARNER_LABELS.categoryFolder)}</label>
                 <div className="flex gap-2 items-center">
                   <div className="flex-1 flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-md bg-slate-50/50 text-slate-700 min-w-0 select-none">
                     <Folder className="h-4 w-4 text-indigo-500 shrink-0" />
@@ -1038,21 +1039,21 @@ export function LearnerGroupDetailPage() {
                       setIsExplorerOpen(true)
                     }}
                   >
-                    Select Folder...
+                    {t(LEARNER_LABELS.selectFolder)}
                   </AppButton>
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <label htmlFor="editDescription" className="wiz-label">
-                  Description <span className="text-red-500">*</span>
+                  {t(LEARNER_LABELS.description)} <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   id="editDescription"
                   value={editDescription}
                   onChange={e => setEditDescription(e.target.value)}
                   rows={3}
-                  placeholder="Brief description of this group's purpose"
+                  placeholder={t(LEARNER_LABELS.groupDescriptionPlaceholder)}
                   className="wiz-input resize-y"
                   required
                 />
@@ -1064,7 +1065,7 @@ export function LearnerGroupDetailPage() {
                   onClick={() => setIsEditingProperties(false)}
                   disabled={savingProperties}
                 >
-                  Cancel
+                  {t(UI_LABELS.cancel)}
                 </AppButton>
                 <AppButton
                   type="submit"
@@ -1073,7 +1074,7 @@ export function LearnerGroupDetailPage() {
                   loading={savingProperties}
                   className="px-4 py-2 text-xs font-bold shadow-3xs"
                 >
-                  {savingProperties ? 'Saving...' : 'Save Changes'}
+                  {savingProperties ? t(LEARNER_LABELS.saving) : t(LEARNER_LABELS.saveChanges)}
                 </AppButton>
               </div>
             </form>

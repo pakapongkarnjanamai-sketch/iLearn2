@@ -19,6 +19,7 @@ import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { formatDateTime } from '../../lib/format'
 import type { AdminUser } from './AdminUsersPage'
+import { ADMIN_LABELS, t, tf } from '../../lib/labels'
 
 export function UserDetailPage() {
   const { id } = useParams()
@@ -49,7 +50,7 @@ export function UserDetailPage() {
         setUser(null)
       }
     } catch {
-      toast.error('Failed to load user details')
+      toast.error(t(ADMIN_LABELS.failedToLoadUserDetails))
     } finally {
       setLoading(false)
     }
@@ -63,9 +64,7 @@ export function UserDetailPage() {
   const handleDelete = async () => {
     if (!user) return
     const ok = await confirm({
-      title: 'Delete Admin User',
-      message: `Delete administrative user "${user.fullName || user.nid}"? This action cannot be undone.`,
-      confirmLabel: 'Delete User',
+      title: t(ADMIN_LABELS.deleteAdminUser), message: tf(ADMIN_LABELS.deleteAdminUserConfirm, user.fullName || user.nid), confirmLabel: t(ADMIN_LABELS.deleteUser),
       danger: true,
     })
     if (!ok) return
@@ -75,26 +74,25 @@ export function UserDetailPage() {
       const fd = new FormData()
       fd.append('key', String(user.id))
       await fetchWithAccessControl('admin/UsersCRUD/Delete', { method: 'DELETE', body: fd })
-      toast.success('Admin user deleted successfully')
+      toast.success(t(ADMIN_LABELS.adminUserDeleted))
       navigate('/users')
     } catch {
-      toast.error('Failed to delete admin user')
+      toast.error(t(ADMIN_LABELS.failedToDeleteAdminUser))
     } finally {
       setBusy(false)
     }
   }
 
   if (loading) {
-    return <LoadingState label="Loading user details..." />
+    return <LoadingState label={t(ADMIN_LABELS.loadingUserDetails)} />
   }
 
   if (!user) {
     return (
       <NotFoundState
-        title="Admin User Not Found"
-        message="The requested administrative user does not exist or has been deleted."
+        title={t(ADMIN_LABELS.adminUserNotFound)} message={t(ADMIN_LABELS.adminUserNotFoundDetail)}
         backTo="/users"
-        backLabel="Back to Directory"
+        backLabel={t(ADMIN_LABELS.backToDirectory)}
       />
     )
   }
@@ -113,7 +111,7 @@ export function UserDetailPage() {
               icon={Edit3}
               disabled={busy}
             >
-              Edit Roles
+              {t(ADMIN_LABELS.editRoles)}
             </ControlAction>
             <ControlAction
               onClick={handleDelete}
@@ -121,48 +119,48 @@ export function UserDetailPage() {
               variant="danger"
               disabled={busy}
             >
-              Delete User
+              {t(ADMIN_LABELS.deleteUser)}
             </ControlAction>
           </ControlsSidebar>
         }
       >
-        <Card icon={User} title="Overview" bodyClassName="p-5 space-y-6">
+        <Card icon={User} title={t(ADMIN_LABELS.overview)} bodyClassName="p-5 space-y-6">
           <FactGrid>
-            <Fact label="Status">
+            <Fact label={t(ADMIN_LABELS.status)}>
               <StatusText active={user.isActive} />
             </Fact>
 
-            <Fact label="Employee NID" mono valueClassName="font-bold">{user.nid}</Fact>
+            <Fact label={t(ADMIN_LABELS.employeeNid)} mono valueClassName="font-bold">{user.nid}</Fact>
 
-            <Fact label="Last Login">
+            <Fact label={t(ADMIN_LABELS.lastLogin)}>
               {user.lastLogin ? formatDateTime(new Date(user.lastLogin)) : '—'}
             </Fact>
 
             {user.email && (
-              <Fact label="Email Address" colSpan={2} valueClassName="break-all">
+              <Fact label={t(ADMIN_LABELS.emailAddress)} colSpan={2} valueClassName="break-all">
                 {user.email}
               </Fact>
             )}
           </FactGrid>
 
-          <DetailSubSection title="Organization Info">
+          <DetailSubSection title={t(ADMIN_LABELS.organizationInfo)}>
             <FactGrid cols={2} className="gap-4 select-none">
               <Fact
-                label="Division"
+                label={t(ADMIN_LABELS.division)}
                 labelClassName="text-slate-400 font-semibold"
                 valueClassName="mt-0.5 font-bold"
               >
                 {user.division || '—'}
               </Fact>
               <Fact
-                label="Department"
+                label={t(ADMIN_LABELS.department)}
                 labelClassName="text-slate-400 font-semibold"
                 valueClassName="mt-0.5 font-bold"
               >
                 {user.department || '—'}
               </Fact>
               <Fact
-                label="Position"
+                label={t(ADMIN_LABELS.position)}
                 labelClassName="text-slate-400 font-semibold"
                 valueClassName="mt-0.5 font-bold"
               >
@@ -171,10 +169,10 @@ export function UserDetailPage() {
             </FactGrid>
           </DetailSubSection>
 
-          <DetailSubSection title="Administrative Roles">
+          <DetailSubSection title={t(ADMIN_LABELS.administrativeRoles)}>
             <div className="flex flex-wrap gap-1.5 select-none pt-1">
               {roles.length === 0 ? (
-                <span className="text-xs text-slate-400 font-semibold italic">No roles assigned</span>
+                <span className="text-xs text-slate-400 font-semibold italic">{t(ADMIN_LABELS.noRolesAssigned)}</span>
               ) : (
                 roles.map((r, i) => (
                   <Badge

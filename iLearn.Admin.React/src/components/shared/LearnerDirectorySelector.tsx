@@ -6,6 +6,7 @@ import { toast } from '../../lib/toast'
 import { Modal } from '../ui/Modal'
 import { Badge } from '../ui/Badge'
 import { stripGenderPrefix } from '../../lib/format'
+import { LEARNER_LABELS, t, tf } from '../../lib/labels'
 
 export type LearnerSelection = {
   code: string // EId / Employee Code
@@ -90,7 +91,7 @@ export function LearnerDirectorySelector({
         setPositions(posItems.map((x: any) => typeof x === 'string' ? x : x.Name || x.name || '').filter(Boolean))
       } catch (err) {
         console.error('Failed to load initial directory lookups', err)
-        toast.error('Failed to load directory filters')
+        toast.error(t(LEARNER_LABELS.failedToLoadDirectoryFilters))
       }
     }
     void loadInit()
@@ -111,7 +112,7 @@ export function LearnerDirectorySelector({
         setDepartments(items.map((x: any) => typeof x === 'string' ? x : x.Name || x.name || '').filter(Boolean))
       } catch (err) {
         console.error('Failed to load departments', err)
-        toast.error('Failed to load departments')
+        toast.error(t(LEARNER_LABELS.failedToLoadDepartments))
       }
     }
     void loadDepts()
@@ -136,7 +137,7 @@ export function LearnerDirectorySelector({
         setSections(items.map((x: any) => typeof x === 'string' ? x : x.Name || x.name || '').filter(Boolean))
       } catch (err) {
         console.error('Failed to load sections', err)
-        toast.error('Failed to load sections')
+        toast.error(t(LEARNER_LABELS.failedToLoadSections))
       }
     }
     void loadSections()
@@ -249,7 +250,7 @@ export function LearnerDirectorySelector({
       setTotalCount(total)
     } catch (err) {
       console.error(err)
-      toast.error('Failed to load learners directory')
+      toast.error(t(LEARNER_LABELS.noLearnersFound))
     } finally {
       setLoading(false)
     }
@@ -345,10 +346,10 @@ export function LearnerDirectorySelector({
       })
 
       onChange(merged)
-      toast.success(`Selected all ${formatted.length} matching learners`)
+      toast.success(tf(LEARNER_LABELS.selectedAllMatching, formatted.length))
     } catch (err) {
       console.error(err)
-      toast.error('Failed to select all matching learners')
+      toast.error(t(LEARNER_LABELS.failedToSelectAll))
     } finally {
       setLoading(false)
     }
@@ -379,19 +380,19 @@ export function LearnerDirectorySelector({
         {/* Left Rail: FILTERS Cascading panel */}
         <div className="w-full md:w-60 max-[1440px]:md:w-52 shrink-0 border-b md:border-b-0 md:border-r border-slate-200 bg-slate-50/50 p-2 flex flex-col gap-2.5 overflow-y-auto custom-scrollbar min-h-0 text-xs font-semibold">
           <div className="px-2 py-1 text-xxs font-bold text-slate-400 uppercase tracking-wider select-none">
-            Filters
+            {t(LEARNER_LABELS.filters)}
           </div>
 
           {/* Division Select */}
           <div className="space-y-1">
-            <label className="block text-xxs font-bold text-slate-400 uppercase">Division</label>
+            <label className="block text-xxs font-bold text-slate-400 uppercase">{t(LEARNER_LABELS.division)}</label>
             <div className="relative">
               <select
                 value={selectedDiv}
                 onChange={e => { setSelectedDiv(e.target.value); setPageIndex(0) }}
                 className="w-full appearance-none px-2 py-1.5 pr-7 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 cursor-pointer transition text-xs font-medium"
               >
-                <option value="">All Divisions</option>
+                <option value="">{t(LEARNER_LABELS.allDivisions)}</option>
                 {divisions.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
@@ -400,7 +401,7 @@ export function LearnerDirectorySelector({
 
           {/* Department Select */}
           <div className="space-y-1">
-            <label className="block text-xxs font-bold text-slate-400 uppercase">Department</label>
+            <label className="block text-xxs font-bold text-slate-400 uppercase">{t(LEARNER_LABELS.department)}</label>
             <div className="relative">
               <select
                 value={selectedDept}
@@ -408,7 +409,7 @@ export function LearnerDirectorySelector({
                 disabled={!selectedDiv}
                 className="w-full appearance-none px-2 py-1.5 pr-7 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed transition text-xs font-medium"
               >
-                <option value="">{selectedDiv ? 'All Departments' : 'Select Division first'}</option>
+                <option value="">{selectedDiv ? t(LEARNER_LABELS.allDepartments) : t(LEARNER_LABELS.selectDivisionFirst)}</option>
                 {departments.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
@@ -417,7 +418,7 @@ export function LearnerDirectorySelector({
 
           {/* Section Select */}
           <div className="space-y-1">
-            <label className="block text-xxs font-bold text-slate-400 uppercase">Section</label>
+            <label className="block text-xxs font-bold text-slate-400 uppercase">{t(LEARNER_LABELS.section)}</label>
             <div className="relative">
               <select
                 value={selectedSec}
@@ -425,7 +426,7 @@ export function LearnerDirectorySelector({
                 disabled={!selectedDept}
                 className="w-full appearance-none px-2 py-1.5 pr-7 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed transition text-xs font-medium"
               >
-                <option value="">{selectedDept ? 'All Sections' : 'Select Department first'}</option>
+                <option value="">{selectedDept ? t(LEARNER_LABELS.allSections) : t(LEARNER_LABELS.selectDepartmentFirst)}</option>
                 {sections.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
@@ -434,14 +435,14 @@ export function LearnerDirectorySelector({
 
           {/* Position Select */}
           <div className="space-y-1">
-            <label className="block text-xxs font-bold text-slate-400 uppercase">Position</label>
+            <label className="block text-xxs font-bold text-slate-400 uppercase">{t(LEARNER_LABELS.position)}</label>
             <div className="relative">
               <select
                 value={selectedPos}
                 onChange={e => { setSelectedPos(e.target.value); setPageIndex(0) }}
                 className="w-full appearance-none px-2 py-1.5 pr-7 border border-slate-200 rounded bg-white text-slate-700 focus:outline-none focus:border-indigo-500 cursor-pointer transition text-xs font-medium"
               >
-                <option value="">All Positions</option>
+                <option value="">{t(LEARNER_LABELS.allPositions)}</option>
                 {positions.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
@@ -454,7 +455,7 @@ export function LearnerDirectorySelector({
             className="mt-1 w-full py-1.5 border border-slate-200 hover:bg-slate-100 hover:text-slate-800 text-slate-600 font-bold rounded flex items-center justify-center gap-1.5 transition cursor-pointer text-xs"
           >
             <RotateCcw className="h-3 w-3" />
-            <span>Clear Filters</span>
+            <span>{t(LEARNER_LABELS.clearFilters)}</span>
           </button>
         </div>
 
@@ -469,7 +470,7 @@ export function LearnerDirectorySelector({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search Name or Employee ID (EId)..."
+                placeholder={t(LEARNER_LABELS.searchNameOrEid)}
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className="w-full pl-9 pr-8 py-1.5 border border-slate-200 rounded-md text-xs font-semibold placeholder:text-slate-400 bg-white focus:outline-none focus:border-indigo-500"
@@ -491,7 +492,7 @@ export function LearnerDirectorySelector({
           {/* Active-filter chips conditional second row */}
           {(selectedDiv || selectedDept || selectedSec || selectedPos) && (
             <div className="px-2 py-1.5 border-b border-slate-100 flex flex-wrap items-center gap-1.5 bg-slate-50/30 text-xs shrink-0 select-none">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Filters:</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase">{t(LEARNER_LABELS.filters)}</span>
               {selectedDiv && (
                 <span className="inline-flex items-center gap-1 bg-indigo-50/50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold">
                   <span>Div: {selectedDiv}</span>
@@ -546,14 +547,14 @@ export function LearnerDirectorySelector({
           {isPageAllSelected && totalCount > learners.length && (
             <div className="px-4 py-2 bg-indigo-50 text-indigo-700 border-b border-indigo-100 flex items-center justify-between text-xs shrink-0 select-none animate-fade-in">
               <span>
-                All <strong>{learners.length}</strong> learners on this page are selected.
+                {tf(LEARNER_LABELS.selectedAllPage, learners.length)}
               </span>
               <button
                 type="button"
                 onClick={handleSelectAllFiltered}
                 className="font-bold underline hover:text-indigo-900 cursor-pointer flex items-center gap-1"
               >
-                Select all {totalCount} matching learners
+                {tf(LEARNER_LABELS.selectAllMatching, totalCount)}
               </button>
             </div>
           )}
@@ -580,11 +581,11 @@ export function LearnerDirectorySelector({
                       className="h-4 w-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-400 cursor-pointer"
                     />
                   </th>
-                  <th className="px-3 py-2 short:py-1.5 w-28">ID (EId)</th>
-                  <th className="px-3 py-2 short:py-1.5">Learner Name</th>
-                  <th className="px-3 py-2 short:py-1.5 w-36">Position</th>
-                  <th className="px-3 py-2 short:py-1.5 w-32">Dept.</th>
-                  <th className="px-3 py-2 short:py-1.5 w-36">Section</th>
+                  <th className="px-3 py-2 short:py-1.5 w-28">{t(LEARNER_LABELS.employeeId)}</th>
+                  <th className="px-3 py-2 short:py-1.5">{t(LEARNER_LABELS.learnerName)}</th>
+                  <th className="px-3 py-2 short:py-1.5 w-36">{t(LEARNER_LABELS.position)}</th>
+                  <th className="px-3 py-2 short:py-1.5 w-32">{t(LEARNER_LABELS.department)}</th>
+                  <th className="px-3 py-2 short:py-1.5 w-36">{t(LEARNER_LABELS.section)}</th>
                 </tr>
               </thead>
               
@@ -592,7 +593,7 @@ export function LearnerDirectorySelector({
                 {learners.length === 0 && !loading ? (
                   <tr>
                     <td colSpan={6} className="p-12 text-center text-slate-400 font-semibold">
-                      No matching learners found. Try modifying your filter criteria.
+                      {t(LEARNER_LABELS.noMatchingLearners)}
                     </td>
                   </tr>
                 ) : learners.map(l => {
@@ -646,7 +647,7 @@ export function LearnerDirectorySelector({
                   )}
                 </span>
               ) : (
-                <span>No learners directory records loaded</span>
+                <span>{t(LEARNER_LABELS.noDirectoryRecords)}</span>
               )}
             </div>
             
@@ -659,7 +660,7 @@ export function LearnerDirectorySelector({
 
               <div className="flex items-center gap-2">
                 <Badge tone="neutral" variant="soft" size="xxs">
-                  Selected: {selectedLearners.length}
+                  {tf(LEARNER_LABELS.selected, selectedLearners.length)}
                 </Badge>
                 
                 {selectedLearners.length > 0 && (
@@ -669,14 +670,14 @@ export function LearnerDirectorySelector({
                       onClick={() => setLedgerOpen(true)}
                       className="text-indigo-600 hover:text-indigo-800 font-extrabold cursor-pointer text-xxs uppercase tracking-wider transition border border-indigo-200 hover:border-indigo-300 px-2 py-0.5 rounded bg-white shadow-3xs"
                     >
-                      Review
+                      {t(LEARNER_LABELS.review)}
                     </button>
                     <button
                       type="button"
                       onClick={handleClearAll}
                       className="text-red-500 hover:text-red-700 font-extrabold cursor-pointer text-xxs uppercase tracking-wider transition border border-red-200 hover:border-red-300 px-2 py-0.5 rounded bg-white shadow-3xs"
                     >
-                      Clear
+                      {t(LEARNER_LABELS.clear)}
                     </button>
                   </>
                 )}
@@ -691,12 +692,12 @@ export function LearnerDirectorySelector({
         open={ledgerOpen}
         onClose={() => setLedgerOpen(false)}
         size="lg"
-        title={`Selected Learners (${selectedLearners.length})`}
+        title={tf(LEARNER_LABELS.selectedLearners, selectedLearners.length)}
       >
         <div className="p-6 flex flex-col gap-4 select-none">
           <div className="flex justify-between items-center shrink-0">
             <span className="text-xs font-semibold text-slate-500">
-              Review and manage your current selections below.
+              {t(LEARNER_LABELS.reviewSelections)}
             </span>
             {selectedLearners.length > 0 && (
               <button
@@ -704,7 +705,7 @@ export function LearnerDirectorySelector({
                 onClick={handleClearAll}
                 className="text-red-500 hover:text-red-700 font-extrabold transition cursor-pointer flex items-center gap-1 text-xs"
               >
-                <span>Clear Selection</span>
+                <span>{t(LEARNER_LABELS.clearSelection)}</span>
               </button>
             )}
           </div>
@@ -714,7 +715,7 @@ export function LearnerDirectorySelector({
               <Search className="absolute left-3 top-2 h-4 w-4 text-slate-400 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search selected learners..."
+                placeholder={t(LEARNER_LABELS.searchSelectedLearners)}
                 value={selectedSearch}
                 onChange={e => setSelectedSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded-md text-xs font-semibold placeholder:text-slate-400 bg-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
@@ -725,7 +726,7 @@ export function LearnerDirectorySelector({
           <div className="flex flex-wrap gap-2 max-h-[55vh] overflow-y-auto custom-scrollbar pr-1">
             {filteredChips.length === 0 ? (
               <span className="text-slate-400 text-xs font-semibold py-4 w-full text-center">
-                {selectedSearch ? `No selected items match "${selectedSearch}"` : 'No learners selected.'}
+                {selectedSearch ? tf(LEARNER_LABELS.noSelectedItemsMatch, selectedSearch) : t(LEARNER_LABELS.noLearnersSelected)}
               </span>
             ) : (
               filteredChips.map(learner => (

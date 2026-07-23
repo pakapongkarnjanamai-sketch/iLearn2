@@ -5,6 +5,7 @@ import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { AppTable } from '../../components/ui/AppTable'
 import { createAdminDataSource } from '../../lib/createDataSource'
 import { fetchWithAccessControl } from '../../lib/apiClient'
+import { LEARNER_LABELS, t } from '../../lib/labels'
 import { adminListConfigs } from '../moduleConfigs'
 
 type LookupItem = { name: string }
@@ -110,7 +111,7 @@ export function LearnerListPage() {
   }
 
   const actionButtons = useMemo(() => [{
-    hint: 'Open Profile',
+    hint: t(LEARNER_LABELS.openProfile),
     icon: 'info' as const,
     onClick: (e: { row: { data: Record<string, unknown> } }) => {
       const code = e.row.data.nid || e.row.data.eId
@@ -131,7 +132,7 @@ export function LearnerListPage() {
         onChange={e => handleDivisionChange(e.target.value)}
         className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-3xs transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
       >
-        <option value="">All Divisions</option>
+        <option value="">{t(LEARNER_LABELS.allDivisions)}</option>
         {divisions.map(d => <option key={d} value={d}>{d}</option>)}
       </select>
 
@@ -141,7 +142,7 @@ export function LearnerListPage() {
         disabled={!division}
         className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-3xs transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <option value="">All Departments</option>
+        <option value="">{t(LEARNER_LABELS.allDepartments)}</option>
         {departments.map(d => <option key={d} value={d}>{d}</option>)}
       </select>
 
@@ -151,7 +152,7 @@ export function LearnerListPage() {
         disabled={!department}
         className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-3xs transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <option value="">All Sections</option>
+        <option value="">{t(LEARNER_LABELS.allSections)}</option>
         {sections.map(s => <option key={s} value={s}>{s}</option>)}
       </select>
 
@@ -160,23 +161,23 @@ export function LearnerListPage() {
           type="button"
           onClick={handleClearFilters}
           className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
-          title="Clear all filters"
+          title={t(LEARNER_LABELS.clearAllFilters)}
         >
           <X className="h-3 w-3" />
-          Clear
+          {t(LEARNER_LABELS.clear)}
         </button>
       )}
     </div>
   )
 
   return (
-    <DataGridSurface title={config.gridTitle} note={config.gridNote}>
+    <DataGridSurface title={t(config.gridTitle)} note={t(config.gridNote)}>
       <AppTable
         store={store}
         columns={config.columns}
-        noDataText="No learners found"
+        noDataText={t(LEARNER_LABELS.noLearnersFound)}
         onRowDblClick={handleRowDoubleClick}
-        searchPlaceholder="Search by name or employee ID..."
+        searchPlaceholder={t(LEARNER_LABELS.searchNameOrEmployeeId)}
         searchExpr={config.searchExpr}
         externalFilters={externalFilters}
         toolbarContent={filterToolbar}

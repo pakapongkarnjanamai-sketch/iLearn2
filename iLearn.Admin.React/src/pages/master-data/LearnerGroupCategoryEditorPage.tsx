@@ -8,6 +8,7 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { useSession } from '../../lib/sessionContext'
 import { toast } from '../../lib/toast'
 import type { ApiListResponse, LearnerGroupCategory } from './LearnerGroupCategoriesPage'
+import { ADMIN_LABELS, t } from '../../lib/labels'
 
 type DivisionLookup = {
   id: number
@@ -111,10 +112,10 @@ export function LearnerGroupCategoryEditorPage() {
           }
         } catch (err) {
           console.error('Failed to load divisions', err)
-          toast.error('Failed to load divisions')
+          toast.error(t(ADMIN_LABELS.failedToLoadDivisions))
         }
       } catch {
-        toast.error('Failed to load categories')
+        toast.error(t(ADMIN_LABELS.failedToLoadGroupCategories))
         if (!cancelled && isEditMode) {
           setNotFound(true)
         }
@@ -144,20 +145,20 @@ export function LearnerGroupCategoryEditorPage() {
   }, [categories, form.parentId])
 
   const parentText = useMemo(() => {
-    if (form.parentId === '') return 'Root (no parent)'
+    if (form.parentId === '') return t(ADMIN_LABELS.rootNoParent)
     return selectedParent?.name ?? `Category #${form.parentId}`
   }, [selectedParent, form.parentId])
 
   const divisionText = useMemo(() => {
     const divId = selectedParent ? selectedParent.divisionId : form.divisionId
-    if (!divId) return 'Global (All Divisions)'
+    if (!divId) return t(ADMIN_LABELS.globalNoDivision)
     const div = divisions.find((d) => d.id === divId)
     return div ? div.name : `Division #${divId}`
   }, [selectedParent, form.divisionId, divisions])
 
   const validateDetails = () => {
     if (!form.name.trim()) {
-      toast.error('Name is required')
+      toast.error(t(ADMIN_LABELS.nameRequired))
       return false
     }
     return true
@@ -178,7 +179,7 @@ export function LearnerGroupCategoryEditorPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
-        toast.success('Category updated')
+        toast.success(t(ADMIN_LABELS.categoryUpdated))
       } else {
         const payload = {
           name: form.name.trim(),
@@ -191,12 +192,12 @@ export function LearnerGroupCategoryEditorPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
-        toast.success('Category created')
+        toast.success(t(ADMIN_LABELS.categoryCreated))
       }
 
       navigate('/master-data/learner-group-categories')
     } catch {
-      toast.error(isEditMode ? 'Update failed' : 'Create failed')
+      toast.error(t(isEditMode ? ADMIN_LABELS.updateFailed : ADMIN_LABELS.createFailed))
     } finally {
       setSubmitting(false)
     }
@@ -208,7 +209,7 @@ export function LearnerGroupCategoryEditorPage() {
       {(isSuperAdmin || divisions.length > 0) && (
         <div className="space-y-1.5">
           <label htmlFor="divisionId" className="wiz-label">
-            Division (แผนก)
+            {t(ADMIN_LABELS.division)}
           </label>
           <select
             id="divisionId"
@@ -222,7 +223,7 @@ export function LearnerGroupCategoryEditorPage() {
             disabled={selectedParent !== null || !isSuperAdmin}
             className="wiz-input disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200"
           >
-            <option value="">Global / ไม่ระบุแผนก</option>
+            <option value="">{t(ADMIN_LABELS.globalNoDivision)}</option>
             {divisions.map((div) => (
               <option key={div.id} value={div.id}>
                 {div.name}
@@ -231,7 +232,7 @@ export function LearnerGroupCategoryEditorPage() {
           </select>
           {selectedParent && (
             <p className="text-xs text-amber-600 font-medium">
-              * ใช้แผนกตามหมวดหมู่หลัก (Inherited from parent category)
+              * {t(ADMIN_LABELS.inheritedFromParent)}
             </p>
           )}
         </div>
@@ -239,31 +240,31 @@ export function LearnerGroupCategoryEditorPage() {
 
       <div className="space-y-1.5">
         <label className="wiz-label">
-          Name <span className="text-red-500">*</span>
+          {t(ADMIN_LABELS.name)} <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
           value={form.name}
           onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
           className="wiz-input"
-          placeholder="e.g. HR & Administration"
+          placeholder={t(ADMIN_LABELS.categoryNameExample)}
           autoFocus
         />
       </div>
 
       <div className="space-y-1.5">
-        <label className="wiz-label">Description</label>
+        <label className="wiz-label">{t(ADMIN_LABELS.description)}</label>
         <input
           type="text"
           value={form.description}
           onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
           className="wiz-input"
-          placeholder="Optional description"
+          placeholder={t(ADMIN_LABELS.optionalDescription)}
         />
       </div>
 
       <div className="space-y-1.5">
-        <label className="wiz-label">Parent Category</label>
+        <label className="wiz-label">{t(ADMIN_LABELS.parentCategory)}</label>
         <select
           value={form.parentId}
           onChange={(event) =>
@@ -274,7 +275,7 @@ export function LearnerGroupCategoryEditorPage() {
           }
           className="wiz-input"
         >
-          <option value="">— Root (no parent) —</option>
+          <option value="">— {t(ADMIN_LABELS.rootNoParent)} —</option>
           {parentOptions.map((item) => (
             <option key={item.id} value={item.id}>
               {'  '.repeat(item.depth)}
@@ -291,20 +292,20 @@ export function LearnerGroupCategoryEditorPage() {
       <dl className="divide-y divide-slate-100 text-sm">
         {isSuperAdmin && (
           <div className="grid grid-cols-3 py-2.5">
-            <dt className="wiz-label">Division</dt>
+            <dt className="wiz-label">{t(ADMIN_LABELS.division)}</dt>
             <dd className="col-span-2 text-slate-700 font-medium">{divisionText}</dd>
           </div>
         )}
         <div className="grid grid-cols-3 py-2.5">
-          <dt className="wiz-label">Name</dt>
+          <dt className="wiz-label">{t(ADMIN_LABELS.name)}</dt>
           <dd className="col-span-2 text-slate-700 font-bold">{form.name.trim() || '-'}</dd>
         </div>
         <div className="grid grid-cols-3 py-2.5">
-          <dt className="wiz-label">Description</dt>
+          <dt className="wiz-label">{t(ADMIN_LABELS.description)}</dt>
           <dd className="col-span-2 text-slate-700">{form.description.trim() || '-'}</dd>
         </div>
         <div className="grid grid-cols-3 py-2.5">
-          <dt className="wiz-label">Parent Category</dt>
+          <dt className="wiz-label">{t(ADMIN_LABELS.parentCategory)}</dt>
           <dd className="col-span-2 text-slate-700">{parentText}</dd>
         </div>
       </dl>
@@ -313,36 +314,32 @@ export function LearnerGroupCategoryEditorPage() {
 
 
   const steps: WizardStep[] = [
-    { label: 'Details', validate: validateDetails, render: renderDetailsStep },
-    { label: 'Review', render: renderReviewStep },
+    { label: t(ADMIN_LABELS.details), validate: validateDetails, render: renderDetailsStep }, { label: t(ADMIN_LABELS.review), render: renderReviewStep },
   ]
 
   if (loading) {
-    return <LoadingState label="Loading category..." />
+    return <LoadingState label={t(ADMIN_LABELS.loadingCategory)} />
   }
 
   if (notFound) {
     return (
       <NotFoundState
-        title="Category Not Found"
-        message="The category you are trying to edit does not exist or has been deleted."
+        title={t(ADMIN_LABELS.categoryNotFound)} message={t(ADMIN_LABELS.categoryNotFoundMessage)}
         backTo="/master-data/learner-group-categories"
-        backLabel="Back to Categories"
+        backLabel={t(ADMIN_LABELS.backToCategories)}
       />
     )
   }
 
   return (
     <AppWizard
-      title={isEditMode ? 'Edit Category' : 'New Category'}
-      description={isEditMode ? 'Update learner group category details.' : 'Create a new category for organizing learner groups.'}
-      eyebrow="Master Data"
+      title={t(isEditMode ? ADMIN_LABELS.editCategory : ADMIN_LABELS.newCategory)} description={t(isEditMode ? ADMIN_LABELS.updateCategoryDescription : ADMIN_LABELS.createCategoryDescription)} eyebrow={t(ADMIN_LABELS.masterData)}
       steps={steps}
       currentStep={currentStep}
       onStepChange={setCurrentStep}
       onCancel={() => navigate('/master-data/learner-group-categories')}
       onSubmit={handleSubmit}
-      submitLabel={isEditMode ? 'Save Changes' : 'Create Category'}
+      submitLabel={t(isEditMode ? ADMIN_LABELS.saveChanges : ADMIN_LABELS.createCategory)}
       isSubmitting={submitting}
       submitIcon={<Check className="h-3.5 w-3.5" />}
     />

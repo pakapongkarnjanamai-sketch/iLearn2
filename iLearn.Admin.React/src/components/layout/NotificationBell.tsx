@@ -8,6 +8,7 @@ import { Badge } from '../ui/Badge'
 import { formatNumber } from '../../lib/format'
 import { NotificationRow } from '../shared/NotificationRow'
 import type { NotificationDto } from '../../lib/notificationTypes'
+import { ADMIN_LABELS, t } from '../../lib/labels'
 
 export function NotificationBell() {
   const { items, unreadCount, loading, loadList, markRead, markAllRead } = useNotifications()
@@ -82,7 +83,7 @@ export function NotificationBell() {
       <div className="relative">
         <IconButton
           icon={Bell}
-          title="Notifications"
+          title={t(ADMIN_LABELS.notifications)}
           onClick={handleToggle}
           className="border border-slate-200 bg-white"
         />
@@ -104,7 +105,7 @@ export function NotificationBell() {
           className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl border border-slate-200 bg-white/95 backdrop-blur-md shadow-xl z-50 overflow-hidden flex flex-col"
         >
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 bg-slate-50/50">
-            <span className="font-bold text-slate-800 text-sm">Notifications</span>
+            <span className="font-bold text-slate-800 text-sm">{t(ADMIN_LABELS.notifications)}</span>
             <AppButton
               variant="ghost"
               size="sm"
@@ -112,18 +113,18 @@ export function NotificationBell() {
               disabled={unreadCount === 0}
               className="text-xs px-2 py-1 min-h-0 animate-none"
             >
-              Mark all read
+              {t(ADMIN_LABELS.markAllRead)}
             </AppButton>
           </div>
 
           <div className="max-h-96 overflow-y-auto custom-scrollbar flex-1 divide-y divide-slate-100">
             {loading && items.length === 0 ? (
               <div className="py-8 text-center text-slate-400 text-xs">
-                Loading notifications...
+                {t(ADMIN_LABELS.loadingNotifications)}
               </div>
             ) : items.length === 0 ? (
               <div className="py-12 text-center text-slate-400 text-xs">
-                No notifications yet
+                {t(ADMIN_LABELS.noNotifications)}
               </div>
             ) : (
               items.map(item => (
@@ -145,7 +146,7 @@ export function NotificationBell() {
               onClick={handleViewAll}
               className="w-full text-xs py-2.5 min-h-0 rounded-none animate-none"
             >
-              View all notifications
+              {t(ADMIN_LABELS.viewAllNotifications)}
             </AppButton>
           </div>
         </div>
