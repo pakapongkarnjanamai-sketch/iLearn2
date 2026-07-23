@@ -4,10 +4,11 @@ import {
   ArrowUp, 
   ArrowDown,
   Info,
-  Loader2
+  Loader2,
 } from 'lucide-react'
 import { type AppClientStore } from '../../lib/createDataSource'
 import { formatDate } from '../../lib/format'
+import { Badge } from './Badge'
 import { AppTableSearch } from './table/AppTableSearch'
 import { AppTableFooter } from './table/AppTableFooter'
 
@@ -320,11 +321,9 @@ export function AppTable<T extends TableRecord>({
                             col.cellRender({ value: val, data: row, index })
                           ) : col.dataType === 'boolean' ? (
                             <div className="flex justify-center">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xxs font-bold ${
-                                val ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-800'
-                              }`}>
-                                {val ? 'Yes' : 'No'}
-                              </span>
+                              <Badge variant="soft" tone={val ? 'success' : 'neutral'} size="xxs">
+                                {val ? (col.dataField === 'canAssign' ? 'มอบหมายได้' : 'ใช้งานอยู่') : (col.dataField === 'canAssign' ? 'ไม่อนุญาต' : 'ปิดใช้งาน')}
+                              </Badge>
                             </div>
                           ) : col.dataType === 'datetime' || col.dataType === 'date' ? (
                             <span className="text-slate-400 font-medium text-xxs sm:text-[12px]">

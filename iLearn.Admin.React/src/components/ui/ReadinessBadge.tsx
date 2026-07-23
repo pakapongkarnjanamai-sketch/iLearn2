@@ -25,24 +25,24 @@ type ReadinessBadgeProps = {
 /** Maps content state to a consistent readiness label and badge tone. */
 export function getContentReadinessBadgeModel(item: ContentReadinessInput): ReadinessBadgeModel {
   if (item.source === 'upload') {
-    return { label: 'Queued Upload', tone: 'info', ready: false }
+    return { label: 'รออัปโหลด', tone: 'info', ready: false }
   }
 
   const isPublished = item.isPublished ?? item.isActive ?? false
   if (!isPublished) {
-    return { label: 'Not Ready', tone: 'danger', ready: false }
+    return { label: 'ยังไม่พร้อม', tone: 'danger', ready: false }
   }
 
   if (!item.url) {
-    return { label: 'Missing Launch', tone: 'warning', ready: false }
+    return { label: 'ไม่มีลิงก์เปิดเรียน', tone: 'warning', ready: false }
   }
 
-  return { label: 'Published', tone: 'success', ready: true }
+  return { label: 'พร้อมใช้งาน', tone: 'success', ready: true }
 }
 
 export function ReadinessBadge({ ready = false, label, tone, variant = 'soft', size = 'xs' }: ReadinessBadgeProps) {
   const resolvedTone = tone ?? (ready ? 'info' : 'neutral')
-  const resolvedLabel = label ?? (ready ? 'Ready' : 'Not Ready')
+  const resolvedLabel = label ?? (ready ? 'พร้อมใช้งาน' : 'ยังไม่พร้อม')
 
   return (
     <Badge variant={variant} tone={resolvedTone} size={size}>

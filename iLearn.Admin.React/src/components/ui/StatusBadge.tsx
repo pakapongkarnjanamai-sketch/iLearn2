@@ -7,17 +7,25 @@ type StatusTone = BadgeTone
 export function statusTone(status: string | null | undefined): StatusTone {
   switch (status) {
     case 'Completed':
+    case 'เรียนจบแล้ว':
       return 'success'
     case 'In Progress':
     case 'InProgress':
+    case 'กำลังเรียน':
     case 'Active':
     case 'Enrolling':
       return 'info'
     case 'Overdue':
+    case 'เกินกำหนด':
     case 'Expired':
+    case 'หมดอายุ':
       return 'danger'
     case 'Upcoming':
+    case 'ใกล้กำหนด':
     case 'Due Soon':
+    case 'NotStarted':
+    case 'Not Started':
+    case 'ยังไม่เริ่ม':
       return 'warning'
     case 'Unassigned':
       return 'neutral'

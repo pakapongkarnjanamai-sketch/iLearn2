@@ -184,6 +184,64 @@ namespace iLearn.Tests
             Assert.Equal("EMP002", result.OverdueRows.Single().LearnerCode);
         }
 
+        [Fact]
+        public async Task Compliance_MixedDeletedAndActiveLinks_RemainsVisible_AndUsesActiveLinkDates()
+        {
+            var deletedAssignment = new Assignment { Id = 1, AssignmentNo = "ASG-DEL", IsDeleted = true };
+            var activeAssignment = new Assignment { Id = 2, AssignmentNo = "ASG-ACT", IsDeleted = false };
+
+            var enrollment = new Enrollment
+            {
+                Id = 1,
+                LearnerCode = "EMP001",
+                IsCompleted = false,
+                Progress = 35,
+                CourseId = 1,
+                StartDate = Now.AddDays(-20),
+                DueDate = Now.AddDays(-10),
+            };
+
+            var deletedLink = new EnrollmentAssignment
+            {
+                Id = 1,
+                EnrollmentId = 1,
+                Enrollment = enrollment,
+                AssignmentId = 1,
+                Assignment = deletedAssignment,
+                IsDeleted = true,
+                StartDate = Now.AddDays(-20),
+                DueDate = Now.AddDays(-10),
+            };
+
+            var activeLink = new EnrollmentAssignment
+            {
+                Id = 2,
+                EnrollmentId = 1,
+                Enrollment = enrollment,
+                AssignmentId = 2,
+                Assignment = activeAssignment,
+                IsDeleted = false,
+                StartDate = Now.AddDays(-5),
+                DueDate = Now.AddDays(7),
+            };
+
+            enrollment.AssignmentLinks.Add(deletedLink);
+            enrollment.AssignmentLinks.Add(activeLink);
+
+            var service = CreateService(
+                [enrollment],
+                [deletedLink, activeLink],
+                [deletedAssignment, activeAssignment],
+                [new Course { Id = 1, Code = "C01", Title = "Course 1", CategoryId = 1 }]);
+
+            var result = await service.GetComplianceReportAsync(null, Now);
+
+            Assert.Equal(1, result.TotalLearners);
+            Assert.Equal(1, result.OpenEnrollments);
+            Assert.Equal(0, result.OverdueEnrollments);
+            Assert.Empty(result.OverdueRows);
+        }
+
         #endregion
 
         #region Transcript Tests

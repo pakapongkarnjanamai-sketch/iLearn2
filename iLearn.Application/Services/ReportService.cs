@@ -326,8 +326,7 @@ namespace iLearn.Application.Services
 
             // Completions: enrollments with CompletedDate in range, scoped by division
             // (same visibility rule as other reports: skip enrollments whose only assignments are deleted)
-            var enrollmentQuery = BuildDivisionScopedEnrollmentQuery(divisionId)
-                .Where(VisibleEnrollmentPredicate);
+            var enrollmentQuery = ApplyVisibleEnrollmentFilter(BuildDivisionScopedEnrollmentQuery(divisionId));
 
             var completions = await enrollmentQuery
                 .Where(e => e.CompletedDate.HasValue && e.CompletedDate >= cutoff)
@@ -418,12 +417,32 @@ namespace iLearn.Application.Services
 
         /// <summary>
         /// Visibility rule shared with the learner side (EnrollmentsController.GetEffectiveSchedule):
-        /// an enrollment whose only assignment links point to soft-deleted assignments is hidden
-        /// from learners, so reports must not count it either.
+        /// include enrollments that have at least one active assignment link, or have never had links.
+        /// Exclude enrollments whose links existed but are now all soft-deleted/deleted assignments.
         /// </summary>
-        private static readonly System.Linq.Expressions.Expression<Func<Enrollment, bool>> VisibleEnrollmentPredicate =
-            e => !e.AssignmentLinks.Any()
-              || e.AssignmentLinks.Any(al => !al.IsDeleted && al.Assignment != null && !al.Assignment.IsDeleted);
+        private IQueryable<Enrollment> ApplyVisibleEnrollmentFilter(IQueryable<Enrollment> query)
+        {
+            var allLinks = _enrollmentAssignmentRepo.GetQuery()
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Select(ea => ea.EnrollmentId)
+                .Distinct();
+
+            var activeLinks = _enrollmentAssignmentRepo.GetQuery()
+                .AsNoTracking()
+                .Join(
+                    _assignmentRepo.GetQuery()
+                        .AsNoTracking()
+                        .Where(a => !a.IsDeleted),
+                    ea => ea.AssignmentId,
+                    a => a.Id,
+                    (ea, _) => ea.EnrollmentId)
+                .Distinct();
+
+            return query.Where(e =>
+                activeLinks.Contains(e.Id)
+                || !allLinks.Contains(e.Id));
+        }
 
         /// <summary>
         /// Projects division-scoped, learner-visible enrollments to report rows using the same
@@ -442,8 +461,7 @@ namespace iLearn.Application.Services
                 query = query.Where(e => e.LearnerCode == learnerCode);
             }
 
-            return query
-                .Where(VisibleEnrollmentPredicate)
+            return ApplyVisibleEnrollmentFilter(query)
                 .Select(e => new EnrollmentReportRow
                 {
                     Id = e.Id,

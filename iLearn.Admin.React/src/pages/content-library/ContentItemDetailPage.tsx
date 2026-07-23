@@ -244,9 +244,11 @@ export function ContentItemDetailPage() {
         <Card icon={Layers} title="Overview" bodyClassName="p-5 space-y-5">
           <FactGrid>
             <Fact label="Status">
-              <StatusText tone={item.isActive ? 'success' : 'neutral'}>
-                {item.isActive ? 'Published' : 'Draft'}
-              </StatusText>
+              <StatusText
+                active={item.isActive}
+                activeLabel="เผยแพร่แล้ว"
+                inactiveLabel="ฉบับร่าง"
+              />
             </Fact>
 
             <Fact label="Type" valueClassName="font-semibold">

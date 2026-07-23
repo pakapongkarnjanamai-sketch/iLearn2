@@ -194,7 +194,6 @@ export function CourseListPage() {
     setSearchTerm,
     navigateToPath,
     goBack,
-    filterBySearch,
   } = useExplorer<CourseExplorerPath>({
     rootPath: { divisionId: null, categoryId: null },
     parsePath: params => {
@@ -496,16 +495,12 @@ export function CourseListPage() {
 
   const handleOpenItem = useCallback((item: ExplorerItem) => {
     if (item.isFolder) {
-      if (currentDivisionId !== null) {
-        navigateToPath({ divisionId: currentDivisionId, categoryId: item.id })
-      } else if (singleDivision !== null) {
-        if (item.id === 0) {
-          navigateToPath({ divisionId: 0, categoryId: 0 })
-        } else {
-          navigateToPath({ divisionId: singleDivision.id, categoryId: item.id })
-        }
-      } else {
+      if (item.isDivision) {
         navigateToPath({ divisionId: item.id, categoryId: null })
+      } else {
+        const cat = item.original as CategoryLookup
+        const divId = cat?.divisionId ?? currentDivisionId ?? (singleDivision !== null ? singleDivision.id : null)
+        navigateToPath({ divisionId: divId, categoryId: item.id })
       }
       return
     }
@@ -643,16 +638,80 @@ export function CourseListPage() {
     return list
   }, [currentCategoryId, currentDivisionId, divisions, categoriesByDivision, coursesByCategory, uncategorizedCourses, selectedTypeKey, singleDivision])
 
+  const allExplorerItems = useMemo<ExplorerItem[]>(() => {
+    const list: ExplorerItem[] = []
+
+    // All Divisions
+    for (const div of divisions) {
+      const childCategories = categoriesByDivision.get(div.id) ?? []
+      list.push({
+        id: div.id,
+        name: div.name,
+        description: 'โฟลเดอร์สายงาน (Division)',
+        isFolder: true,
+        countText: `${childCategories.length} หมวดหมู่`,
+        original: div,
+        isDivision: true,
+      })
+    }
+
+    // All Categories
+    for (const cat of categories) {
+      const count = coursesByCategory.get(cat.id)?.length ?? 0
+      const div = divisionsById.get(cat.divisionId)
+      const divName = div ? div.name : 'ไม่ระบุสายงาน'
+      list.push({
+        id: cat.id,
+        name: cat.sortOrder > 0 ? `${cat.sortOrder}. ${cat.name}` : cat.name,
+        description: cat.description ? `[${divName}] ${cat.description}` : `หมวดหมู่ใน ${divName}`,
+        isFolder: true,
+        countText: `${count} คอร์ส`,
+        original: cat,
+      })
+    }
+
+    // All Courses
+    for (const course of courses) {
+      if (selectedTypeKey !== 'all') {
+        const typeId = Number(selectedTypeKey.replace('type-', ''))
+        if (course.courseTypeId !== typeId) continue
+      }
+
+      const cat = categoriesById.get(course.categoryId)
+      const catName = cat ? cat.name : (course.categoryName || 'ไม่ระบุหมวดหมู่')
+
+      list.push({
+        id: course.id,
+        name: course.title,
+        description: course.description ? `[${catName}] ${course.description}` : `หมวดหมู่: ${catName}`,
+        isFolder: false,
+        countText: course.typeName || 'General',
+        typeName: course.typeName,
+        statusName: course.statusName || (course.isActive ? 'Open' : 'Closed'),
+        code: course.code,
+        original: course,
+      })
+    }
+
+    return list
+  }, [divisions, categories, courses, categoriesByDivision, coursesByCategory, divisionsById, categoriesById, selectedTypeKey])
+
   const filteredItems = useMemo(() => {
-    return filterBySearch(currentItems, (item, normalizedTerm) => {
+    const normalizedTerm = searchTerm.trim().toLowerCase()
+    if (!normalizedTerm) {
+      return currentItems
+    }
+
+    return allExplorerItems.filter(item => {
       return (
         item.name.toLowerCase().includes(normalizedTerm) ||
         item.description.toLowerCase().includes(normalizedTerm) ||
         (item.code && item.code.toLowerCase().includes(normalizedTerm)) ||
-        false
+        (item.typeName && item.typeName.toLowerCase().includes(normalizedTerm)) ||
+        (item.statusName && item.statusName.toLowerCase().includes(normalizedTerm))
       )
     })
-  }, [currentItems, filterBySearch])
+  }, [searchTerm, currentItems, allExplorerItems])
 
   const tableColumns = useMemo<ExplorerColumn<ExplorerItem>[]>(() => [
     {
@@ -784,10 +843,10 @@ export function CourseListPage() {
         <div className="flex min-h-0 flex-1 flex-col">
           <ListToolbar
             count={filteredItems.length}
-            countUnit="items in this folder"
+            countUnit={searchTerm.trim() ? "items found" : "items in this folder"}
             searchValue={searchTerm}
             onSearchChange={setSearchTerm}
-            searchPlaceholder="Search folders or courses in this folder..."
+            searchPlaceholder="Search folders or courses across all directories..."
             toolbarContent={
               currentCategoryId !== null ? (
                 <SegmentedToggle

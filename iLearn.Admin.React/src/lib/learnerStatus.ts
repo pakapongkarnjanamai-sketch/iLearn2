@@ -11,12 +11,12 @@ export const LEARNER_STATUS_KEYS = [
 export type LearnerStatusKey = (typeof LEARNER_STATUS_KEYS)[number]
 
 const STATUS_LABELS: Record<string, string> = {
-  Completed: 'Completed',
-  InProgress: 'In Progress',
-  NotStarted: 'Not Started',
-  Overdue: 'Overdue',
-  Upcoming: 'Upcoming',
-  Expired: 'Expired',
+  Completed: 'เรียนจบแล้ว',
+  InProgress: 'กำลังเรียน',
+  NotStarted: 'ยังไม่เริ่ม',
+  Overdue: 'เกินกำหนด',
+  Upcoming: 'ใกล้กำหนด',
+  Expired: 'หมดอายุ',
 }
 
 /** Display label for a learner/batch status key coming from the API. */

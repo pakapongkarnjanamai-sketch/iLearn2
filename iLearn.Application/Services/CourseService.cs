@@ -565,13 +565,24 @@ namespace iLearn.Application.Services
         {
             var enrollments = await _enrollmentRepository.GetAsync(
                 e => e.CourseId == courseId,
-                includeProperties: "AssignmentLinks"
+                includeProperties: "AssignmentLinks.Assignment",
+                ignoreQueryFilters: true
             );
 
-            if (!enrollments.Any())
+            var visibleEnrollments = enrollments
+                .Where(e => !e.IsDeleted)
+                .Where(e =>
+                {
+                    var hasAnyLinks = e.AssignmentLinks.Any();
+                    var hasActiveLinks = e.AssignmentLinks.Any(link => !link.IsDeleted && link.Assignment != null && !link.Assignment.IsDeleted);
+                    return hasActiveLinks || !hasAnyLinks;
+                })
+                .ToList();
+
+            if (!visibleEnrollments.Any())
                 return [];
 
-            var codes = enrollments.Select(e => e.LearnerCode).Distinct().ToList();
+            var codes = visibleEnrollments.Select(e => e.LearnerCode).Distinct().ToList();
             Dictionary<string, ExternalLearnerDto> learnerMap;
             try
             {
@@ -584,11 +595,14 @@ namespace iLearn.Application.Services
 
             var now = _dateTime.Now;
 
-            return enrollments.Select(e =>
+            return visibleEnrollments.Select(e =>
             {
                 var learner = learnerMap.GetValueOrDefault(e.LearnerCode);
-                var effectiveStart = e.AssignmentLinks.Any() ? e.AssignmentLinks.Min(a => a.StartDate) : e.StartDate;
-                var effectiveDue   = e.AssignmentLinks.Any() ? e.AssignmentLinks.Max(a => a.DueDate)   : e.DueDate;
+                var activeLinks = e.AssignmentLinks
+                    .Where(link => !link.IsDeleted && link.Assignment != null && !link.Assignment.IsDeleted)
+                    .ToList();
+                var effectiveStart = activeLinks.Count > 0 ? activeLinks.Min(a => a.StartDate) : e.StartDate;
+                var effectiveDue = activeLinks.Count > 0 ? activeLinks.Max(a => a.DueDate) : e.DueDate;
 
                 var status = AssignmentStatusKeys.GetScheduledLearnerStatus(
                     e.IsCompleted,
@@ -685,12 +699,24 @@ namespace iLearn.Application.Services
 
             var versions = await _versionService.GetCourseVersionsAsync(courseId);
             var enrollments = await _enrollmentRepository.GetAsync(
-                e => e.CourseId == courseId
+                e => e.CourseId == courseId,
+                includeProperties: "AssignmentLinks.Assignment",
+                ignoreQueryFilters: true
             );
             var assignments = await _assignmentRepository.GetAsync(
                 r => r.CourseId == courseId
                   && (!_currentUser.DivisionId.HasValue || r.DivisionId == _currentUser.DivisionId.Value)
             );
+
+            var visibleEnrollments = enrollments
+                .Where(e => !e.IsDeleted)
+                .Where(e =>
+                {
+                    var hasAnyLinks = e.AssignmentLinks.Any();
+                    var hasActiveLinks = e.AssignmentLinks.Any(link => !link.IsDeleted && link.Assignment != null && !link.Assignment.IsDeleted);
+                    return hasActiveLinks || !hasAnyLinks;
+                })
+                .ToList();
 
             var assignmentGroups = assignments
                 .Where(r => !string.IsNullOrEmpty(r.AssignmentNo))
@@ -704,8 +730,8 @@ namespace iLearn.Application.Services
                 Kpi = new CourseDashboardKpiDto
                 {
                     VersionCount    = versions.Count(),
-                    LearnerCount    = enrollments.Count,
-                    CompletedCount  = enrollments.Count(e => e.IsCompleted),
+                    LearnerCount    = visibleEnrollments.Count,
+                    CompletedCount  = visibleEnrollments.Count(e => e.IsCompleted),
                     AssignmentCount = assignmentGroups
                 }
             };

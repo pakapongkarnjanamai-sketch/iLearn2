@@ -40,7 +40,7 @@ export const adminListConfigs = {
       { dataField: 'statusName', caption: 'Status', width: 120, alignment: 'center' },
       { dataField: 'courseTypeName', caption: 'Type', width: 140, alignment: 'center' },
       { dataField: 'categoryName', caption: 'Category', minWidth: 180 },
-      { dataField: 'canAssign', caption: 'Can Assign', dataType: 'boolean', width: 110, alignment: 'center' },
+      { dataField: 'canAssign', caption: 'สิทธิ์มอบหมาย', dataType: 'boolean', width: 110, alignment: 'center' },
     ],
   },
   contentLibrary: {
@@ -53,9 +53,9 @@ export const adminListConfigs = {
     gridNote: 'Uploaded interactive SCORM packages and launch parameters.',
     columns: [
       { dataField: 'name', caption: 'Content Name', minWidth: 260 },
-      { dataField: 'typeId', caption: 'Content Type', dataType: 'number', width: 130, alignment: 'center', cellRender: ({ value }: any) => value === 1 ? 'Learn' : value === 2 ? 'Exam' : '—' },
+      { dataField: 'typeId', caption: 'Content Type', dataType: 'number', width: 130, alignment: 'center', cellRender: ({ value }: any) => value === 1 ? 'บทเรียน' : value === 2 ? 'แบบทดสอบ' : '—' },
       { dataField: 'schemaVersion', caption: 'SCORM', width: 120, alignment: 'center' },
-      { dataField: 'isActive', caption: 'Published', dataType: 'boolean', width: 120, alignment: 'center' },
+      { dataField: 'isActive', caption: 'สถานะการเผยแพร่', dataType: 'boolean', width: 130, alignment: 'center' },
       { dataField: 'launchHref', caption: 'Launch Resource', minWidth: 220 },
       { dataField: 'updatedAt', caption: 'Updated', dataType: 'datetime', width: 170 },
     ],

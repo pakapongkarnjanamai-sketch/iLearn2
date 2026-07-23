@@ -25,9 +25,23 @@ export function getCourseStatusTone(status: string | null | undefined, statusCod
   return 'neutral'
 }
 
+export function courseStatusLabel(status: string | null | undefined, statusCode?: number | null): string {
+  if (typeof statusCode === 'number') {
+    if (statusCode === 1) return 'เปิดใช้งาน'
+    if (statusCode === 0) return 'ฉบับร่าง'
+    if (statusCode === 2) return 'ปิดใช้งาน'
+  }
+
+  const normalized = normalizeStatus(status)
+  if (normalized === 'open' || normalized === 'active') return 'เปิดใช้งาน'
+  if (normalized === 'draft') return 'ฉบับร่าง'
+  if (normalized === 'closed') return 'ปิดใช้งาน'
+  return status?.trim() || '—'
+}
+
 export function CourseStatusBadge({ status, statusCode }: CourseStatusBadgeProps) {
   const tone = getCourseStatusTone(status, statusCode)
-  const text = status?.trim() || '-'
+  const text = courseStatusLabel(status, statusCode)
 
   return (
     <Badge variant="soft" tone={tone} size="xxs">
@@ -43,10 +57,9 @@ type CourseStatusTextProps = {
 }
 
 export function CourseStatusText({ status, statusCode, variant = 'soft' }: CourseStatusTextProps) {
-  const text = status?.trim() || '-'
   return (
     <Badge variant={variant} tone={getCourseStatusTone(status, statusCode)}>
-      {text}
+      {courseStatusLabel(status, statusCode)}
     </Badge>
   )
 }
