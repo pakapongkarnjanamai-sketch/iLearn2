@@ -2,6 +2,12 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-23 —] GitHub Copilot — commit + deploy QA/PROD (PLAN-131 dashboard redesign + ReportService fix)
+- ทำอะไร: Verify + commit + deploy. **§0 Verify**: `npm run lint` ✓, `npm run build` ✓ (1.31s), `dotnet build` ✓, `dotnet test` 242/242 ✓. **§1 Commit**: `1d93b8b` "feat(dashboard): action-first redesign + Thai localization (PLAN-131); fix assignment count in course summary report" (5 files, 370 ins / 493 del). **§2 QA deploy**: API stamp `20260723084829` (full publish — backend changed) ✓; React robocopy ExitCode:3 ✓. **§3 PROD deploy**: API stamp `20260723084944` health check ✓; React robocopy ExitCode:3 ✓.
+- ไฟล์หลักที่แตะ: `DOC/AGENT_LOG.md`; server-side: QA + PROD API + admin-react deploy
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: lint/build/tests ผ่าน; QA+PROD health OK
+
 ## [2026-07-23 —] Antigravity — Dashboard Redesign: Action-first + Thai Localization + Shared UI Conventions (PLAN-131)
 - ทำอะไร: ดำเนินการ refactor หน้า Dashboard (`DashboardPage.tsx` + `DashboardCharts.tsx`) ตามแผน [PLAN-131](file:///c:/Users/n4734/source/repos/iLearn2/DOC/PLANS/PLAN-131-dashboard-action-first-redesign.md): (1) เปลี่ยนโครงสร้างเป็น **Action-first** เรียงลำดับตามความเร่งด่วน (งานเกินกำหนด → งานใกล้กำหนด → อัตราเรียนสำเร็จ → กิจกรรม 30 วัน) (2) ปรับหน้าตาราง "งานมอบหมายที่ต้องจัดการ" และ "คอร์สที่ต้องติดตาม" ขึ้นเป็นส่วนหลักแบบเต็มความกว้าง (3) แปลข้อความภาษาไทยทั้งหน้า (4) ตัดส่วนที่ไม่จำเป็นออก (Report Hub quick links, Category Mix chart, Task Status Pie) (5) เปลี่ยนใช้ Shared UI Components (`Card`, `ProgressBar`, `StatusBadge`, `AppButton`, `Badge`, `LoadingState`) และ `lib/format.ts` (`formatDate`, `formatRelativeTime`, `formatNumber`, `formatPercent`) (6) คง Type DTO ทุกตัวใน `dashboardApi.ts` และคง SignalR real-time feed เดิมไว้ครบถ้วน
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/DashboardPage.tsx`, `iLearn.Admin.React/src/pages/dashboard/DashboardCharts.tsx`, `DOC/PLANS/PLAN-131-dashboard-action-first-redesign.md`, `DOC/AGENT_LOG.md`
