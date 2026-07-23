@@ -27,7 +27,7 @@ import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 import { DetailTabs } from '../../components/ui/DetailTabs'
-import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
+import { DETAIL_TABLE_CHUNK_SIZE, shouldLoadMoreOnScroll } from '../../lib/tableStandards'
 import { LEARNER_LABELS, UI_LABELS, t, tf } from '../../lib/labels'
 
 type LearnerGroupMember = {
@@ -566,6 +566,12 @@ export function LearnerGroupDetailPage() {
 
   const visibleMembers = group.members.slice(0, visibleMemberRows)
 
+  const handleMembersScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (visibleMemberRows < group.members.length && shouldLoadMoreOnScroll(event.currentTarget)) {
+      setVisibleMemberRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)
+    }
+  }
+
   return (
     <>
       <DetailLayout
@@ -634,7 +640,7 @@ export function LearnerGroupDetailPage() {
               title={tf(LEARNER_LABELS.membersWithCount, group.members.length)}
               className="min-w-0"
             >
-              <div className="overflow-x-auto max-h-140 custom-scrollbar">
+              <div onScroll={handleMembersScroll} className="overflow-x-auto max-h-140 custom-scrollbar">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
@@ -693,13 +699,7 @@ export function LearnerGroupDetailPage() {
                     {tf(LEARNER_LABELS.showingOf, visibleMembers.length, group.members.length)}
                   </span>
                   {group.members.length > visibleMembers.length && (
-                    <AppButton
-                      variant="ghost"
-                      onClick={() => setVisibleMemberRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
-                      className="px-3 py-1 text-xxs font-bold"
-                    >
-                      {t(LEARNER_LABELS.loadMore)}
-                    </AppButton>
+                    <span className="text-xxs font-semibold text-indigo-600">{t(UI_LABELS.scrollToLoadMore)}</span>
                   )}
                 </div>
               )}

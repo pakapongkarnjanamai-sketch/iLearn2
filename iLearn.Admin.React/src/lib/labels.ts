@@ -366,6 +366,9 @@ export const REPORT_LABELS = {
   activityTitle: { th: 'รายงานสถิติและกิจกรรมการเรียนรู้', en: 'Training Activity Report' },
   activityTag: { th: 'แนวโน้มรายเดือน', en: 'Monthly trends' },
   activityDesc: { th: 'ติดตามแนวโน้มการเรียนจบรายเดือน ปริมาณผู้เรียนที่แอคทีฟ การลงทะเบียนคอร์สใหม่ และเวลาเรียนสะสมตามช่วงเวลาที่เลือก', en: 'Follow monthly completion trends, active learner volume, new enrollments, and accumulated learning hours over the selected period.' },
+  assignmentsTitle: { th: 'รายงานสรุปงานมอบหมาย', en: 'Assignment Summary Report' },
+  assignmentsTag: { th: 'ติดตามชุดงาน', en: 'Assignment tracking' },
+  assignmentsDesc: { th: 'ตรวจสอบสถานะชุดงานมอบหมาย จำนวนผู้เรียน คอร์ส ความสำเร็จ รายการเกินกำหนด และเปิดรายงานราย batch เพื่อตรวจรายละเอียดต่อได้', en: 'Review assignment batch status, learners, courses, completion, overdue items, and open each batch report for drill-down.' },
   // Compliance report
   compTotalLearners: { th: 'ผู้เรียนทั้งหมด', en: 'Total learners' },
   compTotalLearnersSub: { th: 'ผู้เรียนที่ลงทะเบียนในระบบ', en: 'learners enrolled in the system' },
@@ -444,6 +447,22 @@ export const REPORT_LABELS = {
   csColType: { th: 'ประเภท', en: 'Type' },
   csColAssignments: { th: 'ชุดงานมอบหมาย', en: 'Assignments' },
   csGeneralType: { th: 'ทั่วไป', en: 'General' },
+  // Assignment summary report
+  asgTitle: { th: 'สรุปงานมอบหมาย', en: 'Assignment Summary' },
+  asgSearchPlaceholder: { th: 'ค้นหาเลขงาน คำอธิบาย สายงาน หรือสถานะ...', en: 'Search assignment no, description, division, or status...' },
+  asgAllStatuses: { th: 'ทุกสถานะ', en: 'All statuses' },
+  asgActiveAssignments: { th: 'กำลังดำเนินการ', en: 'Active assignments' },
+  asgCompletedAssignments: { th: 'เสร็จสิ้น', en: 'Completed assignments' },
+  asgOverdueAssignments: { th: 'เกินกำหนด', en: 'Overdue assignments' },
+  asgTotalEnrollments: { th: 'รายการเรียน', en: 'Enrollments' },
+  asgOverallCompletion: { th: 'ความสำเร็จรวม', en: 'Overall completion' },
+  asgColAssignmentNo: { th: 'เลขที่งาน', en: 'Assignment No.' },
+  asgColDescription: { th: 'คำอธิบาย', en: 'Description' },
+  asgColCreated: { th: 'วันที่สร้าง', en: 'Created' },
+  asgColSchedule: { th: 'กำหนดการ', en: 'Schedule' },
+  asgColCourses: { th: 'คอร์ส', en: 'Courses' },
+  asgColEnrollments: { th: 'รายการเรียน', en: 'Enrollments' },
+  asgOpenBatchReport: { th: 'เปิดรายงาน batch', en: 'Open batch report' },
 } satisfies Record<string, LabelPair>
 
 // ═══ Zone D: Courses + Content Library ═════════════════════════════════════

@@ -93,6 +93,38 @@ namespace iLearn.Application.DTOs
         public double? AvgScore { get; set; }
     }
 
+    // ── GET api/Reports/assignments ──
+    public class AssignmentSummaryReportDto
+    {
+        public DateTime GeneratedAt { get; set; }
+        public int TotalAssignments { get; set; }
+        public int ActiveAssignments { get; set; }
+        public int CompletedAssignments { get; set; }
+        public int OverdueAssignments { get; set; }
+        public int TotalLearners { get; set; }
+        public int TotalEnrollments { get; set; }
+        public double CompletionRate { get; set; }
+        public List<AssignmentSummaryRow> Rows { get; set; } = new();
+    }
+
+    public class AssignmentSummaryRow
+    {
+        public int AssignmentId { get; set; }
+        public string AssignmentNo { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? DivisionName { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? DueDate { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public int CourseCount { get; set; }
+        public int LearnerCount { get; set; }
+        public int EnrollmentCount { get; set; }
+        public int CompletedCount { get; set; }
+        public int OverdueCount { get; set; }
+        public double CompletionRate { get; set; }
+        public string Status { get; set; } = string.Empty;
+    }
+
 
     // ── GET api/Reports/activity?months=12 ──
     public class ActivityReportDto

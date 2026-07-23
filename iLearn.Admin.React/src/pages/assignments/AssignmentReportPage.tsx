@@ -10,15 +10,14 @@ import { SectionHeader } from '../../components/ui/SectionHeader'
 import { Card } from '../../components/ui/Card'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { StatusBadge } from '../../components/ui/StatusBadge'
-import { AppButton } from '../../components/ui/AppButton'
 import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { exportRowsAsCsv } from '../../lib/csvExport'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { toast } from '../../lib/toast'
 import { formatDate, formatPercent } from '../../lib/format'
-import { ASSIGNMENT_LABELS, COMMON_LABELS, LEARNER_STATUS_KEYS, REPORT_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
-import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
+import { ASSIGNMENT_LABELS, COMMON_LABELS, LEARNER_STATUS_KEYS, REPORT_LABELS, UI_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
+import { DETAIL_TABLE_CHUNK_SIZE, shouldLoadMoreOnScroll } from '../../lib/tableStandards'
 import { StatusDonut, CourseCompletionBars, buildStatusData, buildCourseBarData } from './AssignmentReportCharts'
 
 // Mirrors LearnerProgressDto (iLearn.Application/DTOs/AssignmentDashboardDto.cs)
@@ -274,6 +273,11 @@ export function AssignmentReportPage() {
 
   const visible = filtered.slice(0, visibleRows)
   const isFiltered = statusFilter !== 'All' || courseFilter !== 'All' || groupFilter !== 'All' || search.trim() !== ''
+  const handleRowsScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (visibleRows < filtered.length && shouldLoadMoreOnScroll(event.currentTarget)) {
+      setVisibleRows((prev) => prev + DETAIL_TABLE_CHUNK_SIZE)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -467,7 +471,7 @@ export function AssignmentReportPage() {
               />
             </div>
 
-            <div className="overflow-x-auto custom-scrollbar">
+            <div onScroll={handleRowsScroll} className="overflow-x-auto max-h-140 custom-scrollbar">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
@@ -527,16 +531,10 @@ export function AssignmentReportPage() {
             {filtered.length > 0 && (
               <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2 print:hidden">
                 <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
-                  Showing {visible.length} of {filtered.length}
+                  {t(REPORT_LABELS.rowsShowing)} {visible.length} {t(REPORT_LABELS.rowsOf)} {filtered.length}
                 </span>
                 {filtered.length > visible.length && (
-                  <AppButton
-                    variant="ghost"
-                    onClick={() => setVisibleRows((prev) => prev + DETAIL_TABLE_CHUNK_SIZE)}
-                    className="px-3 py-1 text-xxs font-bold"
-                  >
-                    Load more
-                  </AppButton>
+                  <span className="text-xxs font-semibold text-indigo-600">{t(UI_LABELS.scrollToLoadMore)}</span>
                 )}
               </div>
             )}

@@ -316,6 +316,126 @@ namespace iLearn.Application.Services
             };
         }
 
+        public async Task<AssignmentSummaryReportDto> GetAssignmentSummaryReportAsync(
+            int? divisionId, DateTime currentDate, CancellationToken cancellationToken = default)
+        {
+            var assignmentRows = await _assignmentRepo.GetQuery()
+                .AsNoTracking()
+                .Where(a => !divisionId.HasValue || a.DivisionId == divisionId.Value)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.AssignmentNo,
+                    a.Description,
+                    a.StartDate,
+                    a.DueDate,
+                    a.CreatedAt,
+                    a.CourseId,
+                    DivisionName = a.DivisionNavigation != null ? a.DivisionNavigation.Name : a.Division,
+                })
+                .ToListAsync(cancellationToken);
+
+            if (assignmentRows.Count == 0)
+            {
+                return new AssignmentSummaryReportDto { GeneratedAt = currentDate };
+            }
+
+            var assignmentIds = assignmentRows.Select(row => row.Id).ToList();
+            var linkRows = await _enrollmentAssignmentRepo.GetQuery()
+                .AsNoTracking()
+                .Where(link => assignmentIds.Contains(link.AssignmentId) && link.Enrollment != null)
+                .Select(link => new
+                {
+                    link.AssignmentId,
+                    LearnerCode = link.Enrollment!.LearnerCode,
+                    IsCompleted = link.SnapshotCompleted || link.Enrollment.IsCompleted,
+                    DueDate = link.DueDate,
+                })
+                .ToListAsync(cancellationToken);
+
+            var linksByAssignmentId = linkRows.ToLookup(row => row.AssignmentId);
+
+            var rows = assignmentRows
+                .GroupBy(row => string.IsNullOrWhiteSpace(row.AssignmentNo) ? $"assignment:{row.Id}" : row.AssignmentNo!)
+                .Select(group =>
+                {
+                    var orderedAssignments = group.OrderBy(row => row.Id).ToList();
+                    var first = orderedAssignments[0];
+                    var links = orderedAssignments
+                        .SelectMany(row => linksByAssignmentId[row.Id])
+                        .ToList();
+                    var hasEnrollments = links.Count > 0;
+                    var completedCount = links.Count(link => link.IsCompleted);
+                    var overdueCount = links.Count(link => !link.IsCompleted && link.DueDate.HasValue && link.DueDate.Value < currentDate);
+                    var learnerCount = links
+                        .Select(link => link.LearnerCode)
+                        .Where(code => !string.IsNullOrWhiteSpace(code))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Count();
+                    var startDate = orderedAssignments
+                        .Where(row => row.StartDate.HasValue)
+                        .Select(row => row.StartDate)
+                        .DefaultIfEmpty(first.StartDate)
+                        .Min();
+                    var dueDate = orderedAssignments
+                        .Where(row => row.DueDate.HasValue)
+                        .Select(row => row.DueDate)
+                        .DefaultIfEmpty(first.DueDate)
+                        .Max();
+
+                    return new AssignmentSummaryRow
+                    {
+                        AssignmentId = first.Id,
+                        AssignmentNo = string.IsNullOrWhiteSpace(first.AssignmentNo) ? $"Assignment {first.Id}" : first.AssignmentNo!,
+                        Description = first.Description,
+                        DivisionName = first.DivisionName,
+                        StartDate = startDate,
+                        DueDate = dueDate,
+                        CreatedAt = orderedAssignments.Min(row => row.CreatedAt),
+                        CourseCount = orderedAssignments
+                            .Where(row => row.CourseId.HasValue)
+                            .Select(row => row.CourseId!.Value)
+                            .Distinct()
+                            .Count(),
+                        LearnerCount = learnerCount,
+                        EnrollmentCount = links.Count,
+                        CompletedCount = completedCount,
+                        OverdueCount = overdueCount,
+                        CompletionRate = links.Count == 0 ? 0 : (double)completedCount / links.Count * 100,
+                        Status = AssignmentStatusKeys.GetBatchStatus(
+                            hasEnrollments,
+                            hasEnrollments && completedCount == links.Count,
+                            startDate,
+                            dueDate,
+                            currentDate),
+                    };
+                })
+                .OrderByDescending(row => row.CreatedAt)
+                .ThenBy(row => row.AssignmentNo)
+                .ToList();
+
+            var totalEnrollments = rows.Sum(row => row.EnrollmentCount);
+            var totalCompleted = rows.Sum(row => row.CompletedCount);
+            var totalLearners = linkRows
+                .Select(row => row.LearnerCode)
+                .Where(code => !string.IsNullOrWhiteSpace(code))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count();
+
+            return new AssignmentSummaryReportDto
+            {
+                GeneratedAt = currentDate,
+                TotalAssignments = rows.Count,
+                ActiveAssignments = rows.Count(row => row.Status == AssignmentStatusKeys.Batch.InProgress),
+                CompletedAssignments = rows.Count(row => row.Status == AssignmentStatusKeys.Batch.Completed),
+                OverdueAssignments = rows.Count(row => row.Status == AssignmentStatusKeys.Batch.Expired),
+                TotalLearners = totalLearners,
+                TotalEnrollments = totalEnrollments,
+                CompletionRate = totalEnrollments == 0 ? 0 : (double)totalCompleted / totalEnrollments * 100,
+                Rows = rows,
+            };
+        }
+
 
         public async Task<ActivityReportDto> GetActivityReportAsync(
             int months, int? divisionId, CancellationToken cancellationToken = default)

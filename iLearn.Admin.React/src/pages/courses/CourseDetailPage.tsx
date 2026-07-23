@@ -37,9 +37,9 @@ import { Card } from '../../components/ui/Card'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { formatDate } from '../../lib/format'
-import { COMMON_LABELS, COURSE_LABELS, REPORT_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
+import { COMMON_LABELS, COURSE_LABELS, REPORT_LABELS, UI_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
 import { DetailTabs } from '../../components/ui/DetailTabs'
-import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
+import { DETAIL_TABLE_CHUNK_SIZE, shouldLoadMoreOnScroll } from '../../lib/tableStandards'
 
 type LookupResult<T> = T[] | { data?: T[] }
 
@@ -517,6 +517,21 @@ export function CourseDetailPage() {
   const visibleVersions = versions.slice(0, visibleVersionRows)
   const visibleLearners = learners.slice(0, visibleLearnerRows)
   const visibleAssignments = assignments.slice(0, visibleAssignmentRows)
+  const handleVersionsScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (visibleVersionRows < versions.length && shouldLoadMoreOnScroll(event.currentTarget)) {
+      setVisibleVersionRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)
+    }
+  }
+  const handleLearnersScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (visibleLearnerRows < learners.length && shouldLoadMoreOnScroll(event.currentTarget)) {
+      setVisibleLearnerRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)
+    }
+  }
+  const handleAssignmentsScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (visibleAssignmentRows < assignments.length && shouldLoadMoreOnScroll(event.currentTarget)) {
+      setVisibleAssignmentRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)
+    }
+  }
 
   return (
     <>
@@ -584,7 +599,7 @@ export function CourseDetailPage() {
           {activeDetailTab === 'versions' && (
             <Card icon={FileText} title={t(COURSE_LABELS.versions)}>
 
-              <div className="overflow-x-auto">
+              <div onScroll={handleVersionsScroll} className="overflow-x-auto max-h-105 custom-scrollbar">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
@@ -665,13 +680,7 @@ export function CourseDetailPage() {
                     {tf(COURSE_LABELS.showingOf, visibleVersions.length, versions.length)}
                   </span>
                   {versions.length > visibleVersions.length && (
-                    <AppButton
-                      variant="ghost"
-                      onClick={() => setVisibleVersionRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
-                      className="px-3 py-1 text-xxs font-bold"
-                    >
-                      {t(COURSE_LABELS.loadMore)}
-                    </AppButton>
+                    <span className="text-xxs font-semibold text-indigo-600">{t(UI_LABELS.scrollToLoadMore)}</span>
                   )}
                 </div>
               )}
@@ -685,7 +694,7 @@ export function CourseDetailPage() {
                 <LoadingState size="section" />
               ) : (
                 <>
-                  <div className="overflow-x-auto">
+                  <div onScroll={handleLearnersScroll} className="overflow-x-auto max-h-105 custom-scrollbar">
                     <table className="w-full text-left text-sm border-collapse">
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
@@ -738,13 +747,7 @@ export function CourseDetailPage() {
                         Showing {visibleLearners.length} of {learners.length}
                       </span>
                       {learners.length > visibleLearners.length && (
-                        <AppButton
-                          variant="ghost"
-                          onClick={() => setVisibleLearnerRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
-                          className="px-3 py-1 text-xxs font-bold"
-                        >
-                          Load more
-                        </AppButton>
+                        <span className="text-xxs font-semibold text-indigo-600">{t(UI_LABELS.scrollToLoadMore)}</span>
                       )}
                     </div>
                   )}
@@ -760,7 +763,7 @@ export function CourseDetailPage() {
                 <LoadingState size="section" />
               ) : (
                 <>
-                  <div className="overflow-x-auto">
+                  <div onScroll={handleAssignmentsScroll} className="overflow-x-auto max-h-105 custom-scrollbar">
                     <table className="w-full text-left text-sm border-collapse">
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 font-bold uppercase">
@@ -812,13 +815,7 @@ export function CourseDetailPage() {
                         Showing {visibleAssignments.length} of {assignments.length}
                       </span>
                       {assignments.length > visibleAssignments.length && (
-                        <AppButton
-                          variant="ghost"
-                          onClick={() => setVisibleAssignmentRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
-                          className="px-3 py-1 text-xxs font-bold"
-                        >
-                          Load more
-                        </AppButton>
+                        <span className="text-xxs font-semibold text-indigo-600">{t(UI_LABELS.scrollToLoadMore)}</span>
                       )}
                     </div>
                   )}

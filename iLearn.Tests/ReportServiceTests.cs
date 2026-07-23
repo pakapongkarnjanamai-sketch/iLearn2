@@ -436,6 +436,60 @@ namespace iLearn.Tests
 
         #endregion
 
+        #region Assignment Summary Tests
+
+        [Fact]
+        public async Task AssignmentSummary_GroupsBatches_And_UsesSnapshotCompletion()
+        {
+            var assignments = new List<Assignment>
+            {
+                new() { Id = 1, AssignmentNo = "ASG-001", Description = "Batch 1", CourseId = 1, StartDate = Now.AddDays(-10), DueDate = Now.AddDays(5), CreatedAt = Now.AddDays(-10) },
+                new() { Id = 2, AssignmentNo = "ASG-001", Description = "Batch 1", CourseId = 2, StartDate = Now.AddDays(-10), DueDate = Now.AddDays(5), CreatedAt = Now.AddDays(-10) },
+                new() { Id = 3, AssignmentNo = "ASG-002", Description = "Batch 2", CourseId = 1, StartDate = Now.AddDays(-20), DueDate = Now.AddDays(-1), CreatedAt = Now.AddDays(-20) },
+            };
+            var enrollments = new List<Enrollment>
+            {
+                new() { Id = 1, LearnerCode = "EMP001", IsCompleted = false, Progress = 20, CourseId = 1 },
+                new() { Id = 2, LearnerCode = "EMP001", IsCompleted = false, Progress = 0, CourseId = 2 },
+                new() { Id = 3, LearnerCode = "EMP002", IsCompleted = false, Progress = 0, CourseId = 1 },
+            };
+            var links = new List<EnrollmentAssignment>
+            {
+                new() { Id = 1, AssignmentId = 1, EnrollmentId = 1, Enrollment = enrollments[0], SnapshotCompleted = true, SnapshotProgress = 100, DueDate = Now.AddDays(5) },
+                new() { Id = 2, AssignmentId = 2, EnrollmentId = 2, Enrollment = enrollments[1], DueDate = Now.AddDays(5) },
+                new() { Id = 3, AssignmentId = 3, EnrollmentId = 3, Enrollment = enrollments[2], DueDate = Now.AddDays(-1) },
+            };
+
+            var service = CreateService(enrollments, links, assignments, [
+                new Course { Id = 1, Code = "C01", Title = "Course 1", CategoryId = 1 },
+                new Course { Id = 2, Code = "C02", Title = "Course 2", CategoryId = 1 }
+            ]);
+
+            var result = await service.GetAssignmentSummaryReportAsync(null, Now);
+
+            Assert.Equal(2, result.TotalAssignments);
+            Assert.Equal(1, result.ActiveAssignments);
+            Assert.Equal(1, result.OverdueAssignments);
+            Assert.Equal(2, result.TotalLearners);
+            Assert.Equal(3, result.TotalEnrollments);
+            Assert.Equal(100.0 / 3.0, result.CompletionRate, 2);
+
+            var firstBatch = result.Rows.Single(row => row.AssignmentNo == "ASG-001");
+            Assert.Equal(1, firstBatch.AssignmentId);
+            Assert.Equal(2, firstBatch.CourseCount);
+            Assert.Equal(1, firstBatch.LearnerCount);
+            Assert.Equal(2, firstBatch.EnrollmentCount);
+            Assert.Equal(1, firstBatch.CompletedCount);
+            Assert.Equal(0, firstBatch.OverdueCount);
+            Assert.Equal(AssignmentStatusKeys.Batch.InProgress, firstBatch.Status);
+
+            var overdueBatch = result.Rows.Single(row => row.AssignmentNo == "ASG-002");
+            Assert.Equal(AssignmentStatusKeys.Batch.Expired, overdueBatch.Status);
+            Assert.Equal(1, overdueBatch.OverdueCount);
+        }
+
+        #endregion
+
         #region Test Infrastructure
 
         private ReportService CreateService(

@@ -18,7 +18,7 @@ import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
 import { Card } from '../../components/ui/Card'
 import { formatDate } from '../../lib/format'
 import { DetailTabs } from '../../components/ui/DetailTabs'
-import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
+import { DETAIL_TABLE_CHUNK_SIZE, shouldLoadMoreOnScroll } from '../../lib/tableStandards'
 
 type LookupResult<T> = T[] | { data?: T[] }
 
@@ -229,6 +229,12 @@ export function VersionDetailPage() {
   useEffect(() => {
     setVisibleContentRows(DETAIL_TABLE_CHUNK_SIZE)
   }, [courseId, versionId])
+
+  const handleContentScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (visibleContentRows < currentContentItems.length && shouldLoadMoreOnScroll(event.currentTarget)) {
+      setVisibleContentRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)
+    }
+  }
 
   useEffect(() => {
     if (data?.course?.courseCode && courseId) {
@@ -528,7 +534,7 @@ export function VersionDetailPage() {
             <Card icon={BookOpen} title={t(COURSE_LABELS.currentContent)} bodyClassName="p-5 space-y-4">
                 <p className="text-xs font-semibold text-slate-500">Attached content items in this version.</p>
 
-                <div className="overflow-auto border border-slate-200 rounded custom-scrollbar">
+                <div onScroll={handleContentScroll} className="overflow-auto max-h-105 border border-slate-200 rounded custom-scrollbar">
                   <table className="min-w-full divide-y divide-slate-200 text-sm">
                     <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 select-none">
                       <tr>
@@ -588,13 +594,7 @@ export function VersionDetailPage() {
                       {tf(COURSE_LABELS.showingOf, visibleCurrentContentItems.length, currentContentItems.length)}
                     </span>
                     {currentContentItems.length > visibleCurrentContentItems.length && (
-                      <AppButton
-                        variant="ghost"
-                        onClick={() => setVisibleContentRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
-                        className="px-3 py-1 text-xxs font-bold"
-                      >
-                        {t(COURSE_LABELS.loadMore)}
-                      </AppButton>
+                      <span className="text-xxs font-semibold text-indigo-600">{t(UI_LABELS.scrollToLoadMore)}</span>
                     )}
                   </div>
                 )}

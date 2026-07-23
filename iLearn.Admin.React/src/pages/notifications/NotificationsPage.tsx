@@ -10,7 +10,8 @@ import { useNotifications } from '../../lib/notificationContext'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { formatNumber } from '../../lib/format'
 import type { NotificationDto, NotificationListDto } from '../../lib/notificationTypes'
-import { ADMIN_LABELS, t, tf } from '../../lib/labels'
+import { ADMIN_LABELS, UI_LABELS, t, tf } from '../../lib/labels'
+import { shouldLoadMoreOnScroll } from '../../lib/tableStandards'
 
 type ApiResponse<T> = { success: boolean; data: T; message?: string }
 
@@ -98,10 +99,17 @@ export function NotificationsPage() {
     return unsubscribe
   }, [subscribeHubEvent])
 
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
+    if (loadingMore || items.length >= totalCount) return
     const nextSkip = skip + PAGE_SIZE
     setSkip(nextSkip)
     void fetchPage(nextSkip, filter === 'unread', true)
+  }, [fetchPage, filter, items.length, loadingMore, skip, totalCount])
+
+  const handleListScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (shouldLoadMoreOnScroll(event.currentTarget)) {
+      handleLoadMore()
+    }
   }
 
   const handleItemClick = async (item: NotificationDto) => {
@@ -163,7 +171,7 @@ export function NotificationsPage() {
           </div>
         ) : (
           <>
-            <div className="divide-y divide-slate-100">
+            <div onScroll={handleListScroll} className="max-h-[70vh] divide-y divide-slate-100 overflow-y-auto custom-scrollbar">
               {items.map(item => (
                 <NotificationRow
                   key={item.id}
@@ -173,20 +181,15 @@ export function NotificationsPage() {
               ))}
             </div>
 
-            {/* Showing X of Y + Load more */}
+            {/* Showing X of Y + scroll loading hint */}
             <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500">
               <span>
                 {tf(ADMIN_LABELS.showingOf, formatNumber(items.length), formatNumber(totalCount))}
               </span>
               {hasMore && (
-                <AppButton
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLoadMore}
-                  loading={loadingMore}
-                >
-                  {t(ADMIN_LABELS.loadMore)}
-                </AppButton>
+                <span className="text-xxs font-semibold text-indigo-600">
+                  {loadingMore ? t(ADMIN_LABELS.loadingNotifications) : t(UI_LABELS.scrollToLoadMore)}
+                </span>
               )}
             </div>
           </>

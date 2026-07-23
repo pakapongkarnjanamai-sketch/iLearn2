@@ -88,6 +88,37 @@ export interface CourseSummaryRow {
   avgScore?: number | null
 }
 
+// Mirrors AssignmentSummaryReportDto (iLearn.Application/DTOs/ReportDtos.cs)
+export interface AssignmentSummaryReportDto {
+  generatedAt: string
+  totalAssignments: number
+  activeAssignments: number
+  completedAssignments: number
+  overdueAssignments: number
+  totalLearners: number
+  totalEnrollments: number
+  completionRate: number
+  rows: AssignmentSummaryRow[]
+}
+
+// Mirrors AssignmentSummaryRow (iLearn.Application/DTOs/ReportDtos.cs)
+export interface AssignmentSummaryRow {
+  assignmentId: number
+  assignmentNo: string
+  description?: string | null
+  divisionName?: string | null
+  startDate?: string | null
+  dueDate?: string | null
+  createdAt: string
+  courseCount: number
+  learnerCount: number
+  enrollmentCount: number
+  completedCount: number
+  overdueCount: number
+  completionRate: number
+  status: string
+}
+
 
 // Mirrors ActivityReportDto (iLearn.Application/DTOs/ReportDtos.cs)
 export interface ActivityReportDto {

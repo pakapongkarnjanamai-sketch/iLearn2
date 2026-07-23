@@ -54,6 +54,14 @@ namespace iLearn.API.Controllers
             return Ok(new { success = true, data = result });
         }
 
+        [HttpGet("assignments")]
+        public async Task<IActionResult> GetAssignments(CancellationToken cancellationToken)
+        {
+            var result = await _reportService.GetAssignmentSummaryReportAsync(
+                _currentUser.DivisionId, _dateTime.Now, cancellationToken);
+            return Ok(new { success = true, data = result });
+        }
+
         [HttpGet("activity")]
         public async Task<IActionResult> GetActivity([FromQuery] int months = 12, CancellationToken cancellationToken = default)
         {

@@ -33,9 +33,9 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { formatDate } from '../../lib/format'
-import { ASSIGNMENT_LABELS, COMMON_LABELS, LEARNER_STATUS_KEYS, learnerStatusLabel, t, tf } from '../../lib/labels'
+import { ASSIGNMENT_LABELS, COMMON_LABELS, LEARNER_STATUS_KEYS, UI_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
 import { DetailTabs } from '../../components/ui/DetailTabs'
-import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
+import { DETAIL_TABLE_CHUNK_SIZE, shouldLoadMoreOnScroll } from '../../lib/tableStandards'
 
 // Mirrors AssignmentDashboardDto returned by GET Assignments/dashboard/{id}
 type AssignmentDetail = {
@@ -713,6 +713,16 @@ export function AssignmentDetailPage() {
   ]
   const visibleCourses = assignment.courses.slice(0, visibleCourseRows)
   const visibleGroupedLearners = filteredLearners.slice(0, visibleLearnerRows)
+  const handleCoursesScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (visibleCourseRows < assignment.courses.length && shouldLoadMoreOnScroll(event.currentTarget)) {
+      setVisibleCourseRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)
+    }
+  }
+  const handleLearnersScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (visibleLearnerRows < filteredLearners.length && shouldLoadMoreOnScroll(event.currentTarget)) {
+      setVisibleLearnerRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)
+    }
+  }
   const allFilteredSelected =
     filteredLearners.length > 0 && filteredLearners.every(l => selectedCodes.has(l.learnerCode))
 
@@ -796,7 +806,7 @@ export function AssignmentDetailPage() {
                   )}
                 </FactGrid>
               </div>
-              <div className="w-full lg:w-[280px] shrink-0 border-t lg:border-t-0 lg:border-l border-slate-100 pt-4 lg:pt-0 lg:pl-6">
+              <div className="w-full lg:w-70 shrink-0 border-t lg:border-t-0 lg:border-l border-slate-100 pt-4 lg:pt-0 lg:pl-6">
                 <StatusDonut
                   data={buildStatusData(assignment.learners)}
                   completionRate={assignment.completionRate}
@@ -815,31 +825,33 @@ export function AssignmentDetailPage() {
           {activeDetailTab === 'courses' && (
             <Card icon={BookOpen} title={t(ASSIGNMENT_LABELS.courses)}>
 
-              <ul className="divide-y divide-slate-100 px-4">
-                {visibleCourses.map((c) => (
-                  <li key={c.assignmentRuleId} className="py-2.5 flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className={`text-sm font-bold ${c.isCourseDeleted ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
-                        {c.courseTitle}
-                        {c.isCourseDeleted && <span className="ml-1.5 text-xxs font-semibold no-underline">({t(ASSIGNMENT_LABELS.deleted)})</span>}
-                      </span>
-                      <span className="text-xxs font-mono text-slate-400 mt-0.5">{c.courseCode}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xxs font-bold text-slate-500">
-                        {tf(ASSIGNMENT_LABELS.completedOf, c.completedLearners, c.totalLearners)}
-                      </span>
-                      <IconButton
-                        onClick={() => handleRemoveCourse(c.assignmentRuleId)}
-                        icon={Trash2}
-                        tone="danger"
-                        size="sm"
-                        title={t(ASSIGNMENT_LABELS.removeCourseFromAssignment)}
-                      />
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <div onScroll={handleCoursesScroll} className="max-h-105 overflow-y-auto custom-scrollbar">
+                <ul className="divide-y divide-slate-100 px-4">
+                  {visibleCourses.map((c) => (
+                    <li key={c.assignmentRuleId} className="py-2.5 flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className={`text-sm font-bold ${c.isCourseDeleted ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+                          {c.courseTitle}
+                          {c.isCourseDeleted && <span className="ml-1.5 text-xxs font-semibold no-underline">({t(ASSIGNMENT_LABELS.deleted)})</span>}
+                        </span>
+                        <span className="text-xxs font-mono text-slate-400 mt-0.5">{c.courseCode}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xxs font-bold text-slate-500">
+                          {tf(ASSIGNMENT_LABELS.completedOf, c.completedLearners, c.totalLearners)}
+                        </span>
+                        <IconButton
+                          onClick={() => handleRemoveCourse(c.assignmentRuleId)}
+                          icon={Trash2}
+                          tone="danger"
+                          size="sm"
+                          title={t(ASSIGNMENT_LABELS.removeCourseFromAssignment)}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
               {assignment.courses.length > 0 && (
                 <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
@@ -847,13 +859,7 @@ export function AssignmentDetailPage() {
                     {tf(ASSIGNMENT_LABELS.showingOf, visibleCourses.length, assignment.courses.length)}
                   </span>
                   {assignment.courses.length > visibleCourses.length && (
-                    <AppButton
-                      variant="ghost"
-                      onClick={() => setVisibleCourseRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
-                      className="px-3 py-1 text-xxs font-bold"
-                    >
-                      {t(ASSIGNMENT_LABELS.loadMore)}
-                    </AppButton>
+                    <span className="text-xxs font-semibold text-indigo-600">{t(UI_LABELS.scrollToLoadMore)}</span>
                   )}
                 </div>
               )}
@@ -920,7 +926,7 @@ export function AssignmentDetailPage() {
                 </div>
               )}
 
-              <div className="overflow-x-auto max-h-105 custom-scrollbar">
+              <div onScroll={handleLearnersScroll} className="overflow-x-auto max-h-105 custom-scrollbar">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs select-none">
@@ -1039,13 +1045,7 @@ export function AssignmentDetailPage() {
                     )}
                   </span>
                   {filteredLearners.length > visibleGroupedLearners.length && (
-                    <AppButton
-                      variant="ghost"
-                      onClick={() => setVisibleLearnerRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
-                      className="px-3 py-1 text-xxs font-bold"
-                    >
-                      {t(ASSIGNMENT_LABELS.loadMore)}
-                    </AppButton>
+                    <span className="text-xxs font-semibold text-indigo-600">{t(UI_LABELS.scrollToLoadMore)}</span>
                   )}
                 </div>
               )}

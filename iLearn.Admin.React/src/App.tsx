@@ -36,6 +36,7 @@ import { ComplianceReportPage } from './pages/reports/ComplianceReportPage'
 import { TranscriptReportPage } from './pages/reports/TranscriptReportPage'
 import { CourseSummaryReportPage } from './pages/reports/CourseSummaryReportPage'
 import { ActivityReportPage } from './pages/reports/ActivityReportPage'
+import { AssignmentSummaryReportPage } from './pages/reports/AssignmentSummaryReportPage'
 import { NotificationsPage } from './pages/notifications/NotificationsPage'
 
 function LegacyStudentGroupsRedirect() {
@@ -116,6 +117,7 @@ export function App() {
         <Route path="reports/compliance" element={<Remount><ComplianceReportPage /></Remount>} />
         <Route path="reports/transcript" element={<Remount><TranscriptReportPage /></Remount>} />
         <Route path="reports/courses" element={<Remount><CourseSummaryReportPage /></Remount>} />
+        <Route path="reports/assignments" element={<Remount><AssignmentSummaryReportPage /></Remount>} />
         <Route path="reports/activity" element={<Remount><ActivityReportPage /></Remount>} />
 
         {/* Operations */}
