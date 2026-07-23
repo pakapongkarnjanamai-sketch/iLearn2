@@ -28,6 +28,7 @@ import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { formatDate, formatPercent, formatNumber } from '../../lib/format'
+import { DASHBOARD_LABELS, REPORT_LABELS, UI_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
 import { exportRowsAsCsv } from '../../lib/csvExport'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 import { BRAND, tooltipStyle, axisStyle } from '../../lib/chartTheme'
@@ -51,7 +52,7 @@ export function ComplianceReportPage() {
           setData(resp.data)
         }
       })
-      .catch(() => toast.error('Failed to load compliance report'))
+      .catch(() => toast.error(t(REPORT_LABELS.loadReportFailed)))
       .finally(() => !cancelled && setLoading(false))
 
     return () => {
@@ -107,7 +108,7 @@ export function ComplianceReportPage() {
 
   const handleExportCsv = () => {
     if (!data || data.overdueRows.length === 0) {
-      toast.info('No overdue rows to export')
+      toast.info(t(REPORT_LABELS.noRowsToExport))
       return
     }
     const header = [
@@ -139,13 +140,13 @@ export function ComplianceReportPage() {
   }
 
   if (loading) {
-    return <LoadingState label="Loading compliance report..." />
+    return <LoadingState label={t(REPORT_LABELS.loadingReport)} />
   }
 
   if (!data) {
     return (
       <div className="py-12 text-center text-slate-500 font-semibold">
-        No report data available.
+        {t(REPORT_LABELS.noReportData)}
       </div>
     )
   }
@@ -157,46 +158,46 @@ export function ComplianceReportPage() {
         <Card bodyClassName="p-4 flex flex-col gap-1">
           <div className="flex items-center justify-between">
             <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-              ผู้เรียนทั้งหมด
+              {t(REPORT_LABELS.compTotalLearners)}
             </span>
             <Users className="h-4 w-4 text-slate-400" aria-hidden="true" />
           </div>
           <div className="text-2xl font-extrabold text-slate-800 tabular-nums leading-tight mt-1">
             {formatNumber(data.totalLearners)}
           </div>
-          <span className="text-xxs text-slate-400 font-medium">ผู้เรียนที่ลงทะเบียนในระบบ</span>
+          <span className="text-xxs text-slate-400 font-medium">{t(REPORT_LABELS.compTotalLearnersSub)}</span>
         </Card>
 
         <Card bodyClassName="p-4 flex flex-col gap-1">
           <div className="flex items-center justify-between">
             <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-              งานที่รอดำเนินการ
+              {t(REPORT_LABELS.compOpenTasks)}
             </span>
             <BookOpen className="h-4 w-4 text-blue-500" aria-hidden="true" />
           </div>
           <div className="text-2xl font-extrabold text-slate-800 tabular-nums leading-tight mt-1">
             {formatNumber(data.openEnrollments)}
           </div>
-          <span className="text-xxs text-slate-400 font-medium">จำนวนคอร์สที่มอบหมาย</span>
+          <span className="text-xxs text-slate-400 font-medium">{t(REPORT_LABELS.compOpenTasksSub)}</span>
         </Card>
 
         <Card bodyClassName="p-4 flex flex-col gap-1">
           <div className="flex items-center justify-between">
             <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-              เรียนสำเร็จแล้ว
+              {t(REPORT_LABELS.compCompleted)}
             </span>
             <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-hidden="true" />
           </div>
           <div className="text-2xl font-extrabold text-emerald-600 tabular-nums leading-tight mt-1">
             {formatNumber(data.completedEnrollments)}
           </div>
-          <span className="text-xxs text-emerald-600 font-medium">คอร์สที่เรียนจบแล้ว</span>
+          <span className="text-xxs text-emerald-600 font-medium">{t(REPORT_LABELS.compCompletedSub)}</span>
         </Card>
 
         <Card bodyClassName="p-4 flex flex-col gap-1">
           <div className="flex items-center justify-between">
             <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-              เกินกำหนดส่ง
+              {t(REPORT_LABELS.compOverdueTitle)}
             </span>
             <AlertTriangle
               className={`h-4 w-4 ${data.overdueEnrollments > 0 ? 'text-rose-500' : 'text-slate-400'}`}
@@ -211,32 +212,32 @@ export function ComplianceReportPage() {
             {formatNumber(data.overdueEnrollments)}
           </div>
           <span className="text-xxs text-rose-600 font-semibold">
-            {data.overdueLearners > 0 ? `ผู้เรียนเกินกำหนด ${formatNumber(data.overdueLearners)} คน` : 'ไม่มีงานเกินกำหนด'}
+            {data.overdueLearners > 0 ? tf(REPORT_LABELS.compOverdueLearners, formatNumber(data.overdueLearners)) : t(REPORT_LABELS.compNoOverdue)}
           </span>
         </Card>
 
         <Card bodyClassName="p-4 flex flex-col gap-1">
           <div className="flex items-center justify-between">
             <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-              อัตราเรียนสำเร็จ
+              {t(DASHBOARD_LABELS.completionRate)}
             </span>
             <Percent className="h-4 w-4 text-indigo-500" aria-hidden="true" />
           </div>
           <div className="text-2xl font-extrabold text-indigo-600 tabular-nums leading-tight mt-1">
             {formatPercent(data.complianceRate)}
           </div>
-          <span className="text-xxs text-indigo-600 font-medium">สัดส่วนตามเป้าหมาย</span>
+          <span className="text-xxs text-indigo-600 font-medium">{t(REPORT_LABELS.compRateSub)}</span>
         </Card>
       </section>
 
       {/* Charts & Group breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start shrink-0">
         {/* Division Completion Rate Chart */}
-        <Card title="Compliance by Division / อัตราการเรียนจบแยกตามสายงาน" icon={TrendingUp}>
+        <Card title={t(REPORT_LABELS.compChartTitle)} icon={TrendingUp}>
           <div className="p-4">
             {chartData.length === 0 ? (
               <div className="text-center py-8 text-slate-400 text-xs font-medium">
-                ไม่มีข้อมูลสายงาน
+                {t(REPORT_LABELS.compNoDivisionData)}
               </div>
             ) : (
               <>
@@ -282,11 +283,11 @@ export function ComplianceReportPage() {
         <Card
           title={
             <div className="flex items-center gap-3">
-              <span>Overview Rates / สถิติตามสังกัด</span>
+              <span>{t(REPORT_LABELS.compOverviewRates)}</span>
               <SegmentedToggle
                 options={[
-                  { value: 'division', label: 'แยกตามสายงาน (Division)' },
-                  { value: 'department', label: 'แยกตามฝ่าย (Department)' },
+                  { value: 'division', label: t(REPORT_LABELS.byDivision) },
+                  { value: 'department', label: t(REPORT_LABELS.byDepartment) },
                 ]}
                 value={activeTab}
                 onChange={setActiveTab}
@@ -299,12 +300,12 @@ export function ComplianceReportPage() {
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs sticky top-0 z-10 shadow-3xs">
-                  <th className="p-3 pl-5">{activeTab === 'division' ? 'สายงาน (Division)' : 'ฝ่าย (Department)'}</th>
-                  <th className="p-3 text-center">ผู้เรียน</th>
-                  <th className="p-3 text-center">มอบหมาย</th>
-                  <th className="p-3 text-center">สำเร็จ</th>
-                  <th className="p-3 text-center">เกินกำหนด</th>
-                  <th className="p-3 pr-5">สัดส่วนเรียนสำเร็จ</th>
+                  <th className="p-3 pl-5">{t(activeTab === 'division' ? REPORT_LABELS.colDivision : REPORT_LABELS.colDepartment)}</th>
+                  <th className="p-3 text-center">{t(REPORT_LABELS.colLearner)}</th>
+                  <th className="p-3 text-center">{t(REPORT_LABELS.colAssigned)}</th>
+                  <th className="p-3 text-center">{t(REPORT_LABELS.colCompleted)}</th>
+                  <th className="p-3 text-center">{learnerStatusLabel('Overdue')}</th>
+                  <th className="p-3 pr-5">{t(REPORT_LABELS.colCompletionShare)}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -337,7 +338,7 @@ export function ComplianceReportPage() {
                 {groupRows.length === 0 && (
                   <tr>
                     <td colSpan={6} className="p-6 text-center text-slate-400 text-xs font-medium">
-                      ไม่พบข้อมูล
+                      {t(REPORT_LABELS.notFound)}
                     </td>
                   </tr>
                 )}
@@ -349,7 +350,7 @@ export function ComplianceReportPage() {
 
       {/* Overdue Enrollments Detailed Table */}
       <Card
-        title="Compliance & Overdue Details / รายละเอียดรายการเกินกำหนด"
+        title={t(REPORT_LABELS.compDetailsTitle)}
         className="flex-1 flex flex-col min-h-64"
         bodyClassName="flex-1 flex flex-col min-h-0"
         actions={
@@ -360,7 +361,7 @@ export function ComplianceReportPage() {
               variant="secondary"
               size="sm"
             >
-              Export CSV
+              {t(REPORT_LABELS.exportCsv)}
             </AppButton>
           )
         }
@@ -369,7 +370,7 @@ export function ComplianceReportPage() {
           <ListToolbar
             searchValue={search}
             onSearchChange={setSearch}
-            searchPlaceholder="ค้นหารายชื่อผู้เรียน, รหัส, สายงาน, ฝ่าย หรือคอร์สเรียน..."
+            searchPlaceholder={t(REPORT_LABELS.compSearchPlaceholder)}
           />
         </div>
 
@@ -380,11 +381,11 @@ export function ComplianceReportPage() {
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs sticky top-0 z-10 shadow-xs">
-                <th className="p-3 pl-5">ผู้เรียน (Learner)</th>
-                <th className="p-3">คอร์สเรียน (Course)</th>
-                <th className="p-3 text-center">เกินกำหนด (Days Overdue)</th>
-                <th className="p-3">ความก้าวหน้า (Progress)</th>
-                <th className="p-3 pr-5">กำหนดส่ง (Due Date)</th>
+                <th className="p-3 pl-5">{t(REPORT_LABELS.colLearner)}</th>
+                <th className="p-3">{t(DASHBOARD_LABELS.colCourse)}</th>
+                <th className="p-3 text-center">{t(REPORT_LABELS.colDaysOverdue)}</th>
+                <th className="p-3">{t(REPORT_LABELS.colProgress)}</th>
+                <th className="p-3 pr-5">{t(DASHBOARD_LABELS.colDueDate)}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -425,21 +426,21 @@ export function ComplianceReportPage() {
                   </td>
                   <td className="p-3 text-center">
                     <StatusBadge tone="danger" size="xxs">
-                      {row.daysOverdue} วัน
+                      {tf(REPORT_LABELS.daysCount, row.daysOverdue)}
                     </StatusBadge>
                   </td>
                   <td className="p-3">
                     <ProgressBar value={row.progress} completed={false} />
                   </td>
                   <td className="p-3 pr-5 text-slate-500 text-xxs font-semibold">
-                    {row.dueDate ? `กำหนดส่ง: ${formatDate(row.dueDate)}` : '—'}
+                    {row.dueDate ? tf(REPORT_LABELS.duePrefix, formatDate(row.dueDate)) : '—'}
                   </td>
                 </tr>
               ))}
               {filteredOverdueRows.length === 0 && (
                 <tr>
                   <td colSpan={5} className="p-6 text-center text-slate-400 text-xs font-medium">
-                    ไม่พบรายการผู้เรียนเกินกำหนด
+                    {t(REPORT_LABELS.compNoOverdueRows)}
                   </td>
                 </tr>
               )}
@@ -451,12 +452,12 @@ export function ComplianceReportPage() {
         {filteredOverdueRows.length > 0 && (
           <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-2.5 text-xs text-slate-500 font-medium flex items-center justify-between shrink-0">
             <span>
-              แสดงข้อมูล <strong className="text-slate-800 tabular-nums">{visibleOverdueRows.length}</strong> จาก{' '}
-              <strong className="text-slate-800 tabular-nums">{filteredOverdueRows.length}</strong> รายการ
+              {t(REPORT_LABELS.rowsShowing)} <strong className="text-slate-800 tabular-nums">{visibleOverdueRows.length}</strong> {t(REPORT_LABELS.rowsOf)}{' '}
+              <strong className="text-slate-800 tabular-nums">{filteredOverdueRows.length}</strong> {t(REPORT_LABELS.rowsUnit)}
             </span>
             {visibleOverdueRows.length < filteredOverdueRows.length && (
               <span className="text-xxs text-indigo-600 font-semibold flex items-center gap-1">
-                เลื่อนลงเพื่อดูรายการเพิ่มเติม (Scroll down to load more)
+                {t(UI_LABELS.scrollToLoadMore)}
               </span>
             )}
           </div>

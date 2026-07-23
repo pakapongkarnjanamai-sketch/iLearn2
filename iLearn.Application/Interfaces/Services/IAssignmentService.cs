@@ -50,6 +50,12 @@ namespace iLearn.Application.Interfaces.Services
             DateTime newDueDate,
             CancellationToken cancellationToken = default);
 
+        Task<AssignmentActionResponseDto> UpdateDescriptionAsync(
+            int assignmentId,
+            UpdateAssignmentDescriptionDto dto,
+            int? divisionId,
+            CancellationToken cancellationToken = default);
+
         Task<AssignmentMutationResponseDto> AddCoursesToAssignmentAsync(
             int assignmentId,
             ManageAssignmentCoursesDto dto,

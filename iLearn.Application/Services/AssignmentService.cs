@@ -363,6 +363,47 @@ namespace iLearn.Application.Services
             };
         }
 
+        public async Task<AssignmentActionResponseDto> UpdateDescriptionAsync(
+            int assignmentId,
+            UpdateAssignmentDescriptionDto dto,
+            int? divisionId,
+            CancellationToken cancellationToken = default)
+        {
+            var mainRule = await _assignmentRepo.GetByIdAsync(assignmentId)
+                ?? throw new KeyNotFoundException("Assignment not found");
+
+            if (divisionId.HasValue && mainRule.DivisionId != divisionId.Value)
+            {
+                throw new KeyNotFoundException("Assignment not found");
+            }
+
+            var allRules = await _assignmentBatchService.LoadBatchAsync(mainRule);
+            var normalizedDescription = dto.Description?.Trim() ?? string.Empty;
+
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                foreach (var rule in allRules)
+                {
+                    rule.Description = normalizedDescription;
+                }
+
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+
+            return new AssignmentActionResponseDto
+            {
+                Success = true,
+                Message = "Description updated successfully.",
+            };
+        }
+
         public async Task<AssignmentMutationResponseDto> AddCoursesToAssignmentAsync(
             int assignmentId,
             ManageAssignmentCoursesDto dto,

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Badge, type BadgeTone } from './Badge'
+import { Badge, type BadgeTone, type BadgeVariant } from './Badge'
 import { COMMON_LABELS, t } from '../../lib/labels'
 
 type StatusTextProps = {
@@ -8,6 +8,7 @@ type StatusTextProps = {
   tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'info'
   activeLabel?: string
   inactiveLabel?: string
+  variant?: BadgeVariant
 }
 
 export function StatusText({
@@ -16,6 +17,7 @@ export function StatusText({
   tone,
   activeLabel,
   inactiveLabel,
+  variant = 'soft',
 }: StatusTextProps) {
   let resolvedTone: BadgeTone = tone ?? 'neutral'
   let resolvedChildren: ReactNode = children
@@ -34,7 +36,7 @@ export function StatusText({
   }
 
   return (
-    <Badge variant="outline" tone={resolvedTone}>
+    <Badge variant={variant} tone={resolvedTone}>
       {resolvedChildren}
     </Badge>
   )

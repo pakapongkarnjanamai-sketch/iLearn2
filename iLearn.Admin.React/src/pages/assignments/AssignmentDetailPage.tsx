@@ -11,7 +11,8 @@ import {
   CalendarClock,
   Search,
   X,
-  Plus
+  Plus,
+  Edit3
 } from 'lucide-react'
 import { StatusDonut, buildStatusData } from './AssignmentReportCharts'
 import { LoadingState } from '../../components/ui/LoadingState'
@@ -133,6 +134,10 @@ export function AssignmentDetailPage() {
   const [extendingDate, setExtendingDate] = useState(false)
   const [newDueDateInput, setNewDueDateInput] = useState('')
   const [showDueDateModal, setShowDueDateModal] = useState(false)
+
+  const [savingDescription, setSavingDescription] = useState(false)
+  const [editDescriptionInput, setEditDescriptionInput] = useState('')
+  const [showEditDescriptionModal, setShowEditDescriptionModal] = useState(false)
 
   const [addingLearners, setAddingLearners] = useState(false)
   const [memberAddTab, setMemberAddTab] = useState<'picker' | 'bulk'>('picker')
@@ -300,6 +305,28 @@ export function AssignmentDetailPage() {
       toast.error(err.message || 'Failed to extend due date')
     } finally {
       setExtendingDate(false)
+    }
+  }
+
+  // Update description
+  const handleUpdateDescription = async () => {
+    setSavingDescription(true)
+    try {
+      const resp = await fetchWithAccessControl<{ success: boolean; message: string }>(`Assignments/${id}/description`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: editDescriptionInput })
+      })
+      if (resp.success) {
+        toast.success(resp.message)
+        setShowEditDescriptionModal(false)
+        loadAssignmentDetails()
+      }
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || 'Failed to update description')
+    } finally {
+      setSavingDescription(false)
     }
   }
 
@@ -707,6 +734,7 @@ export function AssignmentDetailPage() {
         sidebar={
           <ControlsSidebar>
             <ControlAction to={`/assignments/${id}/report`} icon={FileBarChart}>Open Report</ControlAction>
+            <ControlAction icon={Edit3} onClick={() => { setEditDescriptionInput(assignment.description || ''); setShowEditDescriptionModal(true) }}>Edit Description</ControlAction>
             <ControlAction icon={UserPlus} onClick={() => setAddingLearners(true)}>Add More Learners</ControlAction>
             <ControlAction icon={BookPlus} onClick={openAddCoursesModal}>Add Courses</ControlAction>
             <ControlAction icon={CalendarClock} onClick={() => setShowDueDateModal(true)}>Extend Due Date</ControlAction>
@@ -754,6 +782,23 @@ export function AssignmentDetailPage() {
                       {assignment.learnerGroupName}
                     </Fact>
                   )}
+                  <Fact label="Description" colSpan="full" valueClassName="font-semibold">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className={assignment.description ? 'text-slate-700 whitespace-pre-wrap' : 'text-slate-400 italic font-normal'}>
+                        {assignment.description || 'No description provided'}
+                      </span>
+                      <IconButton
+                        icon={Edit3}
+                        title="Edit Description"
+                        size="sm"
+                        tone="neutral"
+                        onClick={() => {
+                          setEditDescriptionInput(assignment.description || '')
+                          setShowEditDescriptionModal(true)
+                        }}
+                      />
+                    </div>
+                  </Fact>
                 </FactGrid>
               </div>
               <div className="w-full lg:w-[280px] shrink-0 border-t lg:border-t-0 lg:border-l border-slate-100 pt-4 lg:pt-0 lg:pl-6">
@@ -1067,6 +1112,57 @@ export function AssignmentDetailPage() {
                 }}
               >
                 Confirm
+              </AppButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Description Modal */}
+      {showEditDescriptionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in" onClick={() => setShowEditDescriptionModal(false)}>
+          <div className="bg-white border border-slate-200 rounded-xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden animate-scale-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none shrink-0">
+              <div className="flex items-center gap-2">
+                <Edit3 className="h-5 w-5 text-indigo-600" />
+                <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Edit Description</h3>
+              </div>
+              <IconButton
+                onClick={() => setShowEditDescriptionModal(false)}
+                icon={X}
+                title="Close"
+                tone="neutral"
+              />
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Assignment Description
+                </label>
+                <textarea
+                  rows={4}
+                  value={editDescriptionInput}
+                  onChange={(e) => setEditDescriptionInput(e.target.value)}
+                  placeholder="Enter assignment description..."
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition custom-scrollbar"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50 shrink-0">
+              <AppButton
+                variant="ghost"
+                onClick={() => setShowEditDescriptionModal(false)}
+              >
+                Cancel
+              </AppButton>
+              <AppButton
+                variant="primary"
+                loading={savingDescription}
+                onClick={handleUpdateDescription}
+              >
+                Save
               </AppButton>
             </div>
           </div>

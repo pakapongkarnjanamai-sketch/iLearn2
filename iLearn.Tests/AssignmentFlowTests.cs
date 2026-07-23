@@ -214,6 +214,51 @@ namespace iLearn.Tests
             Assert.Equal("assignment:11", service.GetBatchKey(assignment));
         }
 
+        [Fact]
+        public async Task AssignmentService_UpdateDescriptionAsync_UpdatesDescriptionAcrossAllBatchRules()
+        {
+            var rule1 = new Assignment
+            {
+                Id = 1,
+                AssignmentNo = "AS-20260723-001",
+                Description = "Old Description",
+                DivisionId = 5,
+            };
+            var rule2 = new Assignment
+            {
+                Id = 2,
+                AssignmentNo = "AS-20260723-001",
+                Description = "Old Description",
+                DivisionId = 5,
+            };
+
+            var assignmentRepo = new InMemoryGenericRepository<Assignment>([rule1, rule2], Now);
+            var batchService = new AssignmentBatchService(assignmentRepo, new FakeCurrentUserService { DivisionId = 5 });
+            var service = new AssignmentService(
+                assignmentRepo,
+                new InMemoryGenericRepository<EnrollmentAssignment>([], Now),
+                new InMemoryGenericRepository<Enrollment>([], Now),
+                new InMemoryGenericRepository<Course>([], Now),
+                null!,
+                batchService,
+                null!,
+                new InMemoryGenericRepository<LearnerGroupMember>([], Now),
+                null!,
+                new FakeDateTime(Now),
+                new FakeUnitOfWork()
+            );
+
+            var result = await service.UpdateDescriptionAsync(
+                1,
+                new UpdateAssignmentDescriptionDto { Description = "  New Updated Description  " },
+                divisionId: 5);
+
+            Assert.True(result.Success);
+            Assert.Equal("Description updated successfully.", result.Message);
+            Assert.Equal("New Updated Description", rule1.Description);
+            Assert.Equal("New Updated Description", rule2.Description);
+        }
+
         private static CourseAssignmentServiceHarness CreateCourseAssignmentService(
             IEnumerable<Course> courses,
             IEnumerable<Enrollment> enrollments,
@@ -323,7 +368,7 @@ namespace iLearn.Tests
             }
 
             public Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
-                => throw new NotSupportedException("Transactions are not exercised by these unit tests.");
+                => Task.FromResult<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction>(new FakeDbContextTransaction());
 
             public Task AddRangeAsync<T>(IEnumerable<T> entities, CancellationToken cancellationToken = default)
                 where T : iLearn.Domain.Common.BaseEntity
@@ -336,6 +381,17 @@ namespace iLearn.Tests
             public void Dispose()
             {
             }
+        }
+
+        private sealed class FakeDbContextTransaction : Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction
+        {
+            public Guid TransactionId => Guid.NewGuid();
+            public void Commit() { }
+            public Task CommitAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+            public void Rollback() { }
+            public Task RollbackAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+            public void Dispose() { }
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         }
 
         private sealed class InMemoryCourseRepository : InMemoryGenericRepository<Course>, ICourseRepository

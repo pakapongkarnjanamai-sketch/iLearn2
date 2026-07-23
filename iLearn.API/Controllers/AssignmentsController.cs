@@ -1,4 +1,4 @@
-﻿using DevExtreme.AspNet.Data;
+using DevExtreme.AspNet.Data;
 using DevExtreme.AspNet.Mvc;
 using iLearn.Application.Common;
 using iLearn.Application.DTOs;
@@ -142,6 +142,14 @@ namespace iLearn.API.Controllers
         public async Task<IActionResult> ExtendDueDate(int id, [FromBody] ExtendDueDateDto dto)
         {
             var response = await _assignmentService.ExtendDueDateAsync(id, dto.NewDueDate);
+            return Ok(response);
+        }
+
+        [Authorize(Policy = "AdminOnly")]
+        [HttpPatch("{id}/description")]
+        public async Task<IActionResult> UpdateDescription(int id, [FromBody] UpdateAssignmentDescriptionDto dto, CancellationToken cancellationToken)
+        {
+            var response = await _assignmentService.UpdateDescriptionAsync(id, dto, _currentUser.DivisionId, cancellationToken);
             return Ok(response);
         }
 

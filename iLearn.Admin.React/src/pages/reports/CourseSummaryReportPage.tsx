@@ -10,6 +10,7 @@ import { AppButton } from '../../components/ui/AppButton'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { formatNumber } from '../../lib/format'
+import { DASHBOARD_LABELS, REPORT_LABELS, UI_LABELS, learnerStatusLabel, t } from '../../lib/labels'
 import { exportRowsAsCsv } from '../../lib/csvExport'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 import { toast } from '../../lib/toast'
@@ -44,7 +45,7 @@ export function CourseSummaryReportPage() {
           setData(resp.data)
         }
       })
-      .catch(() => toast.error('Failed to load course summary report'))
+      .catch(() => toast.error(t(REPORT_LABELS.loadReportFailed)))
       .finally(() => !cancelled && setLoading(false))
 
     return () => {
@@ -115,7 +116,7 @@ export function CourseSummaryReportPage() {
 
   const handleExportCsv = () => {
     if (!data || data.rows.length === 0) {
-      toast.info('No course records to export')
+      toast.info(t(REPORT_LABELS.noRowsToExport))
       return
     }
     const header = [
@@ -147,13 +148,13 @@ export function CourseSummaryReportPage() {
   }
 
   if (loading) {
-    return <LoadingState label="Loading course summary report..." />
+    return <LoadingState label={t(REPORT_LABELS.loadingReport)} />
   }
 
   if (!data) {
     return (
       <div className="py-12 text-center text-slate-500 font-semibold">
-        No report data available.
+        {t(REPORT_LABELS.noReportData)}
       </div>
     )
   }
@@ -162,7 +163,7 @@ export function CourseSummaryReportPage() {
     <div className="h-full flex flex-col min-h-0">
       {/* Courses Performance List with Scroller Grid */}
       <Card
-        title="Course Completion Summary"
+        title={t(REPORT_LABELS.csTitle)}
         className="flex-1 flex flex-col min-h-0"
         bodyClassName="flex-1 flex flex-col min-h-0"
         actions={
@@ -173,7 +174,7 @@ export function CourseSummaryReportPage() {
               variant="secondary"
               size="sm"
             >
-              Export CSV
+              {t(REPORT_LABELS.exportCsv)}
             </AppButton>
           )
         }
@@ -182,7 +183,7 @@ export function CourseSummaryReportPage() {
           <ListToolbar
             searchValue={search}
             onSearchChange={setSearch}
-            searchPlaceholder="Search course code, title, division or category..."
+            searchPlaceholder={t(REPORT_LABELS.csSearchPlaceholder)}
           />
         </div>
 
@@ -199,55 +200,55 @@ export function CourseSummaryReportPage() {
                   className="p-3 cursor-pointer hover:bg-slate-100/70 transition duration-100"
                   onClick={() => handleSort('code')}
                 >
-                  Code{renderSortIndicator('code')}
+                  {t(REPORT_LABELS.csColCode)}{renderSortIndicator('code')}
                 </th>
                 <th
                   className="p-3 cursor-pointer hover:bg-slate-100/70 transition duration-100"
                   onClick={() => handleSort('title')}
                 >
-                  Title{renderSortIndicator('title')}
+                  {t(REPORT_LABELS.csColTitle)}{renderSortIndicator('title')}
                 </th>
                 <th
                   className="p-3 cursor-pointer hover:bg-slate-100/70 transition duration-100"
                   onClick={() => handleSort('categoryName')}
                 >
-                  Category{renderSortIndicator('categoryName')}
+                  {t(REPORT_LABELS.csColCategory)}{renderSortIndicator('categoryName')}
                 </th>
                 <th
                   className="p-3 cursor-pointer hover:bg-slate-100/70 transition duration-100"
                   onClick={() => handleSort('divisionName')}
                 >
-                  Division{renderSortIndicator('divisionName')}
+                  {t(REPORT_LABELS.colDivision)}{renderSortIndicator('divisionName')}
                 </th>
                 <th
                   className="p-3 text-center cursor-pointer hover:bg-slate-100/70 transition duration-100"
                   onClick={() => handleSort('courseTypeName')}
                 >
-                  Type{renderSortIndicator('courseTypeName')}
+                  {t(REPORT_LABELS.csColType)}{renderSortIndicator('courseTypeName')}
                 </th>
                 <th
                   className="p-3 text-center cursor-pointer hover:bg-slate-100/70 transition duration-100"
                   onClick={() => handleSort('assignmentCount')}
                 >
-                  Assignments{renderSortIndicator('assignmentCount')}
+                  {t(REPORT_LABELS.csColAssignments)}{renderSortIndicator('assignmentCount')}
                 </th>
                 <th
                   className="p-3 text-center cursor-pointer hover:bg-slate-100/70 transition duration-100"
                   onClick={() => handleSort('enrolledLearners')}
                 >
-                  Learners{renderSortIndicator('enrolledLearners')}
+                  {t(DASHBOARD_LABELS.colLearners)}{renderSortIndicator('enrolledLearners')}
                 </th>
                 <th
                   className="p-3 text-center cursor-pointer hover:bg-slate-100/70 transition duration-100"
                   onClick={() => handleSort('completedCount')}
                 >
-                  Completed{renderSortIndicator('completedCount')}
+                  {t(REPORT_LABELS.colCompleted)}{renderSortIndicator('completedCount')}
                 </th>
                 <th
                   className="p-3 text-center cursor-pointer hover:bg-slate-100/70 transition duration-100"
                   onClick={() => handleSort('overdueCount')}
                 >
-                  Overdue{renderSortIndicator('overdueCount')}
+                  {learnerStatusLabel('Overdue')}{renderSortIndicator('overdueCount')}
                 </th>
               </tr>
             </thead>
@@ -275,7 +276,7 @@ export function CourseSummaryReportPage() {
                       variant="soft"
                       size="xxs"
                     >
-                      {row.courseTypeName || 'General'}
+                      {row.courseTypeName || t(REPORT_LABELS.csGeneralType)}
                     </Badge>
                   </td>
                   <td className="p-3 text-center text-xs font-semibold tabular-nums">
@@ -297,7 +298,7 @@ export function CourseSummaryReportPage() {
               {filteredRows.length === 0 && (
                 <tr>
                   <td colSpan={10} className="p-6 text-center text-slate-400 text-xs font-medium">
-                    No course records found
+                    {t(REPORT_LABELS.notFound)}
                   </td>
                 </tr>
               )}
@@ -309,12 +310,12 @@ export function CourseSummaryReportPage() {
         {filteredRows.length > 0 && (
           <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-2.5 text-xs text-slate-500 font-medium flex items-center justify-between shrink-0">
             <span>
-              Showing <strong className="text-slate-800 tabular-nums">{visibleCourseRows.length}</strong> of{' '}
-              <strong className="text-slate-800 tabular-nums">{filteredRows.length}</strong> courses
+              {t(REPORT_LABELS.rowsShowing)} <strong className="text-slate-800 tabular-nums">{visibleCourseRows.length}</strong> {t(REPORT_LABELS.rowsOf)}{' '}
+              <strong className="text-slate-800 tabular-nums">{filteredRows.length}</strong> {t(REPORT_LABELS.rowsUnit)}
             </span>
             {visibleCourseRows.length < filteredRows.length && (
               <span className="text-xxs text-indigo-600 font-semibold flex items-center gap-1">
-                Scroll down to load more
+                {t(UI_LABELS.scrollToLoadMore)}
               </span>
             )}
           </div>

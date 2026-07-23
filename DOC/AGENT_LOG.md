@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-23 —] Claude Code — commit PLAN-136 P0+A+B (`da5d1c6`) + Zone C: Reports 5 หน้าสองภาษา
+- ทำอะไร: (1) **Commit `da5d1c6`** — stage เฉพาะไฟล์ PLAN-136 18 ไฟล์ **แยกงาน PLAN-137 ของ Gemini** (AssignmentsController/AssignmentService/BulkAssignDto/AssignmentFlowTests/AssignmentDetailPage/StatusText/ContentItemDetailPage + PLAN-137.md) ที่ค้างใน working tree ไว้ให้รอบ commit ของทีมนั้น (2) **Zone C**: เพิ่ม `REPORT_LABELS` ~95 คีย์ แล้ว migrate ReportHub/Compliance/Transcript/Activity/CourseSummary — Hub การ์ดโชว์ชื่อภาษาหลัก+อีกภาษาในวงเล็บ, หัวตาราง/หัวการ์ดที่เดิมเขียน "ไทย (English)" ปนกัน → ภาษาเดียวตามสวิตช์, **บั๊กเดิม**: Transcript badge สถานะโชว์ key ดิบ → `learnerStatusLabel`, CourseSummary ที่อังกฤษล้วนได้ไทยครบ. จงใจคงอังกฤษ: CSV export headers, print-only transcript header (เอกสารทางการ)
+- ไฟล์หลักที่แตะ: `src/lib/labels.ts`, `src/pages/reports/{ReportHubPage,ComplianceReportPage,TranscriptReportPage,ActivityReportPage,CourseSummaryReportPage}.tsx`, `DOC/PLANS/PLAN-136-full-bilingual-admin-ui.md` (Zone C ✅)
+- Contract ที่เปลี่ยน: ไม่มี (frontend-only)
+- Verified: `npm run lint` ✓, `npm run build` ✓; browser ทั้ง 5 หน้า × 2 ภาษา: EN ไม่มีไทยตกค้าง (นอกจากปุ่มสวิตช์ "ไทย" + ข้อมูล DB), th ครบทุก section รวม CourseSummary ที่เพิ่งได้ไทย; console 0 errors — **Zone C ยังไม่ commit** (รอคำสั่ง)
+- **โซนถัดไป**: D Courses/Content → E Assignments/Learners → F Master Data/Users/System + moduleConfigs captions
+
 ## [2026-07-23 —] Claude Code — PLAN-136 Zone B: Dashboard สองภาษา (IN_PROGRESS ต่อ)
 - ทำอะไร: migrate Dashboard เข้า dictionary — เพิ่ม `DASHBOARD_LABELS` (~45 คีย์ th/en) ใน labels.ts แล้วแทน string ทั้ง DashboardPage + DashboardCharts (header/KPI strip/ตาราง 2 ตัว/trend/activity feed/maintenance banner/error states). แก้เพิ่มจากการ verify ของจริง: (1) หัวตารางที่เดิมเขียนสองภาษาปน ("งานมอบหมาย (Assignment)") → ภาษาเดียวตามสวิตช์ (2) **บั๊กเดิม**: badge สถานะ priority assignments โชว์ key ดิบ `Active`/`Due Soon` แม้ใน UI ไทย → เพิ่ม Active/'Due Soon'/Enrolling/Unassigned เข้า `STATUS_LABELS` + แสดงผ่าน `learnerStatusLabel` (tone ไม่เพี้ยนเพราะ statusTone reverse-lookup ผ่าน label map) (3) `formatRelativeTime` ใน `lib/format.ts` เป็น lang-aware (เมื่อครู่/just now, X นาที/min ago) — format วันที่/ตัวเลขอื่นคงเดิมตามแผน
 - ไฟล์หลักที่แตะ: `src/lib/labels.ts`, `src/lib/format.ts`, `src/pages/DashboardPage.tsx`, `src/pages/dashboard/DashboardCharts.tsx`, `DOC/PLANS/PLAN-136-full-bilingual-admin-ui.md` (Zone B ✅)

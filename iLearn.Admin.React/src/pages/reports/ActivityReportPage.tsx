@@ -22,6 +22,7 @@ import { AppButton } from '../../components/ui/AppButton'
 import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { formatNumber } from '../../lib/format'
+import { REPORT_LABELS, t, tf } from '../../lib/labels'
 import { exportRowsAsCsv } from '../../lib/csvExport'
 import { toast } from '../../lib/toast'
 import { BRAND, tooltipStyle, axisStyle } from '../../lib/chartTheme'
@@ -42,7 +43,7 @@ export function ActivityReportPage() {
           setData(resp.data)
         }
       })
-      .catch(() => toast.error('Failed to load training activity report'))
+      .catch(() => toast.error(t(REPORT_LABELS.loadReportFailed)))
       .finally(() => !cancelled && setLoading(false))
 
     return () => {
@@ -76,7 +77,7 @@ export function ActivityReportPage() {
 
   const handleExportCsv = () => {
     if (!data || data.months.length === 0) {
-      toast.info('No activity records to export')
+      toast.info(t(REPORT_LABELS.noRowsToExport))
       return
     }
     const header = [
@@ -98,13 +99,13 @@ export function ActivityReportPage() {
   }
 
   if (loading) {
-    return <LoadingState label="Loading training activity report..." />
+    return <LoadingState label={t(REPORT_LABELS.loadingReport)} />
   }
 
   if (!data) {
     return (
       <div className="py-12 text-center text-slate-500 font-semibold">
-        No report data available.
+        {t(REPORT_LABELS.noReportData)}
       </div>
     )
   }
@@ -116,64 +117,64 @@ export function ActivityReportPage() {
         <Card bodyClassName="p-4 flex flex-col gap-1">
           <div className="flex items-center justify-between">
             <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-              เรียนสำเร็จทั้งหมด
+              {t(REPORT_LABELS.actTotalCompletions)}
             </span>
             <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-hidden="true" />
           </div>
           <div className="text-2xl font-extrabold text-emerald-600 tabular-nums leading-tight mt-1">
             {formatNumber(periodStats.totalCompletions)}
           </div>
-          <span className="text-xxs text-slate-400 font-medium">จำนวนครั้งที่เรียนจบในรอบช่วงเวลา</span>
+          <span className="text-xxs text-slate-400 font-medium">{t(REPORT_LABELS.actTotalCompletionsSub)}</span>
         </Card>
 
         <Card bodyClassName="p-4 flex flex-col gap-1">
           <div className="flex items-center justify-between">
             <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-              ลงทะเบียนคอร์สใหม่
+              {t(REPORT_LABELS.actNewEnrollments)}
             </span>
             <BookOpen className="h-4 w-4 text-indigo-500" aria-hidden="true" />
           </div>
           <div className="text-2xl font-extrabold text-indigo-600 tabular-nums leading-tight mt-1">
             {formatNumber(periodStats.totalNewEnrollments)}
           </div>
-          <span className="text-xxs text-slate-400 font-medium">จำนวนการมอบหมายคอร์สใหม่</span>
+          <span className="text-xxs text-slate-400 font-medium">{t(REPORT_LABELS.actNewEnrollmentsSub)}</span>
         </Card>
 
         <Card bodyClassName="p-4 flex flex-col gap-1">
           <div className="flex items-center justify-between">
             <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-              ผู้เรียนแอคทีฟเฉลี่ย
+              {t(REPORT_LABELS.actActiveLearners)}
             </span>
             <Users className="h-4 w-4 text-amber-500" aria-hidden="true" />
           </div>
           <div className="text-2xl font-extrabold text-amber-600 tabular-nums leading-tight mt-1">
             {formatNumber(periodStats.avgActiveLearners)}
           </div>
-          <span className="text-xxs text-slate-400 font-medium">ผู้เรียนที่มีกิจกรรมเข้าเรียน / เดือน</span>
+          <span className="text-xxs text-slate-400 font-medium">{t(REPORT_LABELS.actActiveLearnersSub)}</span>
         </Card>
 
         <Card bodyClassName="p-4 flex flex-col gap-1">
           <div className="flex items-center justify-between">
             <span className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
-              เวลาเรียนสะสม
+              {t(REPORT_LABELS.actTotalHours)}
             </span>
             <Clock className="h-4 w-4 text-blue-500" aria-hidden="true" />
           </div>
           <div className="text-2xl font-extrabold text-slate-800 tabular-nums leading-tight mt-1">
-            {formatNumber(periodStats.totalHoursPlayed, 1)} ชม.
+            {formatNumber(periodStats.totalHoursPlayed, 1)} {t(REPORT_LABELS.hoursUnitShort)}
           </div>
-          <span className="text-xxs text-slate-400 font-medium">ชั่วโมงการเรียนรวมทั้งหมด</span>
+          <span className="text-xxs text-slate-400 font-medium">{t(REPORT_LABELS.actTotalHoursSub)}</span>
         </Card>
       </section>
 
       {/* Graphs */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start shrink-0">
         {/* completions & newEnrollments */}
-        <Card title="Completions & New Enrollments / สถิติการเรียนจบและการลงทะเบียนใหม่" icon={Activity}>
+        <Card title={t(REPORT_LABELS.actTrendTitle)} icon={Activity}>
           <div className="p-4">
             {data.months.length === 0 ? (
               <div className="text-center py-12 text-slate-400 text-xs font-medium">
-                ไม่มีข้อมูลกิจกรรม
+                {t(REPORT_LABELS.actNoData)}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={240}>
@@ -182,8 +183,8 @@ export function ActivityReportPage() {
                   <YAxis tickLine={false} axisLine={false} tick={axisStyle} allowDecimals={false} />
                   <Tooltip cursor={{ fill: 'rgba(79,70,229,0.05)' }} contentStyle={tooltipStyle} />
                   <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: 11 }} />
-                  <Bar name="เรียนสำเร็จ (Completions)" dataKey="completions" fill={BRAND} radius={[4, 4, 0, 0]} maxBarSize={24} />
-                  <Bar name="ลงทะเบียนใหม่ (New Enrollments)" dataKey="newEnrollments" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={24} />
+                  <Bar name={t(REPORT_LABELS.actLegendCompletions)} dataKey="completions" fill={BRAND} radius={[4, 4, 0, 0]} maxBarSize={24} />
+                  <Bar name={t(REPORT_LABELS.actLegendNewEnrollments)} dataKey="newEnrollments" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={24} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -191,11 +192,11 @@ export function ActivityReportPage() {
         </Card>
 
         {/* Active Learners */}
-        <Card title="Monthly Active Learners / จำนวนผู้เรียนที่แอคทีฟรายเดือน" icon={Activity}>
+        <Card title={t(REPORT_LABELS.actActiveMonthlyTitle)} icon={Activity}>
           <div className="p-4">
             {data.months.length === 0 ? (
               <div className="text-center py-12 text-slate-400 text-xs font-medium">
-                ไม่มีข้อมูลกิจกรรม
+                {t(REPORT_LABELS.actNoData)}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={240}>
@@ -204,7 +205,7 @@ export function ActivityReportPage() {
                   <YAxis tickLine={false} axisLine={false} tick={axisStyle} allowDecimals={false} />
                   <Tooltip cursor={{ fill: 'rgba(245,158,11,0.05)' }} contentStyle={tooltipStyle} />
                   <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: 11 }} />
-                  <Bar name="ผู้เรียนแอคทีฟ (Active Learners)" dataKey="activeLearners" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                  <Bar name={t(REPORT_LABELS.actLegendActive)} dataKey="activeLearners" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={28} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -214,16 +215,16 @@ export function ActivityReportPage() {
 
       {/* Monthly Activity Table */}
       <Card
-        title="Training Activity Breakdown / รายละเอียดสถิติการเรียนรู้รายเดือน"
+        title={t(REPORT_LABELS.actMonthlyDetails)}
         className="flex-1 flex flex-col min-h-64"
         bodyClassName="flex-1 flex flex-col min-h-0"
         actions={
           <div className="flex items-center gap-3">
             <SegmentedToggle
               options={[
-                { value: 6, label: '6 เดือนล่าสุด' },
-                { value: 12, label: '12 เดือนล่าสุด' },
-                { value: 24, label: '24 เดือนล่าสุด' },
+                { value: 6, label: tf(REPORT_LABELS.lastNMonths, 6) },
+                { value: 12, label: tf(REPORT_LABELS.lastNMonths, 12) },
+                { value: 24, label: tf(REPORT_LABELS.lastNMonths, 24) },
               ]}
               value={months}
               onChange={(val) => setMonths(Number(val))}
@@ -236,7 +237,7 @@ export function ActivityReportPage() {
                 variant="secondary"
                 size="sm"
               >
-                Export CSV
+                {t(REPORT_LABELS.exportCsv)}
               </AppButton>
             )}
           </div>
@@ -246,11 +247,11 @@ export function ActivityReportPage() {
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs select-none sticky top-0 z-10 shadow-xs">
-                <th className="p-3 pl-5">เดือน (Month)</th>
-                <th className="p-3 text-center">เรียนสำเร็จ (Completions)</th>
-                <th className="p-3 text-center">ลงทะเบียนใหม่ (New Enrollments)</th>
-                <th className="p-3 text-center">ผู้เรียนแอคทีฟ (Active Learners)</th>
-                <th className="p-3 pr-5 text-right">เวลาเรียนสะสม (Total Hours)</th>
+                <th className="p-3 pl-5">{t(REPORT_LABELS.actColMonth)}</th>
+                <th className="p-3 text-center">{t(REPORT_LABELS.actLegendCompletions)}</th>
+                <th className="p-3 text-center">{t(REPORT_LABELS.actLegendNewEnrollments)}</th>
+                <th className="p-3 text-center">{t(REPORT_LABELS.actLegendActive)}</th>
+                <th className="p-3 pr-5 text-right">{t(REPORT_LABELS.actColTotalHours)}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -269,14 +270,14 @@ export function ActivityReportPage() {
                     {formatNumber(row.activeLearners)}
                   </td>
                   <td className="p-3 pr-5 text-right text-xs font-semibold tabular-nums">
-                    {formatNumber(row.totalHoursPlayed, 1)} ชม.
+                    {formatNumber(row.totalHoursPlayed, 1)} {t(REPORT_LABELS.hoursUnitShort)}
                   </td>
                 </tr>
               ))}
               {data.months.length === 0 && (
                 <tr>
                   <td colSpan={5} className="p-6 text-center text-slate-400 text-xs font-medium">
-                    ไม่พบข้อมูลกิจกรรมรายเดือน
+                    {t(REPORT_LABELS.actNoMonthlyData)}
                   </td>
                 </tr>
               )}
@@ -288,7 +289,7 @@ export function ActivityReportPage() {
         {data.months.length > 0 && (
           <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-2.5 text-xs text-slate-500 font-medium flex items-center justify-between shrink-0">
             <span>
-              แสดงข้อมูลทั้งหมด <strong className="text-slate-800 tabular-nums">{data.months.length}</strong> เดือน
+              {tf(REPORT_LABELS.actShowingMonths, data.months.length)}
             </span>
           </div>
         )}

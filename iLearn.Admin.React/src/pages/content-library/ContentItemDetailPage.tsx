@@ -9,7 +9,10 @@ import {
   PowerOff,
   Power,
   Trash2,
+  X,
 } from 'lucide-react'
+import { AppButton } from '../../components/ui/AppButton'
+import { IconButton } from '../../components/ui/IconButton'
 import { StatusText } from '../../components/ui/StatusText'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
@@ -69,6 +72,12 @@ export function ContentItemDetailPage() {
   const [busy, setBusy] = useState(false)
   const [item, setItem] = useState<ContentItemDetail | null>(null)
 
+  // Edit Metadata modal state
+  const [showEditMetadataModal, setShowEditMetadataModal] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editTypeId, setEditTypeId] = useState(1)
+  const [savingMetadata, setSavingMetadata] = useState(false)
+
   useEffect(() => {
     if (item?.name && id) {
       setLabel(String(id), item.name)
@@ -93,6 +102,28 @@ export function ContentItemDetailPage() {
     void load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  const handleSaveMetadata = async () => {
+    if (!item) return
+    if (!editName.trim()) {
+      toast.error('Display Name is required')
+      return
+    }
+    setSavingMetadata(true)
+    try {
+      const fd = new FormData()
+      fd.append('key', String(item.id))
+      fd.append('values', JSON.stringify({ name: editName.trim(), typeId: editTypeId }))
+      await fetchWithAccessControl('admin/ContentItemsCRUD/Put', { method: 'PUT', body: fd })
+      toast.success('Metadata updated')
+      setShowEditMetadataModal(false)
+      await load()
+    } catch {
+      toast.error('Save failed')
+    } finally {
+      setSavingMetadata(false)
+    }
+  }
 
   const handlePublish = async () => {
     if (!item) return
@@ -187,7 +218,14 @@ export function ContentItemDetailPage() {
         sidebar={
           <ControlsSidebar>
             {isSuperAdmin && (
-              <ControlAction to={`/content-library/${item.id}/edit`} icon={Edit3}>
+              <ControlAction
+                icon={Edit3}
+                onClick={() => {
+                  setEditName(item.name)
+                  setEditTypeId(item.typeId)
+                  setShowEditMetadataModal(true)
+                }}
+              >
                 Edit Metadata
               </ControlAction>
             )}
@@ -318,6 +356,77 @@ export function ContentItemDetailPage() {
         )}
         </main>
       </DetailLayout>
+
+      {/* Edit Metadata Modal */}
+      {showEditMetadataModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in"
+          onClick={() => setShowEditMetadataModal(false)}
+        >
+          <div
+            className="bg-white border border-slate-200 rounded-xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none shrink-0">
+              <div className="flex items-center gap-2">
+                <Edit3 className="h-5 w-5 text-indigo-600" />
+                <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">
+                  Edit Metadata
+                </h3>
+              </div>
+              <IconButton
+                onClick={() => setShowEditMetadataModal(false)}
+                icon={X}
+                title="Close"
+                tone="neutral"
+              />
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">
+                  Display Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Required"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">Content Type</label>
+                <select
+                  value={editTypeId}
+                  onChange={(e) => setEditTypeId(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition bg-white cursor-pointer"
+                >
+                  <option value={1}>{contentTypeLabel(1)}</option>
+                  <option value={2}>{contentTypeLabel(2)}</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50 shrink-0 select-none">
+              <AppButton
+                variant="ghost"
+                onClick={() => setShowEditMetadataModal(false)}
+              >
+                Cancel
+              </AppButton>
+              <AppButton
+                variant="primary"
+                loading={savingMetadata}
+                onClick={handleSaveMetadata}
+              >
+                Save Changes
+              </AppButton>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmDialog}
     </>

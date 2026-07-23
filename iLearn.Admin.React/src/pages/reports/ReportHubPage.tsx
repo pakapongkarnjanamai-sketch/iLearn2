@@ -3,47 +3,55 @@ import { Card } from '../../components/ui/Card'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { Badge } from '../../components/ui/Badge'
 import { ShieldAlert, GraduationCap, BookOpen, Activity, ArrowRight, BarChart3 } from 'lucide-react'
+import { REPORT_LABELS, getLang, t, type LabelPair } from '../../lib/labels'
 
 export function ReportHubPage() {
-  const reports = [
+  // Secondary title shows the other language so both names stay discoverable.
+  const otherLang = getLang() === 'th' ? 'en' : 'th'
+
+  const reports: Array<{
+    title: LabelPair
+    description: LabelPair
+    tag: LabelPair
+    path: string
+    icon: typeof ShieldAlert
+    tone: 'danger' | 'info' | 'success' | 'warning'
+    accentBg: string
+  }> = [
     {
-      title: 'Compliance & Overdue Report',
-      subtitle: 'รายงานความก้าวหน้าและคอร์สเกินกำหนด',
-      description: 'ตรวจสอบอัตราความก้าวหน้าและการเรียนตามเกณฑ์แยกตามสายงานและฝ่าย ติดตามเป้าหมาย และดูรายละเอียดการเรียนเกินกำหนดของผู้เรียนแบบเจาะลึก',
+      title: REPORT_LABELS.complianceTitle,
+      description: REPORT_LABELS.complianceDesc,
       path: '/reports/compliance',
       icon: ShieldAlert,
-      tag: 'ภาพรวมผู้บริหาร',
-      tone: 'danger' as const,
+      tag: REPORT_LABELS.complianceTag,
+      tone: 'danger',
       accentBg: 'bg-rose-50 text-rose-600 group-hover:bg-rose-100 group-hover:text-rose-700',
     },
     {
-      title: 'Learner Transcript',
-      subtitle: 'ประวัติการเรียนรายบุคคล',
-      description: 'ค้นหารายชื่อผู้เรียนเพื่อตรวจสอบประวัติการฝึกอบรมทั้งหมด รายวิชาที่กำลังเรียน สถานะการเรียน ผลคะแนนสอบ และพิมพ์ใบทรานสคริปต์',
+      title: REPORT_LABELS.transcriptTitle,
+      description: REPORT_LABELS.transcriptDesc,
       path: '/reports/transcript',
       icon: GraduationCap,
-      tag: 'ประวัติรายบุคคล',
-      tone: 'info' as const,
+      tag: REPORT_LABELS.transcriptTag,
+      tone: 'info',
       accentBg: 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 group-hover:text-indigo-700',
     },
     {
-      title: 'Course Summary Report',
-      subtitle: 'รายงานสรุปผลการเรียนรายคอร์ส',
-      description: 'วิเคราะห์อัตราการเรียนสำเร็จ (Completion Rate) จำนวนผู้เรียนที่ลงทะเบียน จำนวนผู้เรียนเกินกำหนด และคะแนนสอบเฉลี่ยของทุกคอร์สในแคตตาล็อก',
+      title: REPORT_LABELS.coursesTitle,
+      description: REPORT_LABELS.coursesDesc,
       path: '/reports/courses',
       icon: BookOpen,
-      tag: 'สถิติรายคอร์ส',
-      tone: 'success' as const,
+      tag: REPORT_LABELS.coursesTag,
+      tone: 'success',
       accentBg: 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 group-hover:text-emerald-700',
     },
     {
-      title: 'Training Activity Report',
-      subtitle: 'รายงานสถิติและกิจกรรมการเรียนรู้',
-      description: 'ติดตามแนวโน้มการเรียนจบรายเดือน ปริมาณผู้เรียนที่แอคทีฟ การลงทะเบียนคอร์สใหม่ และเวลาเรียนสะสมตามช่วงเวลาที่เลือก',
+      title: REPORT_LABELS.activityTitle,
+      description: REPORT_LABELS.activityDesc,
       path: '/reports/activity',
       icon: Activity,
-      tag: 'แนวโน้มรายเดือน',
-      tone: 'warning' as const,
+      tag: REPORT_LABELS.activityTag,
+      tone: 'warning',
       accentBg: 'bg-amber-50 text-amber-600 group-hover:bg-amber-100 group-hover:text-amber-700',
     },
   ]
@@ -51,9 +59,9 @@ export function ReportHubPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <SectionHeader icon={BarChart3}>Report Hub / ศูนย์รวมรายงาน</SectionHeader>
+        <SectionHeader icon={BarChart3}>{t(REPORT_LABELS.hubTitle)}</SectionHeader>
         <p className="text-xs text-slate-500 font-medium">
-          ศูนย์รวมข้อมูลสถิติ วิเคราะห์ผลการเรียนรู้ ติดตามการเข้าเรียนเกินกำหนด สรุปผลรายคอร์ส และประวัติการเรียนของผู้เรียน
+          {t(REPORT_LABELS.hubIntro)}
         </p>
       </div>
 
@@ -75,23 +83,23 @@ export function ReportHubPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <Badge tone={report.tone} variant="tag" size="xxs">
-                        {report.tag}
+                        {t(report.tag)}
                       </Badge>
                     </div>
                     <h3 className="text-base font-bold text-slate-800 transition-colors group-hover:text-indigo-600">
-                      {report.title}{' '}
+                      {t(report.title)}{' '}
                       <span className="text-xs font-semibold text-slate-400 block sm:inline">
-                        ({report.subtitle})
+                        ({report.title[otherLang]})
                       </span>
                     </h3>
                     <p className="mt-1.5 text-xs text-slate-500 font-medium leading-relaxed">
-                      {report.description}
+                      {t(report.description)}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-end gap-1 text-xs font-bold text-slate-400 transition-colors group-hover:text-indigo-600 pt-2 border-t border-slate-100/80">
-                  <span>เปิดดูรายงาน</span>
+                  <span>{t(REPORT_LABELS.openReport)}</span>
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                 </div>
               </Card>
@@ -102,4 +110,3 @@ export function ReportHubPage() {
     </div>
   )
 }
-

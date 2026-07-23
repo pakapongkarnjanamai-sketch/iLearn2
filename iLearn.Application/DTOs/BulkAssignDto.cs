@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
@@ -47,5 +47,10 @@ namespace iLearn.Application.DTOs
     public class ManageAssignmentLearnersDto
     {
         public List<string> EmployeeCodes { get; set; } = new();
+    }
+
+    public class UpdateAssignmentDescriptionDto
+    {
+        public string? Description { get; set; }
     }
 }

@@ -18,6 +18,7 @@ import { Badge } from '../../components/ui/Badge'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { formatDate, formatPercent, formatDuration, formatNumber } from '../../lib/format'
+import { DASHBOARD_LABELS, NAV_LABELS, REPORT_LABELS, UI_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 import { toast } from '../../lib/toast'
 import type { TranscriptReportDto } from './reportTypes'
@@ -55,13 +56,13 @@ export function TranscriptReportPage() {
           setData(resp.data)
         } else {
           setData(null)
-          setError('Learner not found')
+          setError(t(REPORT_LABELS.trNotFoundTitle))
         }
       })
       .catch((err) => {
         if (cancelled) return
         setData(null)
-        setError(err.message || 'Learner not found')
+        setError(err.message || t(REPORT_LABELS.trNotFoundTitle))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -103,7 +104,7 @@ export function TranscriptReportPage() {
     e.preventDefault()
     const trimmed = inputCode.trim()
     if (!trimmed) {
-      toast.info('กรุณากรอกรหัสพนักงานเพื่อค้นหา')
+      toast.info(t(REPORT_LABELS.trEnterCode))
       return
     }
     setSearchParams({ code: trimmed })
@@ -128,7 +129,7 @@ export function TranscriptReportPage() {
     <div className="h-full flex flex-col min-h-0 gap-5 overflow-auto custom-scrollbar">
       {/* Search Header Card */}
       <Card
-        title="Learner Transcript / ค้นหาประวัติการเรียนรายบุคคล"
+        title={t(REPORT_LABELS.trSearchTitle)}
         icon={GraduationCap}
         className="shrink-0 print:hidden"
         actions={
@@ -136,7 +137,7 @@ export function TranscriptReportPage() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="กรอกรหัสพนักงาน (EId)..."
+                placeholder={t(REPORT_LABELS.trSearchPlaceholder)}
                 value={inputCode}
                 onChange={(e) => setInputCode(e.target.value)}
                 className="appearance-none rounded-lg border border-slate-200 bg-white pl-3 pr-8 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 focus:outline-none focus:border-indigo-500 w-56 shadow-xs"
@@ -146,14 +147,14 @@ export function TranscriptReportPage() {
                   type="button"
                   onClick={handleClearSearch}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                  title="ล้างคำค้นหา"
+                  title={t(REPORT_LABELS.trClear)}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
             <AppButton type="submit" size="sm" icon={Search}>
-              ค้นหา
+              {t(REPORT_LABELS.trSearch)}
             </AppButton>
           </form>
         }
@@ -163,22 +164,22 @@ export function TranscriptReportPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
               <UserCheck className="h-6 w-6" />
             </div>
-            <div className="text-sm font-bold text-slate-700">ค้นหาและพิมพ์ประวัติการเรียน (Transcript)</div>
+            <div className="text-sm font-bold text-slate-700">{t(REPORT_LABELS.trIntroTitle)}</div>
             <div className="text-xs text-slate-500 max-w-md leading-relaxed">
-              กรุณากรอกรหัสพนักงาน (เช่น EId) ในช่องค้นหาด้านบน เพื่อดึงและตรวจสอบประวัติการฝึกอบรมทั้งหมดของผู้เรียน
+              {t(REPORT_LABELS.trIntroBody)}
             </div>
           </div>
         )}
       </Card>
 
-      {loading && <LoadingState label="กำลังค้นหาประวัติการเรียน..." />}
+      {loading && <LoadingState label={t(REPORT_LABELS.trSearching)} />}
 
       {!loading && error && (
         <NotFoundState
-          title="ไม่พบข้อมูลผู้เรียน"
-          message={`ไม่พบประวัติการเรียนสำหรับรหัส "${codeParam}" กรุณาตรวจสอบรหัสพนักงานอีกครั้ง`}
+          title={t(REPORT_LABELS.trNotFoundTitle)}
+          message={tf(REPORT_LABELS.trNotFoundBody, `"${codeParam}"`)}
           backTo="/reports"
-          backLabel="กลับไปยังศูนย์รวมรายงาน"
+          backLabel={t(REPORT_LABELS.trBackToHub)}
           tone="danger"
         />
       )}
@@ -194,27 +195,27 @@ export function TranscriptReportPage() {
           </div>
 
           {/* Learner Information Card */}
-          <Card title="Learner Information / ข้อมูลผู้เรียน" icon={GraduationCap} className="relative shrink-0">
+          <Card title={t(REPORT_LABELS.trLearnerInfo)} icon={GraduationCap} className="relative shrink-0">
             <div className="absolute top-3.5 right-4 print:hidden">
               <AppButton onClick={handlePrint} icon={Printer} variant="secondary" size="sm">
-                พิมพ์ใบทรานสคริปต์ (Print)
+                {t(REPORT_LABELS.trPrint)}
               </AppButton>
             </div>
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-700">
               <div className="flex flex-col gap-3">
                 <div>
-                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">ชื่อผู้เรียน (Learner Name)</span>
+                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">{t(REPORT_LABELS.trName)}</span>
                   <span className="text-sm font-extrabold text-slate-800">{data.learnerName || '—'}</span>
                 </div>
                 <div>
-                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">รหัสพนักงาน (Learner Code)</span>
+                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">{t(REPORT_LABELS.trCode)}</span>
                   <span className="font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded text-xs inline-block">
                     {data.learnerCode}
                   </span>
                 </div>
                 {data.learnerGroups && data.learnerGroups.length > 0 && (
                   <div>
-                    <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">กลุ่มผู้เรียน (Learner Groups)</span>
+                    <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">{t(NAV_LABELS.learnerGroups)}</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {data.learnerGroups.map((g) => (
                         <Badge key={g} tone="neutral" variant="soft">
@@ -228,22 +229,22 @@ export function TranscriptReportPage() {
 
               <div className="flex flex-col gap-3">
                 <div>
-                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">สายงาน (Division)</span>
+                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">{t(REPORT_LABELS.colDivision)}</span>
                   <span className="text-slate-800 font-semibold">{data.division || '—'}</span>
                 </div>
                 <div>
-                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">ฝ่าย (Department)</span>
+                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">{t(REPORT_LABELS.colDepartment)}</span>
                   <span className="text-slate-800 font-semibold">{data.department || '—'}</span>
                 </div>
                 <div>
-                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">อัตราเรียนสำเร็จ (Completion Rate)</span>
+                  <span className="font-bold text-slate-400 uppercase tracking-wider block text-xxs mb-0.5">{t(DASHBOARD_LABELS.completionRate)}</span>
                   <div className="flex items-center gap-2 mt-1">
                     <ProgressBar
                       value={data.totalCourses > 0 ? (data.completedCourses / data.totalCourses) * 100 : 0}
                       completed={data.completedCourses === data.totalCourses && data.totalCourses > 0}
                     />
                     <span className="text-xxs font-bold text-slate-600 tabular-nums">
-                      เรียนสำเร็จ {data.completedCourses} จาก {data.totalCourses} คอร์ส ({data.totalCourses > 0 ? formatPercent((data.completedCourses / data.totalCourses) * 100) : '—'})
+                      {tf(REPORT_LABELS.trCompletedOf, data.completedCourses, data.totalCourses)} ({data.totalCourses > 0 ? formatPercent((data.completedCourses / data.totalCourses) * 100) : '—'})
                     </span>
                   </div>
                 </div>
@@ -253,7 +254,7 @@ export function TranscriptReportPage() {
 
           {/* Training Records Card */}
           <Card
-            title="Training Records / ประวัติการเรียนรู้"
+            title={t(REPORT_LABELS.trHistoryTitle)}
             icon={BookOpen}
             className="flex-1 flex flex-col min-h-64"
             bodyClassName="flex-1 flex flex-col min-h-0"
@@ -262,7 +263,7 @@ export function TranscriptReportPage() {
               <ListToolbar
                 searchValue={recordSearch}
                 onSearchChange={setRecordSearch}
-                searchPlaceholder="กรองประวัติการเรียนด้วยรหัสคอร์ส, ชื่อคอร์ส หรือสถานะ..."
+                searchPlaceholder={t(REPORT_LABELS.trFilterPlaceholder)}
               />
             </div>
 
@@ -273,12 +274,12 @@ export function TranscriptReportPage() {
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs sticky top-0 z-10 shadow-xs">
-                    <th className="p-3 pl-5">คอร์สเรียน (Course Code & Title)</th>
-                    <th className="p-3">สถานะ (Status)</th>
-                    <th className="p-3">ความก้าวหน้า (Progress)</th>
-                    <th className="p-3 text-center">คะแนน (Score)</th>
-                    <th className="p-3 text-center">เวลาที่ใช้ (Time Spent)</th>
-                    <th className="p-3 pr-5">ช่วงเวลา (Timeline)</th>
+                    <th className="p-3 pl-5">{t(DASHBOARD_LABELS.colCourse)}</th>
+                    <th className="p-3">{t(DASHBOARD_LABELS.colStatus)}</th>
+                    <th className="p-3">{t(REPORT_LABELS.colProgress)}</th>
+                    <th className="p-3 text-center">{t(REPORT_LABELS.trColScore)}</th>
+                    <th className="p-3 text-center">{t(REPORT_LABELS.trColTimeSpent)}</th>
+                    <th className="p-3 pr-5">{t(REPORT_LABELS.trColTimeline)}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -293,7 +294,7 @@ export function TranscriptReportPage() {
                         </div>
                       </td>
                       <td className="p-3">
-                        <StatusBadge size="xxs">{row.status}</StatusBadge>
+                        <StatusBadge size="xxs">{learnerStatusLabel(row.status)}</StatusBadge>
                       </td>
                       <td className="p-3">
                         <ProgressBar value={row.progress} completed={row.status === 'Completed'} />
@@ -305,16 +306,16 @@ export function TranscriptReportPage() {
                         {formatDuration(row.totalTimeSpentSeconds)}
                       </td>
                       <td className="p-3 pr-5 text-xxs text-slate-500 leading-relaxed font-semibold">
-                        {row.startDate && <div>เริ่มเรียน: {formatDate(row.startDate)}</div>}
-                        {row.dueDate && <div className="mt-0.5">กำหนดส่ง: {formatDate(row.dueDate)}</div>}
-                        {row.completedDate && <div className="mt-0.5 text-emerald-600">สำเร็จเมื่อ: {formatDate(row.completedDate)}</div>}
+                        {row.startDate && <div>{tf(REPORT_LABELS.trStarted, formatDate(row.startDate))}</div>}
+                        {row.dueDate && <div className="mt-0.5">{tf(REPORT_LABELS.duePrefix, formatDate(row.dueDate))}</div>}
+                        {row.completedDate && <div className="mt-0.5 text-emerald-600">{tf(REPORT_LABELS.trCompletedOn, formatDate(row.completedDate))}</div>}
                       </td>
                     </tr>
                   ))}
                   {filteredTranscriptRows.length === 0 && (
                     <tr>
                       <td colSpan={6} className="p-6 text-center text-slate-400 text-xs font-medium">
-                        ไม่พบประวัติการเรียนสำหรับผู้เรียนรายนี้
+                        {t(REPORT_LABELS.trNoHistory)}
                       </td>
                     </tr>
                   )}
@@ -326,12 +327,12 @@ export function TranscriptReportPage() {
             {filteredTranscriptRows.length > 0 && (
               <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-2.5 text-xs text-slate-500 font-medium flex items-center justify-between shrink-0 print:hidden">
                 <span>
-                  แสดงข้อมูล <strong className="text-slate-800 tabular-nums">{visibleTranscriptRows.length}</strong> จาก{' '}
-                  <strong className="text-slate-800 tabular-nums">{filteredTranscriptRows.length}</strong> รายการ
+                  {t(REPORT_LABELS.rowsShowing)} <strong className="text-slate-800 tabular-nums">{visibleTranscriptRows.length}</strong> {t(REPORT_LABELS.rowsOf)}{' '}
+                  <strong className="text-slate-800 tabular-nums">{filteredTranscriptRows.length}</strong> {t(REPORT_LABELS.rowsUnit)}
                 </span>
                 {visibleTranscriptRows.length < filteredTranscriptRows.length && (
                   <span className="text-xxs text-indigo-600 font-semibold flex items-center gap-1">
-                    เลื่อนลงเพื่อดูรายการเพิ่มเติม (Scroll down to load more)
+                    {t(UI_LABELS.scrollToLoadMore)}
                   </span>
                 )}
               </div>
