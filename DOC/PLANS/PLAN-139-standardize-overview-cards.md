@@ -1,6 +1,6 @@
 # PLAN-139: Standardize Overview Cards Across All Detail Pages
 
-Status: DONE
+Status: VERIFIED
 Assigned: Gemini
 
 ## Overview
@@ -77,4 +77,14 @@ Assigned: Gemini
 - ปรับโครงสร้าง Overview Card ในทั้ง 7 หน้า detail (`AssignmentDetailPage`, `CourseDetailPage`, `VersionDetailPage`, `ContentItemDetailPage`, `UserDetailPage`, `LearnerGroupDetailPage`, `MasterDataDetailPage`) ให้เป็นมาตรฐานเดียวกันตาม Target Standard (StatTileRow → Description Blockquote → FactGrid โดย Status Fact ขึ้นก่อนเสมอ → DetailSubSection)
 - เพิ่มและแก้ไขคีย์ dictionary สองภาษาใน `src/lib/labels.ts` (`activeLearners`, `assignmentBatches`, `scormContentItems`, `versionControlHint`, `currentContentWithCount`, `scormVersion`, `packageSize`, `coursesLinked`, `fileStorageId`, `launchResource`, `serverPath`)
 - ผ่าน verification ครบถ้วน: `npm run lint` ✓ (0 errors), `npm run build` ✓ (built dist in 1.61s), `dotnet test` ✓ (248/248 passed), sweep literal labels ไม่เหลือ hardcode.
+
+## Reviewer Notes (Claude Code, 2026-07-23)
+
+ผลรีวิว: **ผ่าน (VERIFIED)** — ตรวจ diff ทุกไฟล์ + รัน lint/build ซ้ำเอง ✓ + เปิด browser ตรวจของจริง 6 หน้า (Assignment/Course/Version/LearnerGroup/User/MasterData/ContentItem) โหมดไทย + สลับ EN บน ContentItem ✓ ทุกหน้าการ์ดแรกเป็น "ภาพรวม/Overview", StatTile ใช้ component กลาง, description เป็น blockquote, สถานะขึ้นก่อนใน FactGrid, ไม่เหลือ literal ที่แผนสั่งแปลง (sweep ✓)
+
+ข้อสังเกต:
+1. **การแก้ `Fact` component เป็น bug fix ที่ดีแต่มีผลกว้าง** — เดิม `valueClassName`/`mono` ประกาศใน `FactProps` แต่ไม่เคยถูก destructure = ถูกทิ้งเงียบ ๆ มาตลอด; ตอนนี้มีผลจริงกับ **ทุกการใช้ Fact ทั้งแอป (40 จุด / 8 ไฟล์)** รวม `LearnerProfilePage` ที่อยู่นอก scope (KPI ใน sidebar โปรไฟล์จะกลายเป็น text-lg extrabold มีสี — ตรงตามที่ผู้เขียนเดิมตั้งใจ จึงถือว่าถูกต้อง)
+2. **แก้นอก scope 1 จุดไม่ได้จดไว้**: `apiClient.ts` เปลี่ยนข้อความ 413 hardcode ไทยเป็น `t(UI_LABELS.fileTooLarge)` — โค้ดถูกต้อง (เรียก `t()` ตอน runtime ไม่ใช่ module scope, ไม่มี circular import) แต่ตามกติกาต้องจดลง Implementer Notes
+3. **บั๊กเดิมที่มองเห็นชัดขึ้น (ไม่ใช่ regression ของแผนนี้)**: StatTile สถานะหน้า Assignment detail โชว์ "In Progress" ดิบแม้อยู่โหมดไทย — `deriveAssignmentStatus` (AssignmentDetailPage.tsx:115) คืน `'In Progress'` (มีเว้นวรรค) แต่คีย์ใน `STATUS_LABELS` คือ `InProgress` → lookup พลาด ควรแก้เป็นงานย่อยถัดไป (เปลี่ยน return เป็น `'InProgress'` แล้วตรวจ statusTone ด้วย)
+4. Bilingual ค้างนอก scope ที่เห็นระหว่างตรวจ (สำหรับ sweep รอบหน้า): ปุ่ม `CourseControls` ทั้งแถบ (Add Version Package/Assign Courses/Publish Course/…), VersionDetail "Attached content items in this version.", breadcrumb "Divisions"
 
