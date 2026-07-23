@@ -272,6 +272,8 @@ namespace iLearn.API.Controllers
         {
             { "nid", "NID" },
             { "eId", "EId" },
+            { "thaiFirstName", "ThaiFirstName" },
+            { "thaiLastName", "ThaiLastName" },
             { "englishFirstName", "EnglishFirstName" },
             { "englishLastName", "EnglishLastName" },
             { "division", "Division" },
@@ -298,7 +300,7 @@ namespace iLearn.API.Controllers
             // Matches field name when it is the first element of an array: ["field",
             // Lookbehind matches "[" then optional whitespace and quote.
             // Lookahead matches quote then optional whitespace and comma.
-            var regex = new Regex(@"(?<=\[\s*"")\b(nid|eId|englishFirstName|englishLastName|division|department|section|position)\b(?=""\s*,)", RegexOptions.IgnoreCase);
+            var regex = new Regex(@"(?<=\[\s*"")\b(nid|eId|thaiFirstName|thaiLastName|englishFirstName|englishLastName|division|department|section|position)\b(?=""\s*,)", RegexOptions.IgnoreCase);
 
             var mappedFilter = regex.Replace(existingFilter, match =>
             {

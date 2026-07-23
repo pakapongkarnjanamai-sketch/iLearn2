@@ -241,6 +241,45 @@ namespace iLearn.Tests
         }
 
         [Fact]
+        public async Task GetLearnersDxGridAsync_ExposesThaiNamesAndFiltersOnThem()
+        {
+            // Arrange
+            _httpHandler.SendAsyncHandler = (req) =>
+            {
+                var response = new EmployeeHubPagedResult<EmployeeDto>
+                {
+                    Items = new List<EmployeeDto>
+                    {
+                        new EmployeeDto { EmpCode = "001", Company = "NTC", Division = "CSD", FirstNameEn = "John", LastNameEn = "Doe", FirstNameTh = "นายสมชาย", LastNameTh = "ใจดี" },
+                        new EmployeeDto { EmpCode = "002", Company = "NTC", Division = "CSD", FirstNameEn = "Jane", LastNameEn = "Doe", FirstNameTh = "สมหญิง", LastNameTh = "ใจงาม" }
+                    },
+                    Total = 2,
+                    Page = 1,
+                    PageSize = 200
+                };
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(response)
+                });
+            };
+
+            // Act: filter ThaiFirstName contains "สมชาย" (PascalCase, as mapped by LearnersController)
+            var queryString = "?requireTotalCount=true&filter=" +
+                Uri.EscapeDataString("[\"ThaiFirstName\",\"contains\",\"สมชาย\"]");
+            var resultJson = await _service.GetLearnersDxGridAsync(queryString);
+
+            var root = JsonDocument.Parse(resultJson).RootElement;
+            var data = root.GetProperty("data");
+
+            // Assert: only somchai matches; gender prefix stripped; camelCase keys for the grid
+            Assert.Equal(1, root.GetProperty("totalCount").GetInt32());
+            Assert.Equal(1, data.GetArrayLength());
+            Assert.Equal("001", data[0].GetProperty("eId").GetString());
+            Assert.Equal("สมชาย", data[0].GetProperty("thaiFirstName").GetString());
+            Assert.Equal("ใจดี", data[0].GetProperty("thaiLastName").GetString());
+        }
+
+        [Fact]
         public async Task GetDivisionsAsync_AppliesDistinctCompanySemantics()
         {
             // Arrange

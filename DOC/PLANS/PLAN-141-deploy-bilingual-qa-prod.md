@@ -1,6 +1,6 @@
 # PLAN-141: Deploy QA/PROD — เฟสสองภาษาเต็มรูปแบบ + PLAN-137/139 + smoke สองภาษา
 
-- **Status**: READY
+- **Status**: DONE
 - **Assigned**: GitHub Copilot (GPT)
 - **Created**: 2026-07-23
 - **หมายเหตุเลขแผน**: เดิมสร้างเป็น PLAN-140 แต่ชนกับ `PLAN-140-canonical-host-redirect` (Gemini สร้างก่อน) — ย้ายมาเป็น 141 เมื่อ 2026-07-23
@@ -69,7 +69,7 @@ Remove-Item -Recurse -Force artifacts\verify-test
 ## §5 ปิดสถานะ
 
 - PLAN-136, PLAN-137, PLAN-138, PLAN-139: → `VERIFIED`
-- PLAN-140: → `DONE` + Implementer Notes (stamp, ผล smoke, ปัญหาที่เจอ)
+- PLAN-141: → `DONE` + Implementer Notes (stamp, ผล smoke, ปัญหาที่เจอ)
 - ลง `AGENT_LOG.md` (entry ใหม่บนสุด)
 
 ## Out of Scope
@@ -79,4 +79,11 @@ Remove-Item -Recurse -Force artifacts\verify-test
 
 ## Implementer Notes
 
-(ให้ implementer เติมหลังทำเสร็จ)
+- Pre-flight ผ่านครบ: `git status` สะอาด, `npm run lint` ✓, `npm run build` ✓, `dotnet build iLearn.Tests -o artifacts\verify-test` ✓, `dotnet test artifacts\verify-test\iLearn.Tests.dll` ✓; migration gate QA/PROD ไม่มี pending เมื่อกำหนด `ConnectionStrings__DefaultConnection` ให้ design-time factory ตามแผน
+- ระหว่าง migration gate พบ `dotnet ef migrations list` ล้มเพราะมี local dev process `iLearn.API.exe` (PID 41724) ล็อก `iLearn.API\bin\Debug\*.dll`; หยุด process นั้นแล้ว rerun gate ผ่านทั้ง QA และ PROD
+- QA deploy สำเร็จ: `tools/deploy-api.ps1` stamp `20260723150900` (post-deploy health check `/Service/api/admin/session/me` = 401 บน attempt แรก, auto-rollback = false) + `tools/deploy-admin-react.ps1` copy สำเร็จ (`RobocopyExitCode=3`)
+- QA smoke ผ่าน: anonymous `/Service/api/admin/session/me` = 401, authenticated `/admin-react/` = 200, `/` = 200; browser smoke สองภาษาผ่านบน Dashboard, `/assignments`, assignment detail `/assignments/275`, `/courses`, `/master-data/divisions`, `/users`, `/system-config`, `/reports`, `/reports/compliance`, `/notifications`; refresh แล้ว EN คงอยู่ใน `localStorage`, สลับกลับไทยแล้วหัวตาราง assignments กลับเป็น `เลขที่งานมอบหมาย`, console 0 errors ทุกหน้าที่ตรวจ
+- PLAN-137 smoke บน QA ผ่าน: แก้ description ของ assignment 275 เป็นค่า test ชั่วคราว, ตรวจว่า detail + list อัปเดตตาม batch เดียวกัน, แล้ว revert กลับค่าเดิม `Training WI_PD2` เรียบร้อย
+- PLAN-139 smoke ผ่านบน QA: overview cards ของ assignment/course/user/master-data แสดง `Overview/ภาพรวม` และ StatTile ปกติทั้งสองภาษา
+- PROD deploy สำเร็จ: `tools/deploy-api-prod.ps1` stamp `20260723151448` (post-deploy health check `/Service/api/admin/session/me` = 401, auto-rollback = false) + `tools/deploy-admin-react-prod.ps1` copy สำเร็จ (`RobocopyExitCode=3`)
+- PROD read-only smoke ผ่าน: anonymous `/Service/api/admin/session/me` = 401, authenticated `/admin-react/` = 200, `/` = 200; เปิด admin-react ผ่าน short host แล้ว redirect ไป FQDN ตาม PLAN-140; default ภาษาไทย, สลับ EN แล้วข้อความเปลี่ยนใน Dashboard, `/assignments`, `/courses`, `/users`, `/system-config`, `/reports/compliance`, `/notifications`; refresh แล้วยังจำ EN, สลับกลับไทยได้, console 0 errors ทุกหน้าที่ตรวจ

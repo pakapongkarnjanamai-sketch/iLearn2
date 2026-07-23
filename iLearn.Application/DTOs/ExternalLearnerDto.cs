@@ -101,6 +101,8 @@ namespace iLearn.Application.DTOs
         public int Id { get; set; }
         public string EId { get; set; } = string.Empty;
         public string NID { get; set; } = string.Empty;
+        public string ThaiFirstName { get; set; } = string.Empty;
+        public string ThaiLastName { get; set; } = string.Empty;
         public string EnglishFirstName { get; set; } = string.Empty;
         public string EnglishLastName { get; set; } = string.Empty;
         public string Division { get; set; } = string.Empty;

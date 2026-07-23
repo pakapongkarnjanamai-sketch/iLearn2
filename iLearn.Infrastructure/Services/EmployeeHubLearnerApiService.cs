@@ -187,6 +187,8 @@ namespace iLearn.Infrastructure.Services
                 Id = 0,
                 EId = e.EmpCode,
                 NID = e.Nid ?? string.Empty,
+                ThaiFirstName = NameHelper.StripGenderPrefix(e.FirstNameTh),
+                ThaiLastName = e.LastNameTh,
                 EnglishFirstName = NameHelper.StripGenderPrefix(e.FirstNameEn),
                 EnglishLastName = e.LastNameEn,
                 Division = e.Division ?? string.Empty,

@@ -1,6 +1,6 @@
 # PLAN-137: Editable Assignment Description in Assignment Detail Page
 
-Status: DONE
+Status: VERIFIED
 Assigned: Gemini
 
 ## Overview

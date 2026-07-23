@@ -1,6 +1,6 @@
 # PLAN-138: เฟสสองภาษา โซน D–F (ต่อจาก PLAN-136) — มอบ Copilot
 
-- **Status**: DONE
+- **Status**: VERIFIED
 - **Assigned**: GitHub Copilot (GPT)
 - **Created**: 2026-07-23
 - **อ้างอิง**: PLAN-136 (แผนแม่บท — โซน P0/A/B/C เสร็จแล้วโดย Claude, commit `da5d1c6` + `db507b1`)

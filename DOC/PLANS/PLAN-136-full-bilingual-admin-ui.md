@@ -1,6 +1,6 @@
 # PLAN-136: เฟสสองภาษาเต็มรูปแบบ (TH/EN) — iLearn.Admin.React ทั้งแอป
 
-- **Status**: IN_PROGRESS
+- **Status**: VERIFIED
 - **Assigned**: Claude Code (โซน P0/A/B/C — เสร็จแล้ว) → **โซน D/E/F มอบ GitHub Copilot ตาม PLAN-138** (ผู้ใช้สั่งเปลี่ยน 2026-07-23; Claude เปลี่ยนบทบาทเป็น reviewer)
 - **Created**: 2026-07-23
 

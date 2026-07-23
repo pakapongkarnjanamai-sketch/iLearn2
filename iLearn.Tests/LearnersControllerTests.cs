@@ -252,6 +252,24 @@ namespace iLearn.Tests
         }
 
         [Fact]
+        public void MapFilterFieldNames_ThaiNameFields_MapsToPascalCase()
+        {
+            // query: filter=[["thaiFirstName","contains","สม"],"or",["thaiLastName","contains","สม"]]
+            var queryString = "?filter=%5B%5B%22thaiFirstName%22%2C%22contains%22%2C%22%E0%B8%AA%E0%B8%A1%22%5D%2C%22or%22%2C%5B%22thaiLastName%22%2C%22contains%22%2C%22%E0%B8%AA%E0%B8%A1%22%5D%5D";
+
+            var result = LearnersController.MapFilterFieldNames(queryString);
+
+            var match = System.Text.RegularExpressions.Regex.Match(result, @"filter=([^&]*)");
+            Assert.True(match.Success);
+            var decoded = Uri.UnescapeDataString(match.Groups[1].Value);
+
+            Assert.Contains("\"ThaiFirstName\"", decoded);
+            Assert.Contains("\"ThaiLastName\"", decoded);
+            Assert.DoesNotContain("\"thaiFirstName\"", decoded);
+            Assert.Contains("สม", decoded); // search value untouched
+        }
+
+        [Fact]
         public void InjectDivisionFilter_WithExistingFormEncodedPlusFilter_InjectsAndPreservesSpaces()
         {
             // query: filter=["section","=","Corporate+Support+Division+(FM)"]

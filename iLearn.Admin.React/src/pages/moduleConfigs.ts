@@ -67,13 +67,16 @@ export const adminListConfigs = {
     title: ADMIN_LABELS.learnersTitle, eyebrow: ADMIN_LABELS.peopleDirectory, description: ADMIN_LABELS.learnersDescription,
     controller: 'Learners',
     basePath: 'Learners',
-    key: 'id',
+    // EmployeeHub provider returns id=0 for every row — key on eId (unique employee code)
+    // or AppTable's page>1 dedupe drops all new rows and infinite scroll never advances.
+    key: 'eId',
     gridTitle: ADMIN_LABELS.learnerRegistry, gridNote: ADMIN_LABELS.learnerRegistryNote,
-    // NID is not filterable on the external employee grid endpoint (it 500s),
-    // so it is intentionally excluded from search. Search EId + names only.
-    searchExpr: ['englishFirstName', 'englishLastName', 'eId'],
+    // EmployeeHub provider filters in-memory via DataSourceLoader, so nid + Thai names are
+    // searchable. (Legacy provider proxy 500s on nid — only relevant to local dev on Legacy.)
+    searchExpr: ['thaiFirstName', 'thaiLastName', 'englishFirstName', 'englishLastName', 'eId', 'nid'],
     columns: [
       { dataField: 'eId', caption: ADMIN_LABELS.employeeId, width: 130 }, { dataField: 'nid', caption: ADMIN_LABELS.nid, width: 120 },
+      { dataField: 'thaiFirstName', caption: ADMIN_LABELS.thaiFirstName, minWidth: 150 }, { dataField: 'thaiLastName', caption: ADMIN_LABELS.thaiLastName, minWidth: 150 },
       { dataField: 'englishFirstName', caption: ADMIN_LABELS.firstName, minWidth: 160 }, { dataField: 'englishLastName', caption: ADMIN_LABELS.lastName, minWidth: 160 },
       { dataField: 'division', caption: ADMIN_LABELS.division, width: 160 }, { dataField: 'department', caption: ADMIN_LABELS.department, width: 160 }, { dataField: 'section', caption: ADMIN_LABELS.section, width: 160 }, { dataField: 'position', caption: ADMIN_LABELS.position, minWidth: 180 },
     ],
