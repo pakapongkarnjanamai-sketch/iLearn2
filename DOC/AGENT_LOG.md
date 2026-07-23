@@ -2,6 +2,13 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-23 —] GitHub Copilot — Commit `9a25676` + deploy PLAN-143/144 to QA/PROD
+- ทำอะไร: commit `9a25676` (`feat(admin-react,api): add assignment summary report and scroll loading`) แล้ว deploy API + Admin React ไป QA/PROD. QA API stamp `20260723160518` health 401 attempt แรก, Admin React copy สำเร็จ (`RobocopyExitCode=3`). PROD API stamp `20260723160824` health 401 attempt แรก, Admin React copy สำเร็จ (`RobocopyExitCode=3`)
+- Smoke QA/PROD: anonymous `/Service/api/admin/session/me` = 401, `/admin-react/` = 200, `/admin-react/reports/assignments` = 200, `GET /Service/api/Reports/assignments` = 200. QA report rows/total = 12 (`AS-20260721-002` first row). PROD report rows/total = 27 (`AS-20260722-002` first row). PROD learner group `/admin-react/learner-groups/36` = 200, `GET /Service/api/LearnerGroups/36` = 200, group `3. Production`, members = 303. QA note: learner group id 36 does not exist in QA DB, so only SPA route fallback was checked there
+- ไฟล์หลักที่แตะ: deploy docs/log only after commit — `DOC/AGENT_LOG.md`, `DOC/PLANS/PLAN-143-assignment-summary-report.md`, `DOC/PLANS/PLAN-144-remove-manual-load-more-buttons.md`
+- Contract ที่เปลี่ยน: ไม่มีเพิ่มเติมจาก `9a25676` (new `GET /api/Reports/assignments` deployed)
+- Verified: pre-commit `npm run lint` ✓, `npm run build` ✓, `dotnet build iLearn.Tests -o artifacts\verify-test` ✓, `dotnet test artifacts\verify-test\iLearn.Tests.dll` = 275/275 ✓; QA/PROD deploy + smoke ✓
+
 ## [2026-07-23 —] GitHub Copilot — PLAN-144 Remove manual Load more buttons
 - ทำอะไร: แก้ตารางที่ยังใช้ปุ่ม `Load more` ให้โหลดเพิ่มจาก scroll แทนตามคำขอผู้ใช้ โดยเริ่มจากหน้า `/learner-groups/36` Members table แล้วกวาดต่อทั้ง React Admin: เพิ่ม `shouldLoadMoreOnScroll(...)` ใน `tableStandards.ts`, เปลี่ยน LearnerGroupDetail members, AssignmentDetail courses/learners, AssignmentReport learners, CourseDetail versions/learners/assignments, VersionDetail content และ Notifications list ให้ใช้ `onScroll` เพิ่ม chunk/page อัตโนมัติ พร้อม footer hint `เลื่อนลงเพื่อโหลดเพิ่ม`; grep ยืนยันว่าไม่เหลือ manual `Load more` button/click handler ใน `iLearn.Admin.React/src/**`
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/lib/tableStandards.ts`, `src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `src/pages/assignments/AssignmentDetailPage.tsx`, `src/pages/assignments/AssignmentReportPage.tsx`, `src/pages/courses/CourseDetailPage.tsx`, `src/pages/courses/VersionDetailPage.tsx`, `src/pages/notifications/NotificationsPage.tsx`, `DOC/PLANS/PLAN-144-remove-manual-load-more-buttons.md`, `DOC/AGENT_LOG.md`

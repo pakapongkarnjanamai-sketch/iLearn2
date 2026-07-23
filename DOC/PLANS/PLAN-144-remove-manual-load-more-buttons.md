@@ -35,6 +35,9 @@
 - `npm run build` ✓
 - `dotnet build iLearn.Tests -o artifacts\verify-test` ✓
 - `dotnet test artifacts\verify-test\iLearn.Tests.dll` → **275/275 passed** ✓
+- Commit `9a25676` ✓
+- QA deploy: API stamp `20260723160518` ✓ · Admin React `RobocopyExitCode=3` ✓ · QA note: group id 36 does not exist in QA DB, so only SPA route fallback was checked for that URL
+- PROD deploy: API stamp `20260723160824` ✓ · Admin React `RobocopyExitCode=3` ✓ · `/admin-react/learner-groups/36` 200 · `GET /Service/api/LearnerGroups/36` 200 · group `3. Production`, members 303 ✓
 
 ## Implementer Notes
 

@@ -32,6 +32,9 @@ Response shape:
 - `npm run build` ✓
 - `dotnet build iLearn.Tests -o artifacts\verify-test` ✓
 - `dotnet test artifacts\verify-test\iLearn.Tests.dll` → **275/275 passed** ✓
+- Commit `9a25676` ✓
+- QA deploy: API stamp `20260723160518` ✓ · Admin React `RobocopyExitCode=3` ✓ · `/admin-react/reports/assignments` 200 · `GET /Service/api/Reports/assignments` 200, total 12 ✓
+- PROD deploy: API stamp `20260723160824` ✓ · Admin React `RobocopyExitCode=3` ✓ · `/admin-react/reports/assignments` 200 · `GET /Service/api/Reports/assignments` 200, total 27 ✓
 
 ## Notes
 
