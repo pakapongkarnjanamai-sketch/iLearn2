@@ -60,3 +60,4 @@ npm run build
 - `AdminGridColumn.caption` และ `AdminListConfig.title`/`eyebrow`/`description` เปลี่ยนเป็น `LabelPair`; `AppTable`, `EntityListPage`, และ `MasterDataDetailPage` resolve ผ่าน `t()` ใน render/handler เท่านั้น จึงไม่มี `t()` ใน module scope
 - คง API/DB data, backend errors, SCORM/NID/EId/CSV, และ CSV export headers ตามข้อยกเว้นของแผน
 - Verification: `npm run lint` ผ่าน, `npm run build` ผ่าน, sweep `[ก-๙]` ใน Zone D–F ไม่พบ display string ค้าง (เหลือเฉพาะ raw backend error comparison), และ `git diff --check` ผ่าน. ไม่ได้ deploy หรือ commit
+- Follow-up หลัง browser review: `AssignmentDetailPage` มี modal และ action copy ตกค้าง (รวม Edit Description ในภาพ). ย้ายทุก user-facing literal ของหน้านี้เข้า `ASSIGNMENT_LABELS` แล้ว; `npm run lint` และ `npm run build` ผ่าน. การแก้นี้ยังเป็น working-tree change และยังไม่ได้ deploy

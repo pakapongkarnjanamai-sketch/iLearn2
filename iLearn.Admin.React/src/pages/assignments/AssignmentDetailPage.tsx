@@ -302,7 +302,7 @@ export function AssignmentDetailPage() {
       }
     } catch (err: any) {
       console.error(err)
-      toast.error(err.message || 'Failed to extend due date')
+      toast.error(err.message || t(ASSIGNMENT_LABELS.failedToExtendDueDate))
     } finally {
       setExtendingDate(false)
     }
@@ -324,7 +324,7 @@ export function AssignmentDetailPage() {
       }
     } catch (err: any) {
       console.error(err)
-      toast.error(err.message || 'Failed to update description')
+      toast.error(err.message || t(ASSIGNMENT_LABELS.failedToUpdateDescription))
     } finally {
       setSavingDescription(false)
     }
@@ -372,7 +372,7 @@ export function AssignmentDetailPage() {
   const handleImportCodes = async () => {
     const parsedCodes = parseLearnerCodes(learnerCodesInput)
     if (parsedCodes.length === 0) {
-      toast.error('Enter at least one EId code')
+      toast.error(t(ASSIGNMENT_LABELS.enterAtLeastOneEmployeeCode))
       return
     }
 
@@ -382,7 +382,7 @@ export function AssignmentDetailPage() {
       directory = await verifyCodesInDirectory(parsedCodes)
     } catch (err) {
       console.error(err)
-      toast.error('Directory check failed — codes were queued without verification')
+      toast.error(t(ASSIGNMENT_LABELS.directoryCheckFailed))
     } finally {
       setImportingCodes(false)
     }
@@ -405,16 +405,16 @@ export function AssignmentDetailPage() {
       const uniqueNew = newSelections.filter(l => !existingCodes.has(l.code) && !currentCodes.has(l.code))
       const duplicateCount = parsedCodes.length - uniqueNew.length
       if (duplicateCount > 0) {
-        toast.info(`${duplicateCount} code(s) were skipped (already selected or in the assignment)`)
+        toast.info(tf(ASSIGNMENT_LABELS.codesSkipped, duplicateCount))
       }
       if (uniqueNew.length > 0) {
-        toast.success(`Queued ${uniqueNew.length} learner code(s)`)
+        toast.success(tf(ASSIGNMENT_LABELS.learnerCodesQueued, uniqueNew.length))
       }
       return [...prev, ...uniqueNew]
     })
     if (notFound.length > 0) {
       setUnverifiedCodes(prev => new Set([...prev, ...notFound]))
-      toast.info(`${notFound.length} code(s) not found in the employee directory — review before saving`)
+      toast.info(tf(ASSIGNMENT_LABELS.codesNotFoundReview, notFound.length))
     }
     setLearnerCodesInput('')
   }
@@ -430,16 +430,16 @@ export function AssignmentDetailPage() {
   const handleAddLearners = async () => {
     const codes = pendingAddLearners.map(l => l.code)
     if (codes.length === 0) {
-      toast.error('Please select or import at least one learner')
+      toast.error(t(ASSIGNMENT_LABELS.selectOrImportLearner))
       return
     }
 
     const unverifiedQueued = codes.filter(code => unverifiedCodes.has(code))
     if (unverifiedQueued.length > 0) {
       if (!(await confirm({
-        title: 'Unverified Codes in Queue',
-        message: `${unverifiedQueued.length} queued code(s) were not found in the employee directory (${unverifiedQueued.slice(0, 5).join(', ')}${unverifiedQueued.length > 5 ? ', …' : ''}). Add them anyway?`,
-        confirmLabel: 'Add Anyway',
+        title: t(ASSIGNMENT_LABELS.unverifiedCodesInQueue),
+        message: tf(ASSIGNMENT_LABELS.unverifiedCodesMessage, unverifiedQueued.length, `${unverifiedQueued.slice(0, 5).join(', ')}${unverifiedQueued.length > 5 ? ', …' : ''}`),
+        confirmLabel: t(ASSIGNMENT_LABELS.addAnyway),
       }))) return
     }
 
@@ -457,7 +457,7 @@ export function AssignmentDetailPage() {
       }
     } catch (err: any) {
       console.error(err)
-      toast.error(err.message || 'Failed to add learners')
+      toast.error(err.message || t(ASSIGNMENT_LABELS.failedToAddLearners))
     } finally {
       setSavingLearners(false)
     }
@@ -478,29 +478,29 @@ export function AssignmentDetailPage() {
 
   const handleResetLearner = async (learnerCode: string) => {
     if (!(await confirm({
-      title: 'Reset Progress',
-      message: `Reset progress for learner ${learnerCode} across ALL courses in this batch? Progress and test history will be cleared.`,
-      confirmLabel: 'Reset',
+      title: t(ASSIGNMENT_LABELS.resetProgress),
+      message: tf(ASSIGNMENT_LABELS.resetLearnerProgressConfirm, learnerCode),
+      confirmLabel: t(ASSIGNMENT_LABELS.reset),
     }))) return
     try {
       await resetEnrollments([learnerCode])
     } catch (err) {
       console.error(err)
-      toast.error('Failed to reset progress')
+      toast.error(t(ASSIGNMENT_LABELS.failedToResetProgress))
     }
   }
 
   const handleResetLearnerCourse = async (learnerCode: string, ruleId: number, courseTitle: string) => {
     if (!(await confirm({
-      title: 'Reset Course Progress',
-      message: `Reset progress for learner ${learnerCode} on "${courseTitle}" only? Progress and test history for this course will be cleared.`,
-      confirmLabel: 'Reset Course',
+      title: t(ASSIGNMENT_LABELS.resetCourseProgress),
+      message: tf(ASSIGNMENT_LABELS.resetLearnerCourseProgressConfirm, learnerCode, courseTitle),
+      confirmLabel: t(ASSIGNMENT_LABELS.resetCourse),
     }))) return
     try {
       await resetEnrollments([learnerCode], [ruleId])
     } catch (err) {
       console.error(err)
-      toast.error('Failed to reset course progress')
+      toast.error(t(ASSIGNMENT_LABELS.failedToResetCourseProgress))
     }
   }
 
@@ -508,9 +508,9 @@ export function AssignmentDetailPage() {
     const codes = [...selectedCodes]
     if (codes.length === 0) return
     if (!(await confirm({
-      title: 'Reset Selected Learners',
-      message: `Reset progress for ${codes.length} selected learner(s) across ALL courses in this batch? Progress and test history will be cleared.`,
-      confirmLabel: `Reset ${codes.length} Learner(s)`,
+      title: t(ASSIGNMENT_LABELS.resetSelectedLearners),
+      message: tf(ASSIGNMENT_LABELS.resetSelectedLearnersConfirm, codes.length),
+      confirmLabel: tf(ASSIGNMENT_LABELS.resetLearnerCount, codes.length),
     }))) return
     setBulkWorking('reset')
     try {
@@ -518,7 +518,7 @@ export function AssignmentDetailPage() {
       setSelectedCodes(new Set())
     } catch (err) {
       console.error(err)
-      toast.error('Failed to reset selected learners')
+      toast.error(t(ASSIGNMENT_LABELS.failedToResetSelectedLearners))
     } finally {
       setBulkWorking(null)
     }
@@ -527,9 +527,9 @@ export function AssignmentDetailPage() {
   // Remove learner(s) from assignment — batch links are removed, learning history is retained
   const handleRemoveLearner = async (learnerCode: string) => {
     if (!(await confirm({
-      title: 'Remove Learner',
-      message: `Remove learner ${learnerCode} from this assignment batch? They are unlinked from every course in the batch; recorded learning history is retained.`,
-      confirmLabel: 'Remove',
+      title: t(ASSIGNMENT_LABELS.removeLearner),
+      message: tf(ASSIGNMENT_LABELS.removeLearnerConfirm, learnerCode),
+      confirmLabel: t(ASSIGNMENT_LABELS.remove),
       danger: true,
     }))) return
     try {
@@ -542,7 +542,7 @@ export function AssignmentDetailPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Failed to remove learner')
+      toast.error(t(ASSIGNMENT_LABELS.failedToRemoveLearner))
     }
   }
 
@@ -550,9 +550,9 @@ export function AssignmentDetailPage() {
     const codes = [...selectedCodes]
     if (codes.length === 0) return
     if (!(await confirm({
-      title: 'Remove Selected Learners',
-      message: `Remove ${codes.length} selected learner(s) from this assignment batch? They are unlinked from every course in the batch; recorded learning history is retained.`,
-      confirmLabel: `Remove ${codes.length} Learner(s)`,
+      title: t(ASSIGNMENT_LABELS.removeSelectedLearners),
+      message: tf(ASSIGNMENT_LABELS.removeSelectedLearnersConfirm, codes.length),
+      confirmLabel: tf(ASSIGNMENT_LABELS.removeLearnerCount, codes.length),
       danger: true,
     }))) return
     setBulkWorking('remove')
@@ -570,7 +570,7 @@ export function AssignmentDetailPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Failed to remove selected learners')
+      toast.error(t(ASSIGNMENT_LABELS.failedToRemoveSelectedLearners))
     } finally {
       setBulkWorking(null)
     }
@@ -579,9 +579,9 @@ export function AssignmentDetailPage() {
   // Remove Course rule from batch
   const handleRemoveCourse = async (ruleId: number) => {
     if (!(await confirm({
-      title: 'Delete Course Rule',
-      message: 'Delete this course rule? All linked learner enrollments will be deleted.',
-      confirmLabel: 'Delete',
+      title: t(ASSIGNMENT_LABELS.deleteCourseRule),
+      message: t(ASSIGNMENT_LABELS.deleteCourseRuleConfirm),
+      confirmLabel: t(ASSIGNMENT_LABELS.delete),
       danger: true,
     }))) return
     try {
@@ -598,7 +598,7 @@ export function AssignmentDetailPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Unable to delete assigned course')
+      toast.error(t(ASSIGNMENT_LABELS.unableToDeleteAssignedCourse))
     }
   }
 
@@ -614,7 +614,7 @@ export function AssignmentDetailPage() {
       setLookupCourses(list)
     } catch (err) {
       console.error(err)
-      toast.error('Failed to load course lookup')
+      toast.error(t(ASSIGNMENT_LABELS.failedToLoadCourseLookup))
     } finally {
       setLoadingLookupCourses(false)
     }
@@ -636,7 +636,7 @@ export function AssignmentDetailPage() {
 
   const handleAddCourses = async () => {
     if (pendingCourseIds.length === 0) {
-      toast.error('Select at least one course to add')
+      toast.error(t(ASSIGNMENT_LABELS.selectAtLeastOneCourseToAdd))
       return
     }
     setSavingCourses(true)
@@ -653,7 +653,7 @@ export function AssignmentDetailPage() {
       }
     } catch (err: any) {
       console.error(err)
-      toast.error(err.message || 'Failed to add courses')
+      toast.error(err.message || t(ASSIGNMENT_LABELS.failedToAddCourses))
     } finally {
       setSavingCourses(false)
     }
@@ -662,20 +662,20 @@ export function AssignmentDetailPage() {
   // Delete entire assignment batch
   const handleDeleteBatch = async () => {
     if (!(await confirm({
-      title: 'Delete Assignment Batch',
-      message: 'Delete this entire assignment batch? This deletes ALL course rules and linked user records.',
-      confirmLabel: 'Delete Batch',
+      title: t(ASSIGNMENT_LABELS.deleteAssignmentBatch),
+      message: t(ASSIGNMENT_LABELS.deleteAssignmentBatchConfirm),
+      confirmLabel: t(ASSIGNMENT_LABELS.deleteBatch),
       danger: true,
     }))) return
     try {
       await fetchWithAccessControl(`Assignments/${id}`, {
         method: 'DELETE'
       })
-      toast.success('Assignment batch deleted successfully')
+      toast.success(t(ASSIGNMENT_LABELS.assignmentBatchDeleted))
       navigate('/assignments')
     } catch (err) {
       console.error(err)
-      toast.error('Failed to delete assignment rules')
+      toast.error(t(ASSIGNMENT_LABELS.failedToDeleteAssignmentRules))
     }
   }
 
@@ -758,7 +758,7 @@ export function AssignmentDetailPage() {
                   <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
                     <div className="text-[10px] font-extrabold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.status)}</div>
                     <div className="mt-1 flex justify-center">
-                      <StatusBadge>{assignmentStatus}</StatusBadge>
+                      <StatusBadge>{learnerStatusLabel(assignmentStatus)}</StatusBadge>
                     </div>
                   </div>
                 </div>
@@ -849,7 +849,7 @@ export function AssignmentDetailPage() {
               {assignment.courses.length > 0 && (
                 <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
                   <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
-                    Showing {visibleCourses.length} of {assignment.courses.length}
+                    {tf(ASSIGNMENT_LABELS.showingOf, visibleCourses.length, assignment.courses.length)}
                   </span>
                   {assignment.courses.length > visibleCourses.length && (
                     <AppButton
@@ -857,7 +857,7 @@ export function AssignmentDetailPage() {
                       onClick={() => setVisibleCourseRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
                       className="px-3 py-1 text-xxs font-bold"
                     >
-                      Load more
+                      {t(ASSIGNMENT_LABELS.loadMore)}
                     </AppButton>
                   )}
                 </div>
@@ -965,7 +965,7 @@ export function AssignmentDetailPage() {
                               <Link
                                 to={`/learners/${l.learnerCode}/profile`}
                                 className="font-bold text-slate-800 leading-tight hover:text-indigo-700 hover:underline"
-                                title="Open learner profile"
+                                title={t(ASSIGNMENT_LABELS.openLearnerProfile)}
                               >
                                 {l.learnerName || l.learnerCode}
                               </Link>
@@ -991,7 +991,7 @@ export function AssignmentDetailPage() {
                                 <span className="text-slate-400 text-xs italic">{t(ASSIGNMENT_LABELS.noCoursesAssigned)}</span>
                               ) : (
                                 <div className="flex items-center gap-2">
-                                  <Badge tone="neutral" variant="soft" size="xxs">{totalCount} courses</Badge>
+                                  <Badge tone="neutral" variant="soft" size="xxs">{tf(ASSIGNMENT_LABELS.courseCount, totalCount)}</Badge>
                                   <AppButton
                                     variant="ghost"
                                     onClick={() => setCourseModalCode(l.learnerCode)}
@@ -1038,7 +1038,7 @@ export function AssignmentDetailPage() {
               {filteredLearners.length > 0 && (
                 <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
                   <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
-                    Showing {visibleGroupedLearners.length} of {filteredLearners.length}
+                    {tf(ASSIGNMENT_LABELS.showingOf, visibleGroupedLearners.length, filteredLearners.length)}
                     {filteredLearners.length !== groupedLearners.length && (
                       <span className="normal-case font-normal text-slate-400"> {tf(ASSIGNMENT_LABELS.filteredFrom, groupedLearners.length)}</span>
                     )}
@@ -1049,7 +1049,7 @@ export function AssignmentDetailPage() {
                       onClick={() => setVisibleLearnerRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)}
                       className="px-3 py-1 text-xxs font-bold"
                     >
-                      Load more
+                      {t(ASSIGNMENT_LABELS.loadMore)}
                     </AppButton>
                   )}
                 </div>
@@ -1067,24 +1067,24 @@ export function AssignmentDetailPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
               <div className="flex items-center gap-2">
                 <CalendarClock className="h-5 w-5 text-indigo-600" />
-                <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wide">Extend Due Date</h3>
+                <h3 className="text-base font-extrabold text-slate-800 uppercase tracking-wide">{t(ASSIGNMENT_LABELS.extendDueDate)}</h3>
               </div>
               <IconButton
                 onClick={() => setShowDueDateModal(false)}
                 icon={X}
-                title="Close"
+                title={t(ASSIGNMENT_LABELS.close)}
                 tone="neutral"
               />
             </div>
 
             <div className="px-6 py-5 space-y-4">
               <div className="flex items-center gap-3 text-sm text-slate-600">
-                <span className="text-slate-400 font-semibold uppercase text-xs">Current Due Date:</span>
+                <span className="text-slate-400 font-semibold uppercase text-xs">{t(ASSIGNMENT_LABELS.currentDueDate)}</span>
                 <span className="font-bold text-slate-800">{formatDate(assignment.dueDate)}</span>
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="newDue" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">New Due Date</label>
+                <label htmlFor="newDue" className="block text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none">{t(ASSIGNMENT_LABELS.newDueDate)}</label>
                 <input
                   type="date"
                   id="newDue"
@@ -1100,7 +1100,7 @@ export function AssignmentDetailPage() {
                 variant="ghost"
                 onClick={() => setShowDueDateModal(false)}
               >
-                Cancel
+                {t(ASSIGNMENT_LABELS.cancel)}
               </AppButton>
               <AppButton
                 variant="primary"
@@ -1111,7 +1111,7 @@ export function AssignmentDetailPage() {
                   setShowDueDateModal(false)
                 }}
               >
-                Confirm
+                {t(ASSIGNMENT_LABELS.confirm)}
               </AppButton>
             </div>
           </div>
@@ -1125,12 +1125,12 @@ export function AssignmentDetailPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none shrink-0">
               <div className="flex items-center gap-2">
                 <Edit3 className="h-5 w-5 text-indigo-600" />
-                <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Edit Description</h3>
+                <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">{t(ASSIGNMENT_LABELS.editDescription)}</h3>
               </div>
               <IconButton
                 onClick={() => setShowEditDescriptionModal(false)}
                 icon={X}
-                title="Close"
+                title={t(ASSIGNMENT_LABELS.close)}
                 tone="neutral"
               />
             </div>
@@ -1138,13 +1138,13 @@ export function AssignmentDetailPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Assignment Description
+                  {t(ASSIGNMENT_LABELS.assignmentDescription)}
                 </label>
                 <textarea
                   rows={4}
                   value={editDescriptionInput}
                   onChange={(e) => setEditDescriptionInput(e.target.value)}
-                  placeholder="Enter assignment description..."
+                  placeholder={t(ASSIGNMENT_LABELS.assignmentDescriptionPlaceholder)}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition custom-scrollbar"
                 />
               </div>
@@ -1155,14 +1155,14 @@ export function AssignmentDetailPage() {
                 variant="ghost"
                 onClick={() => setShowEditDescriptionModal(false)}
               >
-                Cancel
+                {t(ASSIGNMENT_LABELS.cancel)}
               </AppButton>
               <AppButton
                 variant="primary"
                 loading={savingDescription}
                 onClick={handleUpdateDescription}
               >
-                Save
+                {t(ASSIGNMENT_LABELS.save)}
               </AppButton>
             </div>
           </div>
@@ -1176,12 +1176,12 @@ export function AssignmentDetailPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none shrink-0">
               <div className="flex items-center gap-2">
                 <BookPlus className="h-5 w-5 text-indigo-600" />
-                <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Add Courses to Batch</h3>
+                <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">{t(ASSIGNMENT_LABELS.addCoursesToBatch)}</h3>
               </div>
               <IconButton
                 onClick={() => setAddingCourses(false)}
                 icon={X}
-                title="Close"
+                title={t(ASSIGNMENT_LABELS.close)}
                 tone="neutral"
               />
             </div>
@@ -1191,23 +1191,23 @@ export function AssignmentDetailPage() {
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Search course code or title..."
+                  placeholder={t(ASSIGNMENT_LABELS.searchCourseCodeOrTitle)}
                   value={courseSearch}
                   onChange={(e) => setCourseSearch(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold placeholder:text-slate-400 bg-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition"
                 />
               </div>
               <p className="text-xxs text-slate-400 font-medium mt-2">
-                Every learner currently in this batch will be enrolled in the added courses with the batch schedule.
+                {t(ASSIGNMENT_LABELS.addCoursesScheduleNote)}
               </p>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-100 min-h-0">
               {loadingLookupCourses ? (
-                <div className="py-12"><LoadingState label="Loading courses..." /></div>
+                <div className="py-12"><LoadingState label={t(ASSIGNMENT_LABELS.loadingCourses)} /></div>
               ) : availableCourses.length === 0 ? (
                 <div className="text-center py-12 text-slate-400 text-xs font-semibold">
-                  No assignable courses found (already in the batch or none match your search).
+                  {t(ASSIGNMENT_LABELS.noAssignableCoursesFound)}
                 </div>
               ) : (
                 availableCourses.map(c => {
@@ -1242,14 +1242,14 @@ export function AssignmentDetailPage() {
 
             <div className="flex items-center justify-between gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50 shrink-0">
               <span className="text-xxs font-bold text-slate-500 uppercase tracking-wide select-none">
-                {pendingCourseIds.length} course(s) selected
+                {tf(ASSIGNMENT_LABELS.coursesSelected, pendingCourseIds.length)}
               </span>
               <div className="flex items-center gap-2">
                 <AppButton
                   variant="ghost"
                   onClick={() => setAddingCourses(false)}
                 >
-                  Cancel
+                  {t(ASSIGNMENT_LABELS.cancel)}
                 </AppButton>
                 <AppButton
                   variant="primary"
@@ -1258,7 +1258,7 @@ export function AssignmentDetailPage() {
                   loading={savingCourses}
                   disabled={pendingCourseIds.length === 0}
                 >
-                  Add Courses
+                  {t(ASSIGNMENT_LABELS.addCourses)}
                 </AppButton>
               </div>
             </div>
@@ -1275,14 +1275,14 @@ export function AssignmentDetailPage() {
             <div className="flex items-center justify-between border-b border-slate-200/60 pb-3 shrink-0 select-none">
               <div className="flex items-center gap-2">
                 <UserPlus className="h-5 w-5 text-indigo-500" />
-                <h2 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider">Add More Learners</h2>
+                <h2 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider">{t(ASSIGNMENT_LABELS.addMoreLearners)}</h2>
               </div>
 
               <div className="flex items-center gap-4 bg-slate-50 p-1.5 rounded border border-slate-100">
                 <SegmentedToggle
                   options={[
-                    { value: 'picker', label: 'Directory Search' },
-                    { value: 'bulk', label: 'Bulk Import (EIds)' },
+                    { value: 'picker', label: t(ASSIGNMENT_LABELS.directorySearch) },
+                    { value: 'bulk', label: t(ASSIGNMENT_LABELS.bulkImportEmployeeIds) },
                   ]}
                   value={memberAddTab}
                   onChange={setMemberAddTab}
@@ -1292,7 +1292,7 @@ export function AssignmentDetailPage() {
               <IconButton
                 onClick={closeAddLearnersModal}
                 icon={X}
-                title="Close"
+                title={t(ASSIGNMENT_LABELS.close)}
                 tone="neutral"
                 size="sm"
               />
@@ -1310,8 +1310,7 @@ export function AssignmentDetailPage() {
               ) : (
                 <div className="space-y-4 h-full flex flex-col justify-start overflow-y-auto custom-scrollbar pr-1">
                   <p className="text-xs font-medium text-slate-500">
-                    Bulk import employee EIds separated by commas, spaces, or new lines. Codes are checked against the employee
-                    directory; duplicates and codes already in the assignment are skipped automatically.
+                    {t(ASSIGNMENT_LABELS.bulkImportEmployeeIdsNote)}
                   </p>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto] shrink-0">
                     <textarea
@@ -1319,7 +1318,7 @@ export function AssignmentDetailPage() {
                       rows={5}
                       value={learnerCodesInput}
                       onChange={(e) => setLearnerCodesInput(e.target.value)}
-                      placeholder="Paste employee EIds here (e.g. N130812, N142715)..."
+                      placeholder={t(ASSIGNMENT_LABELS.employeeIdsPlaceholder)}
                       className="w-full px-3 py-2 border border-slate-200 rounded text-sm font-mono text-slate-850 focus:outline-none focus:border-indigo-500 bg-slate-50/50"
                     />
                     <AppButton
@@ -1331,14 +1330,14 @@ export function AssignmentDetailPage() {
                       disabled={!learnerCodesInput.trim()}
                       className="self-start"
                     >
-                      Add to Queue
+                      {t(ASSIGNMENT_LABELS.addToQueue)}
                     </AppButton>
                   </div>
 
                   {/* Queued codes view */}
                   <div className="border border-slate-200 rounded-lg overflow-hidden flex flex-col flex-1 min-h-0">
                     <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex justify-between items-center text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none shrink-0">
-                      <span>Queued for Assignment Additions ({pendingAddLearners.length})</span>
+                      <span>{tf(ASSIGNMENT_LABELS.queuedForAssignmentAdditions, pendingAddLearners.length)}</span>
                       <div className="flex items-center gap-3">
                         {pendingAddLearners.some(l => unverifiedCodes.has(l.code)) && (
                           <button
@@ -1349,7 +1348,7 @@ export function AssignmentDetailPage() {
                             }}
                             className="text-amber-600 hover:text-amber-800 font-bold cursor-pointer"
                           >
-                            Remove Not Found
+                            {t(ASSIGNMENT_LABELS.removeNotFound)}
                           </button>
                         )}
                         {pendingAddLearners.length > 0 && (
@@ -1358,14 +1357,14 @@ export function AssignmentDetailPage() {
                             onClick={() => { setPendingAddLearners([]); setUnverifiedCodes(new Set()) }}
                             className="text-red-500 hover:text-red-700 font-bold cursor-pointer"
                           >
-                            Clear Queue
+                            {t(ASSIGNMENT_LABELS.clearQueue)}
                           </button>
                         )}
                       </div>
                     </div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-100 bg-white min-h-0">
                       {pendingAddLearners.length === 0 ? (
-                        <div className="text-center py-12 text-slate-400 text-xs font-semibold">Queue is empty. Paste codes and click Add to Queue.</div>
+                        <div className="text-center py-12 text-slate-400 text-xs font-semibold">{t(ASSIGNMENT_LABELS.queueIsEmpty)}</div>
                       ) : (
                         pendingAddLearners.map((l, idx) => (
                           <div key={l.code} className="px-4 py-2.5 flex justify-between items-center text-xs font-medium">
@@ -1382,7 +1381,7 @@ export function AssignmentDetailPage() {
                               onClick={() => setPendingAddLearners(prev => prev.filter(x => x.code !== l.code))}
                               className="text-red-500 hover:text-red-700 font-bold text-xxs cursor-pointer"
                             >
-                              Remove
+                              {t(ASSIGNMENT_LABELS.remove)}
                             </button>
                           </div>
                         ))
@@ -1399,7 +1398,7 @@ export function AssignmentDetailPage() {
                 variant="ghost"
                 onClick={closeAddLearnersModal}
               >
-                Cancel
+                {t(ASSIGNMENT_LABELS.cancel)}
               </AppButton>
               <AppButton
                 variant="primary"
@@ -1407,7 +1406,7 @@ export function AssignmentDetailPage() {
                 loading={savingLearners}
                 disabled={pendingAddLearners.length === 0}
               >
-                Add Learners
+                {t(ASSIGNMENT_LABELS.addLearners)}
               </AppButton>
             </div>
           </div>
@@ -1431,7 +1430,7 @@ export function AssignmentDetailPage() {
               <IconButton
                 onClick={() => setCourseModalCode(null)}
                 icon={X}
-                title="Close"
+                title={t(ASSIGNMENT_LABELS.close)}
                 tone="neutral"
               />
             </div>
@@ -1439,7 +1438,7 @@ export function AssignmentDetailPage() {
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-3 min-h-0">
               {modalLearner.courses.length === 0 ? (
                 <div className="text-center py-8 text-slate-400 text-xs font-semibold italic">
-                  No courses assigned
+                  {t(ASSIGNMENT_LABELS.noCoursesAssigned)}
                 </div>
               ) : (
                 modalLearner.courses.map((c) => (
@@ -1459,7 +1458,7 @@ export function AssignmentDetailPage() {
                           icon={RotateCcw}
                           tone="neutral"
                           size="sm"
-                          title="Reset this course only"
+                          title={t(ASSIGNMENT_LABELS.resetThisCourseOnly)}
                         />
                       )}
                     </div>
@@ -1473,7 +1472,7 @@ export function AssignmentDetailPage() {
                 variant="ghost"
                 onClick={() => setCourseModalCode(null)}
               >
-                Close
+                {t(ASSIGNMENT_LABELS.close)}
               </AppButton>
             </div>
           </div>

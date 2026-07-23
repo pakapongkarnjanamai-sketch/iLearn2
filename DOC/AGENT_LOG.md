@@ -2,6 +2,18 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-23 —] Antigravity — Standardized UI Dictionary Phrasing & Consistency in labels.ts
+- ทำอะไร: สำรวจและปรับปรุงพจนานุกรมข้อความระบบใน `src/lib/labels.ts` เพื่อสร้างมาตรฐานภาษาไทยและอังกฤษที่มีความเป็นมืออาชีพ (Enterprise standard): (1) ปรับ `STATUS_LABELS` สำหรับ `Upcoming` เป็น "กำลังจะถึง" และ `'Due Soon'` เป็น "ใกล้ถึงกำหนดส่ง" เพื่อแยกความแตกต่างกับสถานะวันส่ง (2) ปรับ `COMMON_LABELS.notAssignable` เป็น "มอบหมายไม่ได้" (3) ปรับ `DASHBOARD_LABELS.colCompletion` เป็น "ความสำเร็จ" (แยกกับ Progress) และ `colTasks` เป็น "จำนวนงาน" (4) ปรับ `REPORT_LABELS.colCompletionShare` เป็น "อัตราการเรียนสำเร็จ" (5) แก้ไขแกรมม่าภาษาอังกฤษใน `COURSE_LABELS.forceResetCompleted` (6) ลบ trailing spaces ใน `LEARNER_LABELS.created`/`updated` และปรับ `bulkImportInstruction` ให้ใช้คำว่า "รหัสพนักงาน (EId)" (7) จัดรูป `ADMIN_LABELS` ให้แตกเป็น 1 entry ต่อบรรทัดอย่างเป็นระเบียบสวยงาม และปรับ `scormLaunchAuditNote` เป็น "ประวัติการตรวจสอบการเปิดเรียน..."
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/lib/labels.ts`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (UI Display labels inside React lib only; `statusTone` lookup mapping preserved)
+- Verified: `npm run lint` ✓ (0 errors); `npm run build` ✓ (built dist in 1.61s without errors).
+
+## [2026-07-23 —] GitHub Copilot — PLAN-138 follow-up: Assignment Detail modal sweep
+- ทำอะไร: ตรวจจาก production screenshot พบ `AssignmentDetailPage` modal แก้ไขคำอธิบายยังแสดงอังกฤษ (`Edit Description`, `Assignment Description`, placeholder, Cancel/Save). กวาดทั้งหน้าต่อ: due-date, add learner/course, learner course, reset/remove, confirm/toast/empty state/tooltip/footer ทั้งหมดเป็น `ASSIGNMENT_LABELS`/`UI_LABELS`; status overview ใช้ `learnerStatusLabel()` โดยคง derived-status logic เดิม
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `iLearn.Admin.React/src/lib/labels.ts`, `DOC/PLANS/PLAN-138-bilingual-zones-def-copilot.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (frontend display text only)
+- Verified: `npm run lint` ✓; `npm run build` ✓; literal/sweep ของหน้า AssignmentDetail ✓; `git diff --check` ✓. **ยังไม่ commit/deploy** — production URL ในภาพจะยังแสดง asset เดิมจนกว่าจะ deploy follow-up นี้
+
 ## [2026-07-23 —] GitHub Copilot — PLAN-138: bilingual Zone D–F complete
 - ทำอะไร: migrate display copy ของ React Admin ใน Zone D–F เข้า `src/lib/labels.ts`: เพิ่ม `COURSE_LABELS`, `ASSIGNMENT_LABELS`, `LEARNER_LABELS`, และ `ADMIN_LABELS`; แทน hardcoded JSX, toast, confirm, modal, tooltip, placeholder, wizard, empty/error state ของ Courses/Content, Assignments/Learners, Master Data/Users/System/Notifications. เก็บ LabelPair ใน module configs เพื่อกันภาษาค้างหลัง switch และ resolve ตอน render เท่านั้น. ปิด Zone D/E/F ใน PLAN-136 และ PLAN-138 เป็น DONE.
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/lib/labels.ts`, `src/pages/{courses,content-library,assignments,learner-groups,learners,master-data,users,system-config}`, `src/pages/{EntityListPage,moduleConfigs,AccessDeniedPage,NotFoundPage,notifications/NotificationsPage}`, `src/components/{shared/LearnerDirectorySelector,shared/UploadProgressOverlay,layout/NotificationBell,ui/AppTable}`; `DOC/PLANS/PLAN-136-full-bilingual-admin-ui.md`, `DOC/PLANS/PLAN-138-bilingual-zones-def-copilot.md`, `DOC/AGENT_LOG.md`
