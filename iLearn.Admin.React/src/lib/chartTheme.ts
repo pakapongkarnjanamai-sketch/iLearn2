@@ -2,11 +2,14 @@
 
 export const BRAND = '#4f46e5'
 
-// Colors matching statusTone(): Completed=success (emerald), In Progress=info (indigo), Not Started=neutral (slate), Overdue=danger (red), Upcoming=warning (amber)
+// Colors matching statusTone() in lib/labels.ts — keyed by the canonical status
+// keys from STATUS_LABELS (never by translated display text):
+// Completed=success (emerald), InProgress=info (indigo), NotStarted=neutral (slate),
+// Overdue=danger (red), Upcoming=warning (amber)
 export const STATUS_COLORS: Record<string, string> = {
   Completed: '#059669',
-  'In Progress': '#4f46e5',
-  'Not Started': '#94a3b8',
+  InProgress: '#4f46e5',
+  NotStarted: '#94a3b8',
   Overdue: '#dc2626',
   Upcoming: '#d97706',
 }

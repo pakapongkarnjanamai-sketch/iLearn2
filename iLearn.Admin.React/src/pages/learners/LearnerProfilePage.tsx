@@ -20,6 +20,7 @@ import {
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { formatDate } from '../../lib/format'
+import { COMMON_LABELS, t } from '../../lib/labels'
 
 type LearnerKpis = {
   totalCourses: number
@@ -177,18 +178,18 @@ export function LearnerProfilePage() {
                         </td>
                         <td className="p-3">
                           {isFinished ? (
-                            <StatusBadge tone="success" size="xxs">Passed</StatusBadge>
+                            <StatusBadge tone="success" size="xxs">{t(COMMON_LABELS.passed)}</StatusBadge>
                           ) : isCancelled ? (
                             <StatusBadge tone="warning" size="xxs">
                               <span className="inline-flex items-center gap-1" title="Rule Deleted">
                                 <AlertTriangle className="h-3 w-3" />
-                                Cancelled
+                                {t(COMMON_LABELS.cancelled)}
                               </span>
                             </StatusBadge>
                           ) : e.hasActiveAssignment ? (
-                            <StatusBadge tone="info" size="xxs">Assigned</StatusBadge>
+                            <StatusBadge tone="info" size="xxs">{t(COMMON_LABELS.assigned)}</StatusBadge>
                           ) : (
-                            <StatusBadge tone="neutral" size="xxs">Self-Enroll</StatusBadge>
+                            <StatusBadge tone="neutral" size="xxs">{t(COMMON_LABELS.selfEnroll)}</StatusBadge>
                           )}
                         </td>
                       </tr>

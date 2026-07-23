@@ -11,7 +11,7 @@ import {
 } from 'recharts'
 import { STATUS_COLORS, BRAND, tooltipStyle, axisStyle } from '../../lib/chartTheme'
 import { formatPercent } from '../../lib/format'
-import { LEARNER_STATUS_KEYS, learnerStatusLabel } from '../../lib/learnerStatus'
+import { LEARNER_STATUS_KEYS, learnerStatusLabel } from '../../lib/labels'
 
 type StatusEntry = { status: string; label: string; count: number }
 
@@ -53,7 +53,7 @@ export function StatusDonut({ data, completionRate, activeStatus }: StatusDonutP
               {filtered.map((entry) => (
                 <Cell
                   key={entry.status}
-                  fill={STATUS_COLORS[entry.label] ?? '#64748b'}
+                  fill={STATUS_COLORS[entry.status] ?? '#64748b'}
                   fillOpacity={hasActive && entry.status !== activeStatus ? 0.35 : 1}
                 />
               ))}
@@ -74,7 +74,7 @@ export function StatusDonut({ data, completionRate, activeStatus }: StatusDonutP
             <li key={d.status} className="flex items-center gap-1.5">
               <span
                 className="inline-block h-2.5 w-2.5 rounded-sm shrink-0"
-                style={{ background: STATUS_COLORS[d.label] ?? '#64748b' }}
+                style={{ background: STATUS_COLORS[d.status] ?? '#64748b' }}
               />
               <span className="text-slate-600">{d.label}</span>
               <span className="font-bold text-slate-800 tabular-nums">{d.count}</span>

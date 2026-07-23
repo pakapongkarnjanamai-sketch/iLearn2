@@ -25,6 +25,7 @@ import { fetchWithAccessControl, buildApiUrl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { formatBytes, formatDateTime, formatNumber } from '../../lib/format'
+import { COMMON_LABELS, contentTypeLabel, t } from '../../lib/labels'
 import { useSession } from '../../lib/sessionContext'
 
 // Mirrors ContentItemCourseReferenceDto (iLearn.Application/DTOs/ContentItemDto.cs)
@@ -57,7 +58,6 @@ type ContentLaunchResponse = {
   url?: string
 }
 
-const TYPE_LABEL: Record<number, string> = { 1: 'Learn', 2: 'Exam' }
 
 export function ContentItemDetailPage() {
   const { id } = useParams()
@@ -246,13 +246,13 @@ export function ContentItemDetailPage() {
             <Fact label="Status">
               <StatusText
                 active={item.isActive}
-                activeLabel="เผยแพร่แล้ว"
-                inactiveLabel="ฉบับร่าง"
+                activeLabel={t(COMMON_LABELS.published)}
+                inactiveLabel={t(COMMON_LABELS.draft)}
               />
             </Fact>
 
             <Fact label="Type" valueClassName="font-semibold">
-              {TYPE_LABEL[item.typeId] ?? `Type ${item.typeId}`}
+              {contentTypeLabel(item.typeId)}
             </Fact>
 
             <Fact label="SCORM Version" valueClassName="font-semibold">

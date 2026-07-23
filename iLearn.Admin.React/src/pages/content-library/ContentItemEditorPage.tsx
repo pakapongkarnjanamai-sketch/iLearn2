@@ -12,6 +12,7 @@ import { IconButton } from '../../components/ui/IconButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { ReadinessBadge } from '../../components/ui/ReadinessBadge'
 import { formatBytes } from '../../lib/format'
+import { contentTypeLabel } from '../../lib/labels'
 import { UploadProgressOverlay } from '../../components/shared/UploadProgressOverlay'
 
 const TYPE_OPTIONS = [
@@ -225,13 +226,13 @@ export function ContentItemEditorPage() {
                   >
                     {TYPE_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>
-                        {o.value === 1 ? 'Learn' : 'Exam'}
+                        {contentTypeLabel(o.value)}
                       </option>
                     ))}
                   </select>
                 </td>
                 <td className="px-3 py-2 select-none">
-                  <ReadinessBadge ready tone="info" label="Ready" />
+                  <ReadinessBadge ready tone="info" />
                 </td>
                 <td className="px-3 py-2 text-right">
                   <IconButton

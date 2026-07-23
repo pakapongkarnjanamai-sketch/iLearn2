@@ -5,7 +5,7 @@ import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
-import { learnerStatusLabel } from '../../lib/learnerStatus'
+import { COMMON_LABELS, learnerStatusLabel, t } from '../../lib/labels'
 
 type GanttTask = {
   id: number
@@ -136,7 +136,7 @@ export function AssignmentGanttPage() {
                   : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
               }`}
             >
-              {s === 'All' ? 'All' : learnerStatusLabel(s)} <span className="ml-1 text-slate-400">{counts[s] ?? 0}</span>
+              {s === 'All' ? t(COMMON_LABELS.all) : learnerStatusLabel(s)} <span className="ml-1 text-slate-400">{counts[s] ?? 0}</span>
             </button>
           ))}
         </div>

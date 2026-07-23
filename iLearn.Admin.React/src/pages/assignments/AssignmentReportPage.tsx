@@ -17,7 +17,7 @@ import { exportRowsAsCsv } from '../../lib/csvExport'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { toast } from '../../lib/toast'
 import { formatDate, formatPercent } from '../../lib/format'
-import { LEARNER_STATUS_KEYS, learnerStatusLabel } from '../../lib/learnerStatus'
+import { COMMON_LABELS, LEARNER_STATUS_KEYS, learnerStatusLabel, t } from '../../lib/labels'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 import { StatusDonut, CourseCompletionBars, buildStatusData, buildCourseBarData } from './AssignmentReportCharts'
 
@@ -420,7 +420,7 @@ export function AssignmentReportPage() {
                       variant="filter"
                       options={STATUS_FILTERS.map(s => ({
                         value: s,
-                        label: s === 'All' ? 'All' : learnerStatusLabel(s),
+                        label: s === 'All' ? t(COMMON_LABELS.all) : learnerStatusLabel(s),
                       }))}
                       value={statusFilter}
                       onChange={setStatusFilter}

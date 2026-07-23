@@ -11,6 +11,7 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { AppButton } from '../../components/ui/AppButton'
 import { Badge } from '../../components/ui/Badge'
+import { HEALTH_LABELS, t } from '../../lib/labels'
 import { LoadingState } from '../../components/ui/LoadingState'
 
 type DbConfigInfo = {
@@ -121,7 +122,7 @@ export function SystemConfigPage() {
                   <dt className="text-xs font-semibold text-slate-500 uppercase">Trust Server Certificate</dt>
                   <dd className="mt-1 text-sm">
                     <Badge tone={config.database.trustCert === 'true' ? 'warning' : 'success'}>
-                      {config.database.trustCert === 'true' ? 'Enabled' : 'Disabled (Secure)'}
+                      {t(config.database.trustCert === 'true' ? HEALTH_LABELS.enabled : HEALTH_LABELS.disabledSecure)}
                     </Badge>
                   </dd>
                 </div>

@@ -129,11 +129,7 @@ export function UserDetailPage() {
         <Card icon={User} title="Overview" bodyClassName="p-5 space-y-6">
           <FactGrid>
             <Fact label="Status">
-              <StatusText
-                active={user.isActive}
-                activeLabel="ใช้งานอยู่"
-                inactiveLabel="ปิดใช้งาน"
-              />
+              <StatusText active={user.isActive} />
             </Fact>
 
             <Fact label="Employee NID" mono valueClassName="font-bold">{user.nid}</Fact>

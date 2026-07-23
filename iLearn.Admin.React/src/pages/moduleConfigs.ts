@@ -1,3 +1,5 @@
+import { contentTypeLabel } from '../lib/labels'
+
 export type AdminGridColumn = {
   dataField: string
   caption: string
@@ -53,7 +55,7 @@ export const adminListConfigs = {
     gridNote: 'Uploaded interactive SCORM packages and launch parameters.',
     columns: [
       { dataField: 'name', caption: 'Content Name', minWidth: 260 },
-      { dataField: 'typeId', caption: 'Content Type', dataType: 'number', width: 130, alignment: 'center', cellRender: ({ value }: any) => value === 1 ? 'บทเรียน' : value === 2 ? 'แบบทดสอบ' : '—' },
+      { dataField: 'typeId', caption: 'Content Type', dataType: 'number', width: 130, alignment: 'center', cellRender: ({ value }: any) => value === 1 || value === 2 ? contentTypeLabel(value) : '—' },
       { dataField: 'schemaVersion', caption: 'SCORM', width: 120, alignment: 'center' },
       { dataField: 'isActive', caption: 'สถานะการเผยแพร่', dataType: 'boolean', width: 130, alignment: 'center' },
       { dataField: 'launchHref', caption: 'Launch Resource', minWidth: 220 },

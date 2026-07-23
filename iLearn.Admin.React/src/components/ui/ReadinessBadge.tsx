@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Badge, type BadgeTone, type BadgeVariant } from './Badge'
+import { READINESS_LABELS, t } from '../../lib/labels'
 
 type ContentReadinessInput = {
   source: 'upload' | 'library'
@@ -25,24 +26,24 @@ type ReadinessBadgeProps = {
 /** Maps content state to a consistent readiness label and badge tone. */
 export function getContentReadinessBadgeModel(item: ContentReadinessInput): ReadinessBadgeModel {
   if (item.source === 'upload') {
-    return { label: 'รออัปโหลด', tone: 'info', ready: false }
+    return { label: t(READINESS_LABELS.pendingUpload), tone: 'info', ready: false }
   }
 
   const isPublished = item.isPublished ?? item.isActive ?? false
   if (!isPublished) {
-    return { label: 'ยังไม่พร้อม', tone: 'danger', ready: false }
+    return { label: t(READINESS_LABELS.notReady), tone: 'danger', ready: false }
   }
 
   if (!item.url) {
-    return { label: 'ไม่มีลิงก์เปิดเรียน', tone: 'warning', ready: false }
+    return { label: t(READINESS_LABELS.missingLaunchUrl), tone: 'warning', ready: false }
   }
 
-  return { label: 'พร้อมใช้งาน', tone: 'success', ready: true }
+  return { label: t(READINESS_LABELS.ready), tone: 'success', ready: true }
 }
 
 export function ReadinessBadge({ ready = false, label, tone, variant = 'soft', size = 'xs' }: ReadinessBadgeProps) {
   const resolvedTone = tone ?? (ready ? 'info' : 'neutral')
-  const resolvedLabel = label ?? (ready ? 'พร้อมใช้งาน' : 'ยังไม่พร้อม')
+  const resolvedLabel = label ?? (ready ? t(READINESS_LABELS.ready) : t(READINESS_LABELS.notReady))
 
   return (
     <Badge variant={variant} tone={resolvedTone} size={size}>

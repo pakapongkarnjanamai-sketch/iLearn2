@@ -32,7 +32,7 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { formatDate } from '../../lib/format'
-import { LEARNER_STATUS_KEYS, learnerStatusLabel } from '../../lib/learnerStatus'
+import { COMMON_LABELS, LEARNER_STATUS_KEYS, learnerStatusLabel, t } from '../../lib/labels'
 import { DetailTabs } from '../../components/ui/DetailTabs'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 
@@ -939,7 +939,7 @@ export function AssignmentDetailPage() {
                                   {completedCount} / {totalCount} Completed
                                 </span>
                                 <StatusBadge size="xxs" tone={allCompleted ? 'success' : 'neutral'}>
-                                  {allCompleted ? 'Completed' : 'In Progress'}
+                                  {learnerStatusLabel(allCompleted ? 'Completed' : 'InProgress')}
                                 </StatusBadge>
                               </div>
                               {totalCount === 0 ? (
@@ -1278,7 +1278,7 @@ export function AssignmentDetailPage() {
                               <span className="font-mono text-slate-850 font-semibold">{l.code}</span>
                               {l.name !== l.code && <span className="text-slate-500 text-xxs">({l.name})</span>}
                               {unverifiedCodes.has(l.code) && (
-                                <StatusBadge size="xxs" tone="warning">Not found in directory</StatusBadge>
+                                <StatusBadge size="xxs" tone="warning">{t(COMMON_LABELS.notFoundInDirectory)}</StatusBadge>
                               )}
                             </div>
                             <button

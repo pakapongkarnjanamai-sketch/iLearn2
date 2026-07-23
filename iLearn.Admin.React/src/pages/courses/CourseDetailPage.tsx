@@ -35,7 +35,7 @@ import { Card } from '../../components/ui/Card'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { formatDate } from '../../lib/format'
-import { learnerStatusLabel } from '../../lib/learnerStatus'
+import { COMMON_LABELS, learnerStatusLabel, t } from '../../lib/labels'
 import { DetailTabs } from '../../components/ui/DetailTabs'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 
@@ -608,9 +608,9 @@ export function CourseDetailPage() {
                           </td>
                           <td className="p-3">
                             {v.isActive ? (
-                              <StatusBadge tone="success">Active Version</StatusBadge>
+                              <StatusBadge tone="success">{t(COMMON_LABELS.activeVersion)}</StatusBadge>
                             ) : (
-                              <StatusBadge tone="neutral">Inactive</StatusBadge>
+                              <StatusBadge tone="neutral">{t(COMMON_LABELS.inactiveVersion)}</StatusBadge>
                             )}
                           </td>
                           <td className="p-3 text-xs text-slate-500">

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Badge, type BadgeTone } from './Badge'
+import { COMMON_LABELS, t } from '../../lib/labels'
 
 type StatusTextProps = {
   children?: ReactNode
@@ -13,8 +14,8 @@ export function StatusText({
   children,
   active,
   tone,
-  activeLabel = 'ใช้งานอยู่',
-  inactiveLabel = 'ปิดใช้งาน',
+  activeLabel,
+  inactiveLabel,
 }: StatusTextProps) {
   let resolvedTone: BadgeTone = tone ?? 'neutral'
   let resolvedChildren: ReactNode = children
@@ -24,7 +25,9 @@ export function StatusText({
       resolvedTone = active ? 'success' : 'neutral'
     }
     if (!children) {
-      resolvedChildren = active ? activeLabel : inactiveLabel
+      resolvedChildren = active
+        ? (activeLabel ?? t(COMMON_LABELS.active))
+        : (inactiveLabel ?? t(COMMON_LABELS.inactive))
     }
   } else if (tone === 'success' || tone === 'warning' || tone === 'danger' || tone === 'info') {
     resolvedTone = tone

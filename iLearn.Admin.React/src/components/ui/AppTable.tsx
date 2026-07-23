@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { type AppClientStore } from '../../lib/createDataSource'
 import { formatDate } from '../../lib/format'
+import { COMMON_LABELS, t } from '../../lib/labels'
 import { Badge } from './Badge'
 import { AppTableSearch } from './table/AppTableSearch'
 import { AppTableFooter } from './table/AppTableFooter'
@@ -322,7 +323,9 @@ export function AppTable<T extends TableRecord>({
                           ) : col.dataType === 'boolean' ? (
                             <div className="flex justify-center">
                               <Badge variant="soft" tone={val ? 'success' : 'neutral'} size="xxs">
-                                {val ? (col.dataField === 'canAssign' ? 'มอบหมายได้' : 'ใช้งานอยู่') : (col.dataField === 'canAssign' ? 'ไม่อนุญาต' : 'ปิดใช้งาน')}
+                                {val
+                                  ? t(col.dataField === 'canAssign' ? COMMON_LABELS.assignable : COMMON_LABELS.active)
+                                  : t(col.dataField === 'canAssign' ? COMMON_LABELS.notAssignable : COMMON_LABELS.inactive)}
                               </Badge>
                             </div>
                           ) : col.dataType === 'datetime' || col.dataType === 'date' ? (

@@ -25,6 +25,7 @@ import { ExplorerTable, type ExplorerColumn } from '../../components/ui/explorer
 import { useExplorer } from '../../components/ui/explorer/useExplorer'
 import { ApiError, fetchWithAccessControl } from '../../lib/apiClient'
 import { formatDate } from '../../lib/format'
+import { COMMON_LABELS, t } from '../../lib/labels'
 import { toast } from '../../lib/toast'
 import { useSession } from '../../lib/sessionContext'
 
@@ -623,7 +624,7 @@ export function LearnerGroupListPage() {
       cellClassName: 'text-center',
       render: item => (
         <Badge variant="tag" tone={item.isFolder ? 'warning' : 'info'}>
-          {item.isFolder ? 'Folder' : 'Group'}
+          {t(item.isFolder ? COMMON_LABELS.folder : COMMON_LABELS.group)}
         </Badge>
       ),
     },

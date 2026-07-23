@@ -322,11 +322,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                   )}
 
                   <Fact label="Status">
-                    <StatusText
-                      active={item?.isActive}
-                      activeLabel="ใช้งานอยู่"
-                      inactiveLabel="ปิดใช้งาน"
-                    />
+                    <StatusText active={item?.isActive} />
                   </Fact>
 
                   <Fact

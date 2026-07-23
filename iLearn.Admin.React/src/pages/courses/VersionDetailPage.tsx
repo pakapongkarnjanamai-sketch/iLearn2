@@ -7,6 +7,7 @@ import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { AppButton } from '../../components/ui/AppButton'
 import { Badge } from '../../components/ui/Badge'
+import { COMMON_LABELS, t } from '../../lib/labels'
 import { IconButton } from '../../components/ui/IconButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
@@ -505,7 +506,7 @@ export function VersionDetailPage() {
                 <Fact label="Course Code" mono valueClassName="font-semibold">{data.course.courseCode}</Fact>
                 <Fact label="Status">
                   <StatusBadge tone={selectedVersion.isActive ? 'success' : 'neutral'}>
-                    {selectedVersion.isActive ? 'Active Version' : 'Inactive'}
+                    {t(selectedVersion.isActive ? COMMON_LABELS.activeVersion : COMMON_LABELS.inactiveVersion)}
                   </StatusBadge>
                 </Fact>
                 <Fact label="Created Date" valueClassName="font-semibold">{formatDate(selectedVersion.createdAt)}</Fact>

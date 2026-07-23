@@ -4,6 +4,7 @@ import { buildApiUrl, fetchWithAccessControl } from '../../lib/apiClient'
 import { formatDateTime, formatNumber } from '../../lib/format'
 import { AppButton } from '../../components/ui/AppButton'
 import { Badge } from '../../components/ui/Badge'
+import { HEALTH_LABELS, t } from '../../lib/labels'
 import { Card } from '../../components/ui/Card'
 import { LoadingState } from '../../components/ui/LoadingState'
 
@@ -72,14 +73,14 @@ const CHECK_LABELS: Record<string, string> = {
 
 function overallBadge(result: ProbeResult | null) {
   if (!result) {
-    return <Badge tone="neutral" variant="outline">Checking…</Badge>
+    return <Badge tone="neutral" variant="outline">{t(HEALTH_LABELS.checking)}</Badge>
   }
   if (result.kind === 'unreachable') {
-    return <Badge tone="warning" variant="outline">Unreachable</Badge>
+    return <Badge tone="warning" variant="outline">{t(HEALTH_LABELS.unreachable)}</Badge>
   }
   return result.report.status === 'pass'
-    ? <Badge tone="success" variant="outline">Operational</Badge>
-    : <Badge tone="danger" variant="outline">Degraded</Badge>
+    ? <Badge tone="success" variant="outline">{t(HEALTH_LABELS.operational)}</Badge>
+    : <Badge tone="danger" variant="outline">{t(HEALTH_LABELS.degraded)}</Badge>
 }
 
 function ProbeResultBody({ result }: { result: ProbeResult | null }) {
@@ -104,7 +105,7 @@ function ProbeResultBody({ result }: { result: ProbeResult | null }) {
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1">
               <Badge tone={check.status === 'pass' ? 'success' : 'danger'}>
-                {check.status === 'pass' ? 'Pass' : 'Fail'}
+                {t(check.status === 'pass' ? HEALTH_LABELS.pass : HEALTH_LABELS.fail)}
               </Badge>
               <span className="text-xs text-slate-400">{formatNumber(check.durationMs)} ms</span>
             </div>

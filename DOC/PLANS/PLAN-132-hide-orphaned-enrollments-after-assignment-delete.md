@@ -1,6 +1,6 @@
 # PLAN-132: ซ่อน Enrollment กำพร้าหลังลบ Assignment ให้สอดคล้องทุกมุมมอง (admin + reports)
 
-- **Status**: DONE
+- **Status**: VERIFIED
 - **Assigned**: GitHub Copilot (GPT)
 - **Created**: 2026-07-23
 
