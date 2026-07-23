@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
 import { Modal } from './Modal'
+import { t, UI_LABELS } from '../../lib/labels'
 
 /*
  * Standard confirmation dialog replacing window.confirm().
@@ -69,12 +70,14 @@ type ConfirmDialogProps = ConfirmOptions & {
 export function ConfirmDialog({
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   danger = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const resolvedConfirmLabel = confirmLabel ?? t(UI_LABELS.confirm)
+  const resolvedCancelLabel = cancelLabel ?? t(UI_LABELS.cancel)
   return (
     <Modal open onClose={onCancel} ariaLabel={title}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 select-none">
@@ -100,7 +103,7 @@ export function ConfirmDialog({
             onClick={onCancel}
             className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
           <button
             type="button"
@@ -110,7 +113,7 @@ export function ConfirmDialog({
               danger ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'
             }`}
           >
-            {confirmLabel}
+            {resolvedConfirmLabel}
           </button>
         </div>
     </Modal>

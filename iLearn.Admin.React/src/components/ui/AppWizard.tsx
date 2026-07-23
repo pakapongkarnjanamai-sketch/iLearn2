@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, Check, X, Loader2 } from 'lucide-react'
 import { AppButton } from './AppButton'
+import { t, UI_LABELS } from '../../lib/labels'
 
 export type WizardStep = {
   label: string
@@ -37,10 +38,13 @@ export function AppWizard({
   submitLabel,
   isSubmitting = false,
   submitIcon,
-  cancelLabel = 'Cancel',
-  prevLabel = 'Previous',
-  nextLabel = 'Continue',
+  cancelLabel,
+  prevLabel,
+  nextLabel,
 }: AppWizardProps) {
+  const resolvedCancelLabel = cancelLabel ?? t(UI_LABELS.cancel)
+  const resolvedPrevLabel = prevLabel ?? t(UI_LABELS.previous)
+  const resolvedNextLabel = nextLabel ?? t(UI_LABELS.continue)
   
   const handleStepClick = async (targetIndex: number) => {
     const targetStep = targetIndex + 1
@@ -141,7 +145,7 @@ export function AppWizard({
             type="button"
             onClick={onCancel}
             className="grid h-7 w-7 place-items-center ml-2 rounded-md border-none bg-transparent text-slate-400 cursor-pointer transition-all duration-150 hover:bg-red-50 hover:text-red-600"
-            aria-label={cancelLabel}
+            aria-label={resolvedCancelLabel}
           >
             <X className="h-4 w-4" />
           </button>
@@ -185,7 +189,7 @@ export function AppWizard({
                 icon={ArrowLeft}
                 className="px-4 py-2 text-xs font-bold uppercase tracking-wide shadow-3xs"
               >
-                {prevLabel}
+                {resolvedPrevLabel}
               </AppButton>
             )}
 
@@ -197,7 +201,7 @@ export function AppWizard({
                 icon={ArrowRight}
                 className="flex-row-reverse px-4 py-2 text-xs font-bold uppercase tracking-wide shadow-3xs"
               >
-                {nextLabel}
+                {resolvedNextLabel}
               </AppButton>
             ) : (
               <AppButton

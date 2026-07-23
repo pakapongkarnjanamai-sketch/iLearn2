@@ -5,7 +5,7 @@ type AppTableSearchProps = {
   value: string
   onChange: (value: string) => void
   totalCount: number
-  placeholder?: string
+  placeholder?: string | undefined
   toolbarContent?: ReactNode
 }
 
@@ -13,16 +13,16 @@ export function AppTableSearch({
   value,
   onChange,
   totalCount,
-  placeholder = 'Search...',
+  placeholder,
   toolbarContent
 }: AppTableSearchProps) {
+  // countUnit/searchPlaceholder defaults come from ListToolbar (central dictionary).
   return (
     <ListToolbar
       count={totalCount}
-      countUnit="records"
       searchValue={value}
       onSearchChange={onChange}
-      searchPlaceholder={placeholder}
+      {...(placeholder !== undefined ? { searchPlaceholder: placeholder } : {})}
       toolbarContent={toolbarContent}
     />
   )

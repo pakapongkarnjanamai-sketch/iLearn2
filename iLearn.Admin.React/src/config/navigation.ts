@@ -13,9 +13,11 @@ import {
   Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { NAV_LABELS, type LabelPair } from '../lib/labels'
 
 export type NavigationItem = {
-  label: string
+  /** Display label as a th/en pair — render with t(label). */
+  label: LabelPair
   path: string
   icon: LucideIcon
   /** When set, only users in any of these roles (or SuperAdmin) can see this item. */
@@ -27,8 +29,8 @@ export type NavigationItem = {
 }
 
 export type NavigationSection = {
-  /** Section heading shown above the items. Empty string hides the heading. */
-  label: string
+  /** Section heading shown above the items. Omit to hide the heading. */
+  label?: LabelPair
   /** Hides the whole section (heading included) from non-SuperAdmin users. */
   superAdminOnly?: boolean
   items: NavigationItem[]
@@ -43,49 +45,48 @@ export type NavigationSection = {
  */
 export const navigationSections: NavigationSection[] = [
   {
-    label: '',
     items: [
-      { label: 'Dashboard', path: '/', icon: Home },
+      { label: NAV_LABELS.dashboard, path: '/', icon: Home },
     ],
   },
   {
-    label: 'Learning',
+    label: NAV_LABELS.learning,
     items: [
-      { label: 'Courses', path: '/courses', icon: BookOpen },
-      { label: 'Assignments', path: '/assignments', icon: ClipboardList },
-      { label: 'Learner Groups', path: '/learner-groups', icon: Users },
+      { label: NAV_LABELS.courses, path: '/courses', icon: BookOpen },
+      { label: NAV_LABELS.assignments, path: '/assignments', icon: ClipboardList },
+      { label: NAV_LABELS.learnerGroups, path: '/learner-groups', icon: Users },
     ],
   },
   {
-    label: 'Operations',
+    label: NAV_LABELS.operations,
     items: [
-      { label: 'Content Library', path: '/content-library', icon: Library },
-      { label: 'Learners', path: '/learners', icon: UserRound },
-      { label: 'Reports', path: '/reports', icon: FileBarChart },
+      { label: NAV_LABELS.contentLibrary, path: '/content-library', icon: Library },
+      { label: NAV_LABELS.learners, path: '/learners', icon: UserRound },
+      { label: NAV_LABELS.reports, path: '/reports', icon: FileBarChart },
     ],
   },
   {
-    label: 'Super Admin',
+    label: NAV_LABELS.superAdmin,
     superAdminOnly: true,
     items: [
-      { label: 'Enrollments', path: '/enrollments', icon: FileText, superAdminOnly: true },
-      { label: 'Learning Logs', path: '/learning-logs', icon: FileText, superAdminOnly: true },
+      { label: NAV_LABELS.enrollments, path: '/enrollments', icon: FileText, superAdminOnly: true },
+      { label: NAV_LABELS.learningLogs, path: '/learning-logs', icon: FileText, superAdminOnly: true },
       {
-        label: 'Master Data',
+        label: NAV_LABELS.masterData,
         path: '/master-data/divisions',
         icon: Database,
         superAdminOnly: true,
         children: [
-          { label: 'Divisions', path: '/master-data/divisions', icon: Database },
-          { label: 'Categories', path: '/master-data/categories', icon: Database },
-          { label: 'Course Types', path: '/master-data/course-types', icon: Database },
-          { label: 'Roles', path: '/master-data/roles', icon: Database },
-          { label: 'Learner Group Categories', path: '/master-data/learner-group-categories', icon: Database },
+          { label: NAV_LABELS.divisions, path: '/master-data/divisions', icon: Database },
+          { label: NAV_LABELS.categories, path: '/master-data/categories', icon: Database },
+          { label: NAV_LABELS.courseTypes, path: '/master-data/course-types', icon: Database },
+          { label: NAV_LABELS.roles, path: '/master-data/roles', icon: Database },
+          { label: NAV_LABELS.learnerGroupCategories, path: '/master-data/learner-group-categories', icon: Database },
         ],
       },
-      { label: 'Admin Users', path: '/users', icon: UserCog, superAdminOnly: true },
-      { label: 'System Config', path: '/system-config', icon: Settings, superAdminOnly: true },
-      { label: 'Health Check', path: '/health-check', icon: Activity, superAdminOnly: true },
+      { label: NAV_LABELS.adminUsers, path: '/users', icon: UserCog, superAdminOnly: true },
+      { label: NAV_LABELS.systemConfig, path: '/system-config', icon: Settings, superAdminOnly: true },
+      { label: NAV_LABELS.healthCheck, path: '/health-check', icon: Activity, superAdminOnly: true },
     ],
   },
 ]

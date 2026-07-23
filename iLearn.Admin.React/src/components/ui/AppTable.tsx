@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { type AppClientStore } from '../../lib/createDataSource'
 import { formatDate } from '../../lib/format'
-import { COMMON_LABELS, t } from '../../lib/labels'
+import { COMMON_LABELS, t, UI_LABELS } from '../../lib/labels'
 import { Badge } from './Badge'
 import { AppTableSearch } from './table/AppTableSearch'
 import { AppTableFooter } from './table/AppTableFooter'
@@ -63,9 +63,9 @@ const formatDateValue = (value: unknown) => {
 export function AppTable<T extends TableRecord>({
   store,
   columns,
-  noDataText = 'No data records found',
+  noDataText,
   onRowDblClick,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder,
   searchExpr,
   externalFilters = [],
   toolbarContent,
@@ -302,7 +302,7 @@ export function AppTable<T extends TableRecord>({
                   colSpan={visibleColumns.length + (actionButtons ? 1 : 0)}
                   className="px-4 py-12 text-center text-slate-400 font-medium"
                 >
-                  {noDataText}
+                  {noDataText ?? t(UI_LABELS.noData)}
                 </td>
               </tr>
             ) : (

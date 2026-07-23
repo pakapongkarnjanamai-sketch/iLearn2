@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Search, X } from 'lucide-react'
+import { t, UI_LABELS } from '../../lib/labels'
 
 type ListToolbarProps = {
   count?: number
@@ -13,10 +14,10 @@ type ListToolbarProps = {
 
 export function ListToolbar({
   count,
-  countUnit = 'records',
+  countUnit,
   searchValue,
   onSearchChange,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder,
   toolbarContent,
   onClearSearch,
 }: ListToolbarProps) {
@@ -38,7 +39,7 @@ export function ListToolbar({
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
           {hasCount && (
             <span className="text-xs font-semibold text-slate-500 select-none">
-              Showing <strong className="text-slate-800">{count}</strong> {countUnit}
+              {t(UI_LABELS.showing)} <strong className="text-slate-800">{count}</strong> {countUnit ?? t(UI_LABELS.records)}
             </span>
           )}
 
@@ -56,7 +57,7 @@ export function ListToolbar({
           type="text"
           value={searchValue}
           onChange={(event) => onSearchChange(event.target.value)}
-          placeholder={searchPlaceholder}
+          placeholder={searchPlaceholder ?? t(UI_LABELS.search)}
           className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-9 text-xs font-semibold text-slate-700 shadow-3xs transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
         />
 

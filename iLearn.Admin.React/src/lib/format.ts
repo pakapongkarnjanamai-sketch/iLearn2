@@ -1,3 +1,5 @@
+import { getLang } from './labels'
+
 const dateFormatter = new Intl.DateTimeFormat('en-GB', {
   day: '2-digit',
   month: 'short',
@@ -103,33 +105,36 @@ export const formatDuration = (totalSeconds: number | null | undefined): string 
   return `${hours}h ${minutes}m`
 }
 
+// Relative time is display text, so it follows the UI language (PLAN-136);
+// absolute date/number formats stay language-neutral by design.
 export const formatRelativeTime = (value: Date | string | null | undefined): string => {
   if (!value) {
     return '-'
   }
 
+  const en = getLang() === 'en'
   const date = new Date(value)
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   const diffSecs = Math.floor(diffMs / 1000)
 
   if (diffSecs < 60) {
-    return 'เมื่อครู่'
+    return en ? 'just now' : 'เมื่อครู่'
   }
 
   const diffMins = Math.floor(diffSecs / 60)
   if (diffMins < 60) {
-    return `${diffMins} นาทีที่แล้ว`
+    return en ? `${diffMins} min ago` : `${diffMins} นาทีที่แล้ว`
   }
 
   const diffHours = Math.floor(diffMins / 60)
   if (diffHours < 24) {
-    return `${diffHours} ชั่วโมงที่แล้ว`
+    return en ? `${diffHours} hr ago` : `${diffHours} ชั่วโมงที่แล้ว`
   }
 
   const diffDays = Math.floor(diffHours / 24)
   if (diffDays < 7) {
-    return `${diffDays} วันที่แล้ว`
+    return en ? `${diffDays} days ago` : `${diffDays} วันที่แล้ว`
   }
 
   return formatDateTime(value)

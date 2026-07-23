@@ -1,8 +1,15 @@
 import { ArrowLeftRight, Menu } from 'lucide-react'
 import type { CurrentAdminUser } from '../../lib/auth'
 import { appConfig } from '../../config/appConfig'
+import { LAYOUT_LABELS, setLang, t, useLang, type UiLang } from '../../lib/labels'
+import { SegmentedToggle } from '../ui/SegmentedToggle'
 import { Breadcrumbs } from './Breadcrumbs'
 import { NotificationBell } from './NotificationBell'
+
+const LANG_OPTIONS: Array<{ value: UiLang; label: string }> = [
+  { value: 'th', label: 'ไทย' },
+  { value: 'en', label: 'EN' },
+]
 
 type HeaderProps = {
   currentUser: CurrentAdminUser | null
@@ -24,8 +31,9 @@ const getInitials = (name: string | undefined) => {
 }
 
 export function Header({ currentUser, sessionState: _sessionState, onMenuClick }: HeaderProps) {
-  const displayName = currentUser?.displayName ?? 'Loading user'
-  const divisionName = currentUser?.divisionName ?? 'Admin console'
+  const lang = useLang()
+  const displayName = currentUser?.displayName ?? t(LAYOUT_LABELS.loadingUser)
+  const divisionName = currentUser?.divisionName ?? t(LAYOUT_LABELS.adminConsole)
 
   // z-15 keeps the header above page content (sticky table headers and sticky columns all use
   // z-10) so the notification dropdown — stacked inside this header's context — is not painted
@@ -50,9 +58,15 @@ export function Header({ currentUser, sessionState: _sessionState, onMenuClick }
             className="admin-button inline-flex items-center justify-center gap-[7px] rounded-md border border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50 font-semibold min-h-[28px] px-2.5 text-xs no-underline [&_svg]:h-4 [&_svg]:w-4"
           >
             <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
-            Classic Admin
+            {t(LAYOUT_LABELS.classicAdmin)}
           </a>
         )}
+        <SegmentedToggle
+          options={LANG_OPTIONS}
+          value={lang}
+          onChange={(next: UiLang) => setLang(next)}
+          className="hidden sm:flex"
+        />
         <NotificationBell />
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="grid h-8 w-8 place-items-center rounded-full bg-indigo-100 text-indigo-600 font-bold" aria-hidden="true">

@@ -3,12 +3,16 @@ import { Outlet } from 'react-router-dom'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 import { SessionProvider, useSession } from '../../lib/sessionContext'
+import { useLang } from '../../lib/labels'
 import { BreadcrumbProvider } from '../../lib/breadcrumbContext'
 import { NotificationProvider } from '../../lib/notificationContext'
 
 function AppLayoutInner() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth > 1120)
   const { user, state } = useSession()
+  // Remount the whole layout when the language changes so every t() call
+  // re-resolves — guarantees no stale text at the cost of transient UI state.
+  const lang = useLang()
 
   useEffect(() => {
     const handleResize = () => {
@@ -22,8 +26,8 @@ function AppLayoutInner() {
     state === 'ready' ? 'ready' : state === 'unauthenticated' ? 'unauthenticated' : state === 'fallback' ? 'fallback' : 'loading'
 
   return (
-    <div className="flex min-h-screen bg-slate-50/60">
-      <Sidebar 
+    <div key={lang} className="flex min-h-screen bg-slate-50/60">
+      <Sidebar
         isOpen={isSidebarOpen} 
         onNavigate={() => {
           if (window.innerWidth <= 1120) {

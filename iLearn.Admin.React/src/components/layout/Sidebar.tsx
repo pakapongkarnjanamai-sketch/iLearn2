@@ -4,6 +4,7 @@ import { ChevronDown } from 'lucide-react'
 import { appConfig } from '../../config/appConfig'
 import { navigationSections, type NavigationItem, type NavigationSection } from '../../config/navigation'
 import { useSession } from '../../lib/sessionContext'
+import { t } from '../../lib/labels'
 import { Badge } from '../ui/Badge'
 
 
@@ -49,7 +50,7 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
               (child.path !== '/' && location.pathname.startsWith(child.path + '/')),
           )
           if (hasActiveChild) {
-            initial[item.path || item.label] = true
+            initial[item.path || item.label.en] = true
           }
         }
       })
@@ -70,7 +71,7 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
                 location.pathname === child.path ||
                 (child.path !== '/' && location.pathname.startsWith(child.path + '/')),
             )
-            const key = item.path || item.label
+            const key = item.path || item.label.en
             if (hasActiveChild && !next[key]) {
               next[key] = true
               changed = true
@@ -123,14 +124,14 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
 
       <nav className="flex flex-1 flex-col overflow-y-auto py-3.5 px-2.5">
         {visibleSections.map((section, sectionIndex) => (
-          <div key={section.label || sectionIndex} className={sectionIndex > 0 ? 'mt-4' : ''}>
+          <div key={section.label?.en ?? sectionIndex} className={sectionIndex > 0 ? 'mt-4' : ''}>
             {section.label && (
               <div
                 className={`px-2.5 pb-1.5 text-[10px] font-extrabold uppercase tracking-wider select-none ${
                   section.superAdminOnly ? 'text-amber-400/90' : 'text-slate-500'
                 }`}
               >
-                {section.label}
+                {t(section.label)}
               </div>
             )}
 
@@ -142,14 +143,14 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
 
                 if (hasChildren) {
                   const isAct = isParentActive(item)
-                  const isExpanded = !!expanded[item.path || item.label]
+                  const isExpanded = !!expanded[item.path || item.label.en]
 
                   return (
                     <div key={item.path}>
                       <button
                         type="button"
                         aria-expanded={isExpanded}
-                        aria-controls={`submenu-${item.label.replace(/\s+/g, '-').toLowerCase()}`}
+                        aria-controls={`submenu-${item.label.en.replace(/\s+/g, '-').toLowerCase()}`}
                         className={`flex w-full items-center gap-2.5 min-h-[34px] rounded-md px-2.5 text-[13.5px] font-medium [&_svg]:w-[16px] [&_svg]:h-[16px] text-left focus-visible:outline-none transition-colors duration-150 cursor-pointer ${
                           isAct
                             ? 'bg-slate-800/60 text-white font-semibold [&_svg]:text-slate-300'
@@ -158,12 +159,12 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
                         onClick={() => {
                           setExpanded((prev) => ({
                             ...prev,
-                            [item.path || item.label]: !prev[item.path || item.label],
+                            [item.path || item.label.en]: !prev[item.path || item.label.en],
                           }))
                         }}
                       >
                         <Icon aria-hidden="true" />
-                        <span className="flex-1">{item.label}</span>
+                        <span className="flex-1">{t(item.label)}</span>
                         <ChevronDown
                           className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${
                             isExpanded ? 'rotate-180 text-white' : ''
@@ -172,7 +173,7 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
                         />
                       </button>
                       <div
-                        id={`submenu-${item.label.replace(/\s+/g, '-').toLowerCase()}`}
+                        id={`submenu-${item.label.en.replace(/\s+/g, '-').toLowerCase()}`}
                         className={`grid transition-[grid-template-rows] duration-200 ease-in-out ${
                           isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
                         }`}
@@ -193,7 +194,7 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
                                 }
                                 onClick={onNavigate}
                               >
-                                {child.label}
+                                {t(child.label)}
                               </NavLink>
                             ))}
                           </div>
@@ -218,7 +219,7 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
                       onClick={onNavigate}
                     >
                       <Icon aria-hidden="true" />
-                      <span>{item.label}</span>
+                      <span>{t(item.label)}</span>
                     </NavLink>
                   </div>
                 )

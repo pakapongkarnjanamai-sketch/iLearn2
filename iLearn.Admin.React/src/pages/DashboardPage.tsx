@@ -26,6 +26,7 @@ import { useSession } from '../lib/sessionContext'
 import { useNotifications } from '../lib/notificationContext'
 import { toast } from '../lib/toast'
 import { formatDate, formatNumber, formatPercent, formatRelativeTime } from '../lib/format'
+import { CRUMB_LABELS, DASHBOARD_LABELS, learnerStatusLabel, t, tf } from '../lib/labels'
 import {
   fetchDashboardOverview,
   fetchMaintenanceStatus,
@@ -60,7 +61,7 @@ class ChartErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryStat
       return (
         <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2 text-xs font-medium">
           <AlertTriangle className="h-5 w-5 text-amber-500" aria-hidden="true" />
-          <span>ไม่สามารถแสดงกราฟได้</span>
+          <span>{t(DASHBOARD_LABELS.chartError)}</span>
         </div>
       )
     }
@@ -95,7 +96,7 @@ export function DashboardPage() {
       setMaintenance(mt)
       setActivities(acts)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'ไม่สามารถโหลดแดชบอร์ดได้'
+      const message = err instanceof Error ? err.message : t(DASHBOARD_LABELS.loadFailed)
       toast.error(message)
     } finally {
       setIsLoading(false)
@@ -136,21 +137,21 @@ export function DashboardPage() {
 
   const scopeLabel = useMemo(() => {
     if (!overview) return user?.divisionName ?? '—'
-    if (overview.scope.isGlobal) return 'ทุกสังกัด'
+    if (overview.scope.isGlobal) return t(DASHBOARD_LABELS.allDivisions)
     return overview.scope.divisionName ?? user?.divisionName ?? '—'
   }, [overview, user])
 
   if (isLoading && !overview) {
-    return <LoadingState label="กำลังโหลดแดชบอร์ด..." />
+    return <LoadingState label={t(DASHBOARD_LABELS.loading)} />
   }
 
   if (!overview) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-slate-500 gap-3">
         <AlertTriangle className="h-6 w-6 text-amber-500" aria-hidden="true" />
-        <p className="text-sm font-semibold">ไม่สามารถโหลดแดชบอร์ดได้</p>
+        <p className="text-sm font-semibold">{t(DASHBOARD_LABELS.loadFailed)}</p>
         <AppButton variant="secondary" icon={RefreshCw} onClick={() => void loadAll()}>
-          ลองใหม่
+          {t(DASHBOARD_LABELS.retry)}
         </AppButton>
       </div>
     )
@@ -166,7 +167,7 @@ export function DashboardPage() {
           <div className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider mb-1">
             iLearn Admin
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-800">ภาพรวมการดำเนินงาน</h1>
+          <h1 className="text-2xl font-extrabold text-slate-800">{t(DASHBOARD_LABELS.pageTitle)}</h1>
           <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500 font-medium">
             {overview.scope.isGlobal ? (
               <Globe2 className="h-3.5 w-3.5" aria-hidden="true" />
@@ -175,19 +176,19 @@ export function DashboardPage() {
             )}
             <span className="font-bold text-slate-700">{scopeLabel}</span>
             <span className="text-slate-300">•</span>
-            <span>อัปเดต {formatRelativeTime(overview.generatedAt)}</span>
+            <span>{tf(DASHBOARD_LABELS.updated, formatRelativeTime(overview.generatedAt))}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <AppButton variant="secondary" icon={PlusCircle} onClick={() => navigate('/courses/new')}>
-            สร้างคอร์สใหม่
+            {t(DASHBOARD_LABELS.newCourse)}
           </AppButton>
           <AppButton
             variant="primary"
             icon={ClipboardList}
             onClick={() => navigate('/assignments/bulk')}
           >
-            มอบหมายงานใหม่
+            {t(DASHBOARD_LABELS.newAssignment)}
           </AppButton>
         </div>
       </header>
@@ -197,7 +198,7 @@ export function DashboardPage() {
         <div className="border border-amber-200 rounded-lg bg-amber-50/60 shadow-xs p-4 flex flex-col gap-1.5">
           <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-            กำลังดำเนินการปรับปรุงระบบ
+            {t(DASHBOARD_LABELS.maintenanceInProgress)}
           </div>
           {maintenance.operations.map((op) => (
             <div key={op.operationId} className="text-xs text-amber-800 pl-5">
@@ -215,45 +216,45 @@ export function DashboardPage() {
       <Card bodyClassName="p-0 grid auto-cols-fr grid-flow-col divide-x divide-slate-200">
         <KpiTile
           icon={AlertTriangle}
-          label="งานเกินกำหนด"
+          label={t(DASHBOARD_LABELS.overdueTasks)}
           value={formatNumber(kpi.overdueTasks)}
           valueTone="rose"
           to="/assignments"
           meta={
             <>
-              จาก <span className="font-bold text-slate-700">{formatNumber(kpi.totalLearningTasks)}</span> งานทั้งหมด
+              {t(DASHBOARD_LABELS.fromPrefix)} <span className="font-bold text-slate-700">{formatNumber(kpi.totalLearningTasks)}</span> {t(DASHBOARD_LABELS.totalTasksSuffix)}
             </>
           }
         />
         <KpiTile
           icon={History}
-          label="ใกล้ถึงกำหนด"
+          label={t(DASHBOARD_LABELS.dueSoon)}
           value={formatNumber(kpi.dueSoonTasks)}
           valueTone="amber"
           to="/assignments"
-          meta="ภายใน 7 วัน"
+          meta={t(DASHBOARD_LABELS.within7Days)}
         />
         <KpiTile
           icon={GraduationCap}
-          label="อัตราเรียนสำเร็จ"
+          label={t(DASHBOARD_LABELS.completionRate)}
           value={formatPercent(kpi.completionRate, Number.isInteger(kpi.completionRate) ? 0 : 1)}
           valueTone="indigo"
           to="/reports/courses"
           meta={
             <>
-              <span className="font-bold text-slate-700">{formatNumber(kpi.assignedLearners)}</span> ผู้เรียน ·{' '}
+              <span className="font-bold text-slate-700">{formatNumber(kpi.assignedLearners)}</span> {t(DASHBOARD_LABELS.learnersUnit)} ·{' '}
               <span className="font-bold text-slate-700">{formatNumber(kpi.completedLearningTasks)}</span>/
-              <span className="font-bold text-slate-700">{formatNumber(kpi.totalLearningTasks)}</span> งาน
+              <span className="font-bold text-slate-700">{formatNumber(kpi.totalLearningTasks)}</span> {t(DASHBOARD_LABELS.tasksUnit)}
             </>
           }
         />
         <KpiTile
           icon={BookOpen}
-          label="กิจกรรมการเรียน 30 วัน"
+          label={t(DASHBOARD_LABELS.learningActivity30)}
           value={formatNumber(kpi.learningSessionsLast30)}
           meta={
             <span className="inline-flex items-center gap-1.5">
-              <span>30 วันก่อนหน้า</span>
+              <span>{t(DASHBOARD_LABELS.previous30Days)}</span>
               <span className="text-slate-300">·</span>
               <DeltaTag delta={kpi.learningSessionDelta} />
             </span>
@@ -263,30 +264,30 @@ export function DashboardPage() {
 
       {/* Priority Assignments Table */}
       <Card
-        title="งานมอบหมายที่ต้องจัดการ"
+        title={t(DASHBOARD_LABELS.priorityAssignments)}
         icon={ClipboardList}
         actions={
           <Link
             to="/assignments"
             className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
           >
-            ดูทั้งหมด →
+            {t(DASHBOARD_LABELS.viewAll)} →
           </Link>
         }
       >
         {priorityAssignments.length === 0 ? (
-          <EmptyRow label="ไม่มีงานมอบหมายที่ต้องจัดการในขณะนี้" />
+          <EmptyRow label={t(DASHBOARD_LABELS.noPriorityAssignments)} />
         ) : (
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-xs text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs select-none">
-                  <Th>งานมอบหมาย (Assignment)</Th>
-                  <Th>สถานะ (Status)</Th>
-                  <Th align="right">ผู้เรียน (Learners)</Th>
-                  <Th>กำหนดส่ง (Due Date)</Th>
-                  <Th>ความคืบหน้า (Completion)</Th>
-                  <Th align="right">การดำเนินการ</Th>
+                  <Th>{t(DASHBOARD_LABELS.colAssignment)}</Th>
+                  <Th>{t(DASHBOARD_LABELS.colStatus)}</Th>
+                  <Th align="right">{t(DASHBOARD_LABELS.colLearners)}</Th>
+                  <Th>{t(DASHBOARD_LABELS.colDueDate)}</Th>
+                  <Th>{t(DASHBOARD_LABELS.colCompletion)}</Th>
+                  <Th align="right">{t(DASHBOARD_LABELS.colActions)}</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -299,7 +300,7 @@ export function DashboardPage() {
                       )}
                     </Td>
                     <Td>
-                      <StatusBadge size="xxs">{a.status}</StatusBadge>
+                      <StatusBadge size="xxs">{learnerStatusLabel(a.status)}</StatusBadge>
                     </Td>
                     <Td align="right">
                       <span className="tabular-nums font-bold text-slate-700">
@@ -317,7 +318,7 @@ export function DashboardPage() {
                         to={`/assignments/${a.assignmentId}`}
                         className="text-indigo-600 font-bold hover:text-indigo-800"
                       >
-                        รายละเอียด →
+                        {t(CRUMB_LABELS.details)} →
                       </Link>
                     </Td>
                   </tr>
@@ -329,18 +330,18 @@ export function DashboardPage() {
       </Card>
 
       {/* Courses Needing Attention Table */}
-      <Card title="คอร์สที่ต้องติดตาม" icon={BookOpen}>
+      <Card title={t(DASHBOARD_LABELS.courseAttention)} icon={BookOpen}>
         {courseAttention.length === 0 ? (
-          <EmptyRow label="ทุกคอร์สเป็นไปตามแผน" />
+          <EmptyRow label={t(DASHBOARD_LABELS.allCoursesOnTrack)} />
         ) : (
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-xs text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs select-none">
-                  <Th>คอร์สเรียน (Course)</Th>
-                  <Th align="right">งานเรียน (Tasks)</Th>
-                  <Th align="right">เกินกำหนด (Overdue)</Th>
-                  <Th>ความคืบหน้า (Completion)</Th>
+                  <Th>{t(DASHBOARD_LABELS.colCourse)}</Th>
+                  <Th align="right">{t(DASHBOARD_LABELS.colTasks)}</Th>
+                  <Th align="right">{learnerStatusLabel('Overdue')}</Th>
+                  <Th>{t(DASHBOARD_LABELS.colCompletion)}</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -379,10 +380,10 @@ export function DashboardPage() {
       {/* Bottom Grid: Trends & Recent Activity */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card
-          title="แนวโน้มกิจกรรมการเรียน"
+          title={t(DASHBOARD_LABELS.activityTrend)}
           icon={TrendingUp}
           className="lg:col-span-2"
-          actions={<span className="text-xxs font-medium text-slate-400">6 เดือนล่าสุด</span>}
+          actions={<span className="text-xxs font-medium text-slate-400">{t(DASHBOARD_LABELS.last6Months)}</span>}
         >
           <div className="p-4">
             <ChartErrorBoundary>
@@ -392,7 +393,7 @@ export function DashboardPage() {
         </Card>
 
         <Card
-          title="กิจกรรมล่าสุดของผู้ดูแล"
+          title={t(DASHBOARD_LABELS.recentAdminActivity)}
           icon={History}
           actions={
             <Badge tone={isSignalRConnected ? 'success' : 'neutral'} variant="soft" size="xxs">
@@ -402,13 +403,13 @@ export function DashboardPage() {
                 }`}
                 aria-hidden="true"
               />
-              {isSignalRConnected ? 'เรียลไทม์' : 'รีเฟรชอัตโนมัติ'}
+              {t(isSignalRConnected ? DASHBOARD_LABELS.realtime : DASHBOARD_LABELS.autoRefresh)}
             </Badge>
           }
         >
           <div className="p-4">
             {activities.length === 0 ? (
-              <EmptyRow label="ยังไม่มีกิจกรรมล่าสุด" />
+              <EmptyRow label={t(DASHBOARD_LABELS.noRecentActivity)} />
             ) : (
               <ul className="flex flex-col divide-y divide-slate-100">
                 {activities.map((act) => (
@@ -485,7 +486,7 @@ function KpiTile({
 }
 
 function DeltaTag({ delta }: { delta: number }) {
-  if (delta === 0) return <span className="text-slate-500 font-medium">คงที่</span>
+  if (delta === 0) return <span className="text-slate-500 font-medium">{t(DASHBOARD_LABELS.steady)}</span>
   const isUp = delta > 0
   const Icon = isUp ? ArrowUpRight : ArrowDownRight
   const color = isUp ? 'text-emerald-700' : 'text-rose-700'

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { LoadingState } from '../LoadingState'
+import { t, UI_LABELS } from '../../../lib/labels'
 
 export type ExplorerColumn<TItem> = {
   key: string
@@ -22,7 +23,7 @@ type ExplorerTableProps<TItem> = {
 
 export function ExplorerTable<TItem>({
   loading,
-  loadingLabel = 'Loading directory...',
+  loadingLabel,
   emptyText,
   columns,
   items,
@@ -33,7 +34,7 @@ export function ExplorerTable<TItem>({
   return (
     <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-3xs">
       {loading ? (
-        <LoadingState size="section" label={loadingLabel} className="h-full" />
+        <LoadingState size="section" label={loadingLabel ?? t(UI_LABELS.loadingDirectory)} className="h-full" />
       ) : (
         <div className="custom-scrollbar h-full overflow-auto">
           <table className="min-w-full divide-y divide-slate-100 text-left text-xs">

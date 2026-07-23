@@ -8,10 +8,11 @@ import {
 } from 'recharts'
 import type { LearningActivityPoint } from './dashboardApi'
 import { BRAND, tooltipStyle, axisStyle } from '../../lib/chartTheme'
+import { DASHBOARD_LABELS, t } from '../../lib/labels'
 
 export function LearningActivityChart({ data }: { data: LearningActivityPoint[] }) {
   if (!data || data.length === 0) {
-    return <EmptyChart label="ไม่มีข้อมูลกิจกรรมการเรียนใน 6 เดือนล่าสุด" />
+    return <EmptyChart label={t(DASHBOARD_LABELS.noActivityData)} />
   }
   return (
     <ResponsiveContainer width="100%" height={220}>

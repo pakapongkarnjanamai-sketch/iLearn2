@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react'
+import { t, UI_LABELS } from '../../../lib/labels'
 
 type AppTableFooterProps = {
   loadedCount: number
@@ -18,12 +19,12 @@ export function AppTableFooter({
       {loading && loadedCount > 0 ? (
         <div className="flex items-center gap-1.5 text-indigo-500 uppercase font-bold tracking-wider animate-pulse">
           <Loader2 className="h-3 w-3 animate-spin" />
-          <span>Loading more...</span>
+          <span>{t(UI_LABELS.loadingMore)}</span>
         </div>
       ) : hasMore ? (
-        <span className="text-slate-400">Scroll down to load more</span>
+        <span className="text-slate-400">{t(UI_LABELS.scrollToLoadMore)}</span>
       ) : totalCount > 0 ? (
-        <span className="text-emerald-600 font-bold">All records loaded</span>
+        <span className="text-emerald-600 font-bold">{t(UI_LABELS.allRecordsLoaded)}</span>
       ) : null}
     </footer>
   )

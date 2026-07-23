@@ -1,26 +1,27 @@
 import { Link, useLocation } from 'react-router-dom'
 import { ChevronRight, Home } from 'lucide-react'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
+import { CRUMB_LABELS, NAV_LABELS, t, type LabelPair } from '../../lib/labels'
 
-const SEGMENT_MAP: Record<string, string> = {
-  'courses': 'Courses',
-  'student-groups': 'Learner Groups',
-  'learner-groups': 'Learner Groups',
-  'assignments': 'Assignments',
-  'content-library': 'Content Library',
-  'learners': 'Learners',
-  'users': 'Admin Users',
-  'master-data': 'Master Data',
-  'student-group-categories': 'Learner Group Categories',
-  'learner-group-categories': 'Learner Group Categories',
-  'system-config': 'System Config',
-  'health-check': 'Health Check',
-  'new': 'Create',
-  'edit': 'Modify',
-  'version': 'Version',
-  'profile': 'Profile',
-  'gantt': 'Schedule',
-  'bulk': 'Assign Courses'
+const SEGMENT_MAP: Record<string, LabelPair> = {
+  'courses': NAV_LABELS.courses,
+  'student-groups': NAV_LABELS.learnerGroups,
+  'learner-groups': NAV_LABELS.learnerGroups,
+  'assignments': NAV_LABELS.assignments,
+  'content-library': NAV_LABELS.contentLibrary,
+  'learners': NAV_LABELS.learners,
+  'users': NAV_LABELS.adminUsers,
+  'master-data': NAV_LABELS.masterData,
+  'student-group-categories': NAV_LABELS.learnerGroupCategories,
+  'learner-group-categories': NAV_LABELS.learnerGroupCategories,
+  'system-config': NAV_LABELS.systemConfig,
+  'health-check': NAV_LABELS.healthCheck,
+  'new': CRUMB_LABELS.create,
+  'edit': CRUMB_LABELS.modify,
+  'version': CRUMB_LABELS.version,
+  'profile': CRUMB_LABELS.profile,
+  'gantt': CRUMB_LABELS.schedule,
+  'bulk': CRUMB_LABELS.assignCourses,
 }
 
 export function Breadcrumbs() {
@@ -34,7 +35,7 @@ export function Breadcrumbs() {
         <Link
           to="/"
           className="flex items-center text-slate-400 hover:text-slate-600 transition p-0.5 rounded"
-          title="Dashboard Home"
+          title={t(CRUMB_LABELS.dashboardHome)}
         >
           <Home className="h-3.5 w-3.5" />
         </Link>
@@ -67,7 +68,7 @@ export function Breadcrumbs() {
       <Link 
         to="/" 
         className="flex items-center text-slate-400 hover:text-slate-600 transition p-0.5 rounded"
-        title="Dashboard Home"
+        title={t(CRUMB_LABELS.dashboardHome)}
       >
         <Home className="h-3.5 w-3.5" />
       </Link>
@@ -89,12 +90,14 @@ export function Breadcrumbs() {
           to = `/courses/${pathnames[1]}`
         }
         
-        // Resolve breadcrumb text segment
-        let label = labels[value] || SEGMENT_MAP[value]
+        // Resolve breadcrumb text segment — page-provided labels (entity names)
+        // stay as-is; known route segments come from the central dictionary.
+        const mapped = SEGMENT_MAP[value]
+        let label = labels[value] || (mapped ? t(mapped) : '')
         if (!label) {
           // If the segment is an ID (is a number or is a dynamic hash NID like 500124)
           if (/^\d+$/.test(value) || value.length > 10 || (value.startsWith('CR-') || value.startsWith('LG-'))) {
-            label = labels[value] || 'Details'
+            label = t(CRUMB_LABELS.details)
           } else {
             label = value.charAt(0).toUpperCase() + value.slice(1)
           }
