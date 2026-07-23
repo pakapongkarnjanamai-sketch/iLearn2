@@ -2,6 +2,12 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-23 —] GitHub Copilot — commit + deploy QA/PROD (Antigravity course summary UX changes)
+- ทำอะไร: Verify + commit + deploy งานของ Antigravity (course summary infinite scroll / remove KPI header / ReportHub Thai localization). **§0 Verify**: `npm run lint` ✓, `npm run build` ✓ (1.41s), `dotnet test` 242/242 ✓, no pending migrations. **§1 Commit**: `a11dc73` "feat(reports): course summary infinite scroll + remove KPI header cards; report hub Thai localization" (3 files changed, 56 ins / 165 del). **§2 QA deploy**: API stamp `20260723081121` → `\\AP-NTC2138-QAWB\wwwroot\iLearn\Service` ✓; React robocopy ExitCode:3 → `\\AP-NTC2138-QAWB\wwwroot\iLearn\admin-react` ✓. **§3 PROD deploy**: API stamp `20260723081307` health check HTTP 401 ✓ → `\\ap-ntc2137-prwb\wwwroot\iLearn\Service`; React robocopy ExitCode:3 → `\\ap-ntc2137-prwb\wwwroot\iLearn\admin-react` ✓.
+- ไฟล์หลักที่แตะ: `DOC/AGENT_LOG.md`; server-side: QA + PROD API + admin-react deploy
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: lint/build/tests ผ่าน; QA+PROD health OK; no pending migrations
+
 ## [2026-07-23 —] Antigravity — Course Summary Report UI Simplification & Report Hub Thai Localization
 - ทำอะไร: (1) ปรับปรุงหน้า `CourseSummaryReportPage.tsx` (`/reports/courses`): ปรับระบบโหลดข้อมูลตารางเป็นแบบ **Infinite Scroll** (โหลดครั้งละ 100 รายการเมื่อเลื่อน scrollbar ลงล่างสุด) และยกเลิกส่วน Header bar กับ 5 KPI summary cards ตามคำสั่งผู้ใช้ (2) ปรับปรุงหน้า `ReportHubPage.tsx` (`/reports`): เปลี่ยนคำอธิบาย ชื่อการ์ด ป้ายแท็ก และข้อความนำทางในหน้า Report Hub ทั้งหมดเป็นภาษาไทยที่กระชับและชัดเจนเข้าใจง่าย
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/reports/CourseSummaryReportPage.tsx`, `iLearn.Admin.React/src/pages/reports/ReportHubPage.tsx`, `DOC/AGENT_LOG.md`
