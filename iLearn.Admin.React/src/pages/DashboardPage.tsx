@@ -5,11 +5,7 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   BookOpen,
-  CalendarRange,
   ClipboardList,
-  Database,
-  FileBarChart,
-  FolderTree,
   Globe2,
   GraduationCap,
   History,
@@ -17,17 +13,19 @@ import {
   Loader2,
   PlusCircle,
   RefreshCw,
-  Users,
+  TrendingUp,
   type LucideIcon,
 } from 'lucide-react'
+import { Card } from '../components/ui/Card'
 import { AppButton } from '../components/ui/AppButton'
 import { Badge } from '../components/ui/Badge'
 import { LoadingState } from '../components/ui/LoadingState'
 import { StatusBadge } from '../components/ui/StatusBadge'
+import { ProgressBar } from '../components/ui/ProgressBar'
 import { useSession } from '../lib/sessionContext'
 import { useNotifications } from '../lib/notificationContext'
 import { toast } from '../lib/toast'
-import { formatDateTime, formatNumber, formatPercent } from '../lib/format'
+import { formatDate, formatNumber, formatPercent, formatRelativeTime } from '../lib/format'
 import {
   fetchDashboardOverview,
   fetchMaintenanceStatus,
@@ -36,43 +34,7 @@ import {
   type DashboardOverview,
   type MaintenanceStatus,
 } from './dashboard/dashboardApi'
-import {
-  CategoryMixChart,
-  LearningActivityChart,
-  TaskStatusLegend,
-  TaskStatusPie,
-} from './dashboard/DashboardCharts'
-
-
-
-const formatDateShort = (value: string | null) => {
-  if (!value) return '—'
-  try {
-    return new Intl.DateTimeFormat('en-GB', {
-      day: '2-digit',
-      month: 'short',
-    }).format(new Date(value))
-  } catch {
-    return '—'
-  }
-}
-
-const relativeTime = (iso: string) => {
-  try {
-    const date = new Date(iso)
-    const diffMs = Date.now() - date.getTime()
-    const mins = Math.floor(diffMs / 60000)
-    if (mins < 1) return 'just now'
-    if (mins < 60) return `${mins}m ago`
-    const hours = Math.floor(mins / 60)
-    if (hours < 24) return `${hours}h ago`
-    const days = Math.floor(hours / 24)
-    if (days < 7) return `${days}d ago`
-    return formatDateTime(iso)
-  } catch {
-    return '—'
-  }
-}
+import { LearningActivityChart } from './dashboard/DashboardCharts'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -84,22 +46,21 @@ interface ErrorBoundaryState {
 
 class ChartErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
-    hasError: false
+    hasError: false,
   }
 
   public static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     return { hasError: true }
   }
 
-  public componentDidCatch(_error: Error, _errorInfo: React.ErrorInfo) {
-  }
+  public componentDidCatch(_error: Error, _errorInfo: React.ErrorInfo) {}
 
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2 text-xs">
+        <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2 text-xs font-medium">
           <AlertTriangle className="h-5 w-5 text-amber-500" aria-hidden="true" />
-          <span>Chart display error</span>
+          <span>ไม่สามารถแสดงกราฟได้</span>
         </div>
       )
     }
@@ -110,7 +71,7 @@ class ChartErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryStat
 
 export function DashboardPage() {
   const navigate = useNavigate()
-  const { user, isSuperAdmin } = useSession()
+  const { user } = useSession()
   const { isConnected: isSignalRConnected, subscribeHubEvent } = useNotifications()
   const [overview, setOverview] = useState<DashboardOverview | null>(null)
   const [maintenance, setMaintenance] = useState<MaintenanceStatus | null>(null)
@@ -134,7 +95,7 @@ export function DashboardPage() {
       setMaintenance(mt)
       setActivities(acts)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load dashboard'
+      const message = err instanceof Error ? err.message : 'ไม่สามารถโหลดแดชบอร์ดได้'
       toast.error(message)
     } finally {
       setIsLoading(false)
@@ -163,8 +124,7 @@ export function DashboardPage() {
     }
   }, [])
 
-  // Live admin activity feed via SignalR — uses the central connection from NotificationProvider
-  // instead of opening a second connection to the same hub (tech debt fix from PLAN-089).
+  // Live admin activity feed via SignalR — uses central connection from NotificationProvider
   useEffect(() => {
     const unsubscribe = subscribeHubEvent('AdminActivityCreated', () => {
       fetchRecentAdminActivities(10)
@@ -176,38 +136,38 @@ export function DashboardPage() {
 
   const scopeLabel = useMemo(() => {
     if (!overview) return user?.divisionName ?? '—'
-    if (overview.scope.isGlobal) return 'All divisions'
+    if (overview.scope.isGlobal) return 'ทุกสังกัด'
     return overview.scope.divisionName ?? user?.divisionName ?? '—'
   }, [overview, user])
 
   if (isLoading && !overview) {
-    return <LoadingState label="Loading dashboard..." />
+    return <LoadingState label="กำลังโหลดแดชบอร์ด..." />
   }
 
   if (!overview) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-slate-500 gap-3">
         <AlertTriangle className="h-6 w-6 text-amber-500" aria-hidden="true" />
-        <p className="text-sm">Dashboard could not be loaded.</p>
+        <p className="text-sm font-semibold">ไม่สามารถโหลดแดชบอร์ดได้</p>
         <AppButton variant="secondary" icon={RefreshCw} onClick={() => void loadAll()}>
-          Retry
+          ลองใหม่
         </AppButton>
       </div>
     )
   }
 
-  const { kpi, taskStatus, learningActivity, categoryMix, priorityAssignments, courseAttention } =
-    overview
+  const { kpi, learningActivity, priorityAssignments, courseAttention } = overview
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Header */}
       <header className="flex flex-wrap items-end justify-between gap-3 pb-4 border-b border-slate-200/60">
         <div>
-          <div className="text-xxs font-extrabold text-slate-400 uppercase mb-1">iLearn Admin</div>
-          <h1 className="text-2xl font-extrabold text-slate-800">
-            Operational summary
-          </h1>
-          <div className="flex items-center gap-2 mt-2 text-xs text-slate-500">
+          <div className="text-xxs font-extrabold text-slate-400 uppercase tracking-wider mb-1">
+            iLearn Admin
+          </div>
+          <h1 className="text-2xl font-extrabold text-slate-800">ภาพรวมการดำเนินงาน</h1>
+          <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500 font-medium">
             {overview.scope.isGlobal ? (
               <Globe2 className="h-3.5 w-3.5" aria-hidden="true" />
             ) : (
@@ -215,28 +175,29 @@ export function DashboardPage() {
             )}
             <span className="font-bold text-slate-700">{scopeLabel}</span>
             <span className="text-slate-300">•</span>
-            <span>Generated {relativeTime(overview.generatedAt)}</span>
+            <span>อัปเดต {formatRelativeTime(overview.generatedAt)}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <AppButton variant="secondary" icon={PlusCircle} onClick={() => navigate('/courses/new')}>
-            New Course
+            สร้างคอร์สใหม่
           </AppButton>
           <AppButton
             variant="primary"
             icon={ClipboardList}
             onClick={() => navigate('/assignments/bulk')}
           >
-            New Assignment
+            มอบหมายงานใหม่
           </AppButton>
         </div>
       </header>
 
+      {/* Maintenance Banner */}
       {maintenance?.hasActiveMaintenance && maintenance.operations.length > 0 && (
         <div className="border border-amber-200 rounded-lg bg-amber-50/60 shadow-xs p-4 flex flex-col gap-1.5">
           <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-            Maintenance in progress
+            กำลังดำเนินการปรับปรุงระบบ
           </div>
           {maintenance.operations.map((op) => (
             <div key={op.operationId} className="text-xs text-amber-800 pl-5">
@@ -250,136 +211,95 @@ export function DashboardPage() {
         </div>
       )}
 
-      <section
-        aria-label="Key performance indicators"
-        className="grid auto-cols-fr grid-flow-col gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs"
-      >
+      {/* Action-First KPI Strip */}
+      <Card bodyClassName="p-0 grid auto-cols-fr grid-flow-col divide-x divide-slate-200">
         <KpiTile
-          icon={BookOpen}
-          label="Course Portfolio"
-          value={formatNumber(kpi.activeCourses)}
-          to="/courses"
-          meta={
-            <>
-              <span className="font-bold text-slate-700">{formatNumber(kpi.draftCourses)}</span> draft
-              <span className="text-slate-300 mx-1.5">·</span>
-              <span className="font-bold text-slate-700">{formatNumber(kpi.contentItemCount)}</span>{' '}
-              content items
-            </>
-          }
-        />
-        <KpiTile
-          icon={ClipboardList}
-          label="Active Assignments"
-          value={formatNumber(kpi.activeAssignmentBatches)}
+          icon={AlertTriangle}
+          label="งานเกินกำหนด"
+          value={formatNumber(kpi.overdueTasks)}
+          valueTone="rose"
           to="/assignments"
           meta={
             <>
-              <span className="font-bold text-amber-700">{formatNumber(kpi.dueSoonTasks)}</span> due
-              soon
-              <span className="text-slate-300 mx-1.5">·</span>
-              <span className="font-bold text-rose-700">{formatNumber(kpi.overdueTasks)}</span>{' '}
-              overdue
-            </>
-          }
-        />
-        <KpiTile
-          icon={GraduationCap}
-          label="Learner Progress"
-          value={formatNumber(kpi.assignedLearners)}
-          to={isSuperAdmin ? '/learners' : '/assignments'}
-          meta={
-            <>
-              <span className="font-bold text-emerald-700">
-                {formatPercent(kpi.completionRate, Number.isInteger(kpi.completionRate) ? 0 : 1)}
-              </span>{' '}
-              completion
-              <span className="text-slate-300 mx-1.5">·</span>
-              <span className="font-bold text-slate-700">
-                {formatNumber(kpi.totalLearningTasks)}
-              </span>{' '}
-              tasks
+              จาก <span className="font-bold text-slate-700">{formatNumber(kpi.totalLearningTasks)}</span> งานทั้งหมด
             </>
           }
         />
         <KpiTile
           icon={History}
-          label="Learning Activity"
+          label="ใกล้ถึงกำหนด"
+          value={formatNumber(kpi.dueSoonTasks)}
+          valueTone="amber"
+          to="/assignments"
+          meta="ภายใน 7 วัน"
+        />
+        <KpiTile
+          icon={GraduationCap}
+          label="อัตราเรียนสำเร็จ"
+          value={formatPercent(kpi.completionRate, Number.isInteger(kpi.completionRate) ? 0 : 1)}
+          valueTone="indigo"
+          to="/reports/courses"
+          meta={
+            <>
+              <span className="font-bold text-slate-700">{formatNumber(kpi.assignedLearners)}</span> ผู้เรียน ·{' '}
+              <span className="font-bold text-slate-700">{formatNumber(kpi.completedLearningTasks)}</span>/
+              <span className="font-bold text-slate-700">{formatNumber(kpi.totalLearningTasks)}</span> งาน
+            </>
+          }
+        />
+        <KpiTile
+          icon={BookOpen}
+          label="กิจกรรมการเรียน 30 วัน"
           value={formatNumber(kpi.learningSessionsLast30)}
           meta={
-            <span className="inline-flex items-center gap-1">
-              last 30 days
-              <span className="text-slate-300 mx-1">·</span>
+            <span className="inline-flex items-center gap-1.5">
+              <span>30 วันก่อนหน้า</span>
+              <span className="text-slate-300">·</span>
               <DeltaTag delta={kpi.learningSessionDelta} />
             </span>
           }
         />
-      </section>
+      </Card>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4 lg:col-span-2">
-          <SectionHeader title="Learning Activity Trends" subtitle="Last 6 months" />
-          <ChartErrorBoundary>
-            <LearningActivityChart data={learningActivity} />
-          </ChartErrorBoundary>
-        </div>
-        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-          <SectionHeader
-            title="Task Status"
-            subtitle={`${formatNumber(kpi.totalLearningTasks)} total tasks`}
-          />
-          <ChartErrorBoundary>
-            <TaskStatusPie data={taskStatus} />
-            <div className="mt-2">
-              <TaskStatusLegend data={taskStatus} />
-            </div>
-          </ChartErrorBoundary>
-        </div>
-      </section>
-
-      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs">
-        <div className="p-4 pb-0">
-          <SectionHeader
-            title="Priority Assignment Reports"
-            trailing={
-              <Link
-                to="/assignments"
-                className="text-xs font-bold text-indigo-600 hover:text-indigo-800"
-              >
-                View all →
-              </Link>
-            }
-          />
-        </div>
+      {/* Priority Assignments Table */}
+      <Card
+        title="งานมอบหมายที่ต้องจัดการ"
+        icon={ClipboardList}
+        actions={
+          <Link
+            to="/assignments"
+            className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+          >
+            ดูทั้งหมด →
+          </Link>
+        }
+      >
         {priorityAssignments.length === 0 ? (
-          <EmptyRow label="No assignments need attention right now." />
+          <EmptyRow label="ไม่มีงานมอบหมายที่ต้องจัดการในขณะนี้" />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-xs text-left border-collapse">
               <thead>
-                <tr className="text-left text-slate-500 border-b border-slate-200/60">
-                  <Th>Assignment</Th>
-                  <Th>Status</Th>
-                  <Th align="right">Learners</Th>
-                  <Th>Due</Th>
-                  <Th>Completion</Th>
-                  <Th align="right">Open</Th>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs select-none">
+                  <Th>งานมอบหมาย (Assignment)</Th>
+                  <Th>สถานะ (Status)</Th>
+                  <Th align="right">ผู้เรียน (Learners)</Th>
+                  <Th>กำหนดส่ง (Due Date)</Th>
+                  <Th>ความคืบหน้า (Completion)</Th>
+                  <Th align="right">การดำเนินการ</Th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
                 {priorityAssignments.map((a) => (
-                  <tr
-                    key={a.assignmentId}
-                    className="border-b border-slate-100/70 hover:bg-slate-50/50 transition-colors"
-                  >
+                  <tr key={a.assignmentId} className="hover:bg-slate-50/50 transition-colors">
                     <Td>
                       <div className="font-bold text-slate-800">{a.assignmentNo}</div>
                       {a.description && (
-                        <div className="text-slate-500 truncate max-w-md">{a.description}</div>
+                        <div className="text-slate-500 truncate max-w-md mt-0.5">{a.description}</div>
                       )}
                     </Td>
                     <Td>
-                      <StatusBadge>{a.status}</StatusBadge>
+                      <StatusBadge size="xxs">{a.status}</StatusBadge>
                     </Td>
                     <Td align="right">
                       <span className="tabular-nums font-bold text-slate-700">
@@ -387,17 +307,17 @@ export function DashboardPage() {
                       </span>
                     </Td>
                     <Td>
-                      <span className="text-slate-600">{formatDateShort(a.dueDate)}</span>
+                      <span className="text-slate-600 font-semibold">{formatDate(a.dueDate)}</span>
                     </Td>
                     <Td>
-                      <CompletionBar value={a.completionRate} />
+                      <ProgressBar value={a.completionRate} completed={a.completionRate >= 100} />
                     </Td>
                     <Td align="right">
                       <Link
                         to={`/assignments/${a.assignmentId}`}
                         className="text-indigo-600 font-bold hover:text-indigo-800"
                       >
-                        Detail →
+                        รายละเอียด →
                       </Link>
                     </Td>
                   </tr>
@@ -406,169 +326,114 @@ export function DashboardPage() {
             </table>
           </div>
         )}
-      </section>
+      </Card>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs lg:col-span-2">
-          <div className="p-4 pb-0">
-            <SectionHeader
-              title="Courses Needing Attention"
-            />
-          </div>
-          {courseAttention.length === 0 ? (
-            <EmptyRow label="All courses are on track." />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-left text-slate-500 border-b border-slate-200/60">
-                    <Th>Course</Th>
-                    <Th align="right">Tasks</Th>
-                    <Th align="right">Overdue</Th>
-                    <Th>Completion</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {courseAttention.map((c) => (
-                    <tr
-                      key={c.courseId}
-                      className="border-b border-slate-100/70 hover:bg-slate-50/50"
-                    >
-                      <Td>
-                        <Link
-                          to={`/courses/${c.courseId}`}
-                          className="font-bold text-slate-800 hover:text-indigo-700"
-                        >
-                          {c.courseCode} — {c.courseTitle}
-                        </Link>
-                        {c.categoryName && (
-                          <div className="text-slate-500">{c.categoryName}</div>
-                        )}
-                      </Td>
-                      <Td align="right">
-                        <span className="tabular-nums">{formatNumber(c.learnerTasks)}</span>
-                      </Td>
-                      <Td align="right">
-                        <span className="tabular-nums font-bold text-rose-700">
-                          {formatNumber(c.overdueTasks)}
-                        </span>
-                      </Td>
-                      <Td>
-                        <CompletionBar value={c.completionRate} />
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-          <SectionHeader title="Course Categories" subtitle="Top 6 by course count" />
-          <ChartErrorBoundary>
-            <CategoryMixChart data={categoryMix} />
-          </ChartErrorBoundary>
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4 lg:col-span-2">
-          <SectionHeader title="Report Hub" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            <ReportLink
-              to="/assignments"
-              icon={ClipboardList}
-              title="Assignment Reports"
-            />
-            <ReportLink
-              to="/courses"
-              icon={BookOpen}
-              title="Course Catalog"
-            />
-            <ReportLink
-              to="/content-library"
-              icon={FolderTree}
-              title="Content Library"
-            />
-            {isSuperAdmin && (
-              <ReportLink
-                to="/learners"
-                icon={Users}
-                title="Learner Directory"
-              />
-            )}
-            <ReportLink
-              to="/learner-groups"
-              icon={Users}
-              title="Learner Groups"
-            />
-            {isSuperAdmin && (
-              <ReportLink
-                to="/master-data"
-                icon={Database}
-                title="Master Data"
-              />
-            )}
-            <ReportLink
-              to="/assignments/bulk"
-              icon={CalendarRange}
-              title="Bulk Assign"
-            />
-            <ReportLink
-              to="/reports"
-              icon={FileBarChart}
-              title="Report Hub"
-            />
-          </div>
-        </div>
-        <div className="border border-slate-200 rounded-lg bg-white shadow-xs p-4">
-          <SectionHeader
-            title="Recent Admin Activity"
-            subtitle={`${activities.length} item(s)`}
-            trailing={
-              <Badge tone={isSignalRConnected ? 'success' : 'neutral'} variant="soft" size="xxs">
-                <span
-                  className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
-                    isSignalRConnected ? 'bg-emerald-500 shadow-[0_0_0_2px_rgb(209_250_229)]' : 'bg-slate-400'
-                  }`}
-                  aria-hidden="true"
-                />
-                {isSignalRConnected ? 'Live' : 'Polling'}
-              </Badge>
-            }
-          />
-          {activities.length === 0 ? (
-            <EmptyRow label="No recent activity." />
-          ) : (
-            <ul className="flex flex-col">
-              {activities.map((act) => (
-                <li
-                  key={act.id}
-                  className="py-2 border-b border-slate-100/70 last:border-b-0 flex items-start gap-2"
-                >
-                  <FileBarChart
-                    className="h-3.5 w-3.5 text-slate-400 mt-0.5 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-slate-800 truncate">{act.title}</div>
-                    <div className="text-xxs text-slate-500 flex items-center gap-1.5">
-                      <span>{act.actionType}</span>
-                      <span className="text-slate-300">·</span>
-                      <span>{relativeTime(act.createdAt)}</span>
-                      {act.createdBy && (
-                        <>
-                          <span className="text-slate-300">·</span>
-                          <span>{act.createdBy}</span>
-                        </>
+      {/* Courses Needing Attention Table */}
+      <Card title="คอร์สที่ต้องติดตาม" icon={BookOpen}>
+        {courseAttention.length === 0 ? (
+          <EmptyRow label="ทุกคอร์สเป็นไปตามแผน" />
+        ) : (
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs select-none">
+                  <Th>คอร์สเรียน (Course)</Th>
+                  <Th align="right">งานเรียน (Tasks)</Th>
+                  <Th align="right">เกินกำหนด (Overdue)</Th>
+                  <Th>ความคืบหน้า (Completion)</Th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {courseAttention.map((c) => (
+                  <tr key={c.courseId} className="hover:bg-slate-50/50 transition-colors">
+                    <Td>
+                      <Link
+                        to={`/courses/${c.courseId}`}
+                        className="font-bold text-slate-800 hover:text-indigo-700"
+                      >
+                        {c.courseCode} — {c.courseTitle}
+                      </Link>
+                      {c.categoryName && (
+                        <div className="text-slate-500 mt-0.5">{c.categoryName}</div>
                       )}
+                    </Td>
+                    <Td align="right">
+                      <span className="tabular-nums font-semibold">{formatNumber(c.learnerTasks)}</span>
+                    </Td>
+                    <Td align="right">
+                      <span className="tabular-nums font-bold text-rose-600">
+                        {formatNumber(c.overdueTasks)}
+                      </span>
+                    </Td>
+                    <Td>
+                      <ProgressBar value={c.completionRate} completed={c.completionRate >= 100} />
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {/* Bottom Grid: Trends & Recent Activity */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card
+          title="แนวโน้มกิจกรรมการเรียน"
+          icon={TrendingUp}
+          className="lg:col-span-2"
+          actions={<span className="text-xxs font-medium text-slate-400">6 เดือนล่าสุด</span>}
+        >
+          <div className="p-4">
+            <ChartErrorBoundary>
+              <LearningActivityChart data={learningActivity} />
+            </ChartErrorBoundary>
+          </div>
+        </Card>
+
+        <Card
+          title="กิจกรรมล่าสุดของผู้ดูแล"
+          icon={History}
+          actions={
+            <Badge tone={isSignalRConnected ? 'success' : 'neutral'} variant="soft" size="xxs">
+              <span
+                className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
+                  isSignalRConnected ? 'bg-emerald-500 shadow-[0_0_0_2px_rgb(209_250_229)]' : 'bg-slate-400'
+                }`}
+                aria-hidden="true"
+              />
+              {isSignalRConnected ? 'เรียลไทม์' : 'รีเฟรชอัตโนมัติ'}
+            </Badge>
+          }
+        >
+          <div className="p-4">
+            {activities.length === 0 ? (
+              <EmptyRow label="ยังไม่มีกิจกรรมล่าสุด" />
+            ) : (
+              <ul className="flex flex-col divide-y divide-slate-100">
+                {activities.map((act) => (
+                  <li key={act.id} className="py-2.5 first:pt-0 last:pb-0 flex items-start gap-2.5">
+                    <div className="h-2 w-2 rounded-full bg-indigo-500 mt-1.5 shrink-0" aria-hidden="true" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-bold text-slate-800 truncate">{act.title}</div>
+                      <div className="text-xxs text-slate-500 flex items-center gap-1.5 mt-0.5 font-medium">
+                        <span>{act.actionType}</span>
+                        <span className="text-slate-300">·</span>
+                        <span>{formatRelativeTime(act.createdAt)}</span>
+                        {act.createdBy && (
+                          <>
+                            <span className="text-slate-300">·</span>
+                            <span>{act.createdBy}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </Card>
       </section>
     </div>
   )
@@ -578,25 +443,36 @@ function KpiTile({
   icon: Icon,
   label,
   value,
+  valueTone,
   meta,
   to,
 }: {
   icon: LucideIcon
   label: string
   value: string
+  valueTone?: 'rose' | 'amber' | 'indigo' | 'default'
   meta?: ReactNode
   to?: string
 }) {
+  const textColor =
+    valueTone === 'rose'
+      ? 'text-rose-600'
+      : valueTone === 'amber'
+      ? 'text-amber-600'
+      : valueTone === 'indigo'
+      ? 'text-indigo-600'
+      : 'text-slate-800'
+
   const content = (
-    <div className="min-w-0 border-r border-slate-200 p-4 last:border-r-0 flex flex-col gap-1">
-      <div className="flex items-center gap-1.5 text-xxs font-extrabold text-slate-400 uppercase">
+    <div className="p-4 flex flex-col gap-1">
+      <div className="flex items-center gap-1.5 text-xxs font-extrabold text-slate-400 uppercase tracking-wider">
         <Icon className="h-3.5 w-3.5" aria-hidden="true" />
         {label}
       </div>
-      <div className="text-2xl font-extrabold text-slate-800 tabular-nums leading-tight">
+      <div className={`text-2xl font-extrabold ${textColor} tabular-nums leading-tight`}>
         {value}
       </div>
-      {meta && <div className="text-xs text-slate-500">{meta}</div>}
+      {meta && <div className="text-xs text-slate-500 font-medium">{meta}</div>}
     </div>
   )
   return to ? (
@@ -609,7 +485,7 @@ function KpiTile({
 }
 
 function DeltaTag({ delta }: { delta: number }) {
-  if (delta === 0) return <span className="text-slate-500">flat</span>
+  if (delta === 0) return <span className="text-slate-500 font-medium">คงที่</span>
   const isUp = delta > 0
   const Icon = isUp ? ArrowUpRight : ArrowDownRight
   const color = isUp ? 'text-emerald-700' : 'text-rose-700'
@@ -622,30 +498,10 @@ function DeltaTag({ delta }: { delta: number }) {
   )
 }
 
-function SectionHeader({
-  title,
-  subtitle,
-  trailing,
-}: {
-  title: string
-  subtitle?: string
-  trailing?: ReactNode
-}) {
-  return (
-    <div className="flex items-end justify-between gap-2 mb-3 pb-2 border-b border-slate-200/60">
-      <div>
-        <h2 className="text-sm font-extrabold text-slate-700">{title}</h2>
-        {subtitle && <div className="text-xxs text-slate-400 mt-0.5">{subtitle}</div>}
-      </div>
-      {trailing}
-    </div>
-  )
-}
-
 function Th({ children, align = 'left' }: { children: ReactNode; align?: 'left' | 'right' }) {
   return (
     <th
-      className={`text-xxs font-extrabold uppercase px-4 py-3 ${
+      className={`px-4 py-3 text-xxs font-extrabold uppercase text-slate-500 ${
         align === 'right' ? 'text-right' : 'text-left'
       }`}
     >
@@ -656,53 +512,18 @@ function Th({ children, align = 'left' }: { children: ReactNode; align?: 'left' 
 
 function Td({ children, align = 'left' }: { children: ReactNode; align?: 'left' | 'right' }) {
   return (
-    <td className={`px-4 py-3 align-middle text-slate-700 font-semibold ${align === 'right' ? 'text-right' : ''}`}>{children}</td>
-  )
-}
-
-function CompletionBar({ value }: { value: number }) {
-  const pct = Math.max(0, Math.min(100, value ?? 0))
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden min-w-20">
-        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${pct}%` }} />
-      </div>
-      <span className="text-xxs font-bold text-slate-600 tabular-nums w-10 text-right">
-        {formatPercent(pct)}
-      </span>
-    </div>
+    <td
+      className={`px-4 py-3 align-middle text-slate-700 font-semibold ${
+        align === 'right' ? 'text-right' : ''
+      }`}
+    >
+      {children}
+    </td>
   )
 }
 
 function EmptyRow({ label }: { label: string }) {
-  return <div className="py-6 text-center text-xs text-slate-400">{label}</div>
-}
-
-function ReportLink({
-  to,
-  icon: Icon,
-  title,
-}: {
-  to: string
-  icon: LucideIcon
-  title: string
-}) {
-  return (
-    <Link
-      to={to}
-      className="group flex items-start gap-2.5 p-2.5 rounded-md border border-slate-200/60 hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors"
-    >
-      <div className="h-7 w-7 rounded bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0">
-        <Icon
-          className="h-3.5 w-3.5 text-slate-600 group-hover:text-indigo-700"
-          aria-hidden="true"
-        />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-xs font-bold text-slate-800 group-hover:text-indigo-800">{title}</div>
-      </div>
-    </Link>
-  )
+  return <div className="py-8 text-center text-xs text-slate-400 font-medium">{label}</div>
 }
 
 export default DashboardPage

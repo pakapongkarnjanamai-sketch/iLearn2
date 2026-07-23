@@ -256,13 +256,31 @@ namespace iLearn.Application.Services
 
             var groupMap = courseGroups.ToDictionary(g => g.CourseId);
 
-            // 3. Count assignments per course
-            var assignmentCounts = await _assignmentRepo.GetQuery()
+            // 3. Count assignments per course across all sources (single-course, multi-course batch, and linked enrollment assignments)
+            var singleCourseAssignments = _assignmentRepo.GetQuery()
                 .AsNoTracking()
                 .Where(a => a.CourseId.HasValue && courseIds.Contains(a.CourseId.Value))
                 .Where(a => !divisionId.HasValue || a.DivisionId == divisionId.Value)
-                .GroupBy(a => a.CourseId!.Value)
-                .Select(g => new { CourseId = g.Key, Count = g.Count() })
+                .Select(a => new { CourseId = a.CourseId!.Value, AssignmentId = a.Id });
+
+            var multiCourseAssignments = _assignmentRepo.GetQuery()
+                .AsNoTracking()
+                .Where(a => !divisionId.HasValue || a.DivisionId == divisionId.Value)
+                .SelectMany(a => a.AssignmentCourses.Select(ac => new { CourseId = ac.CourseId, AssignmentId = a.Id }))
+                .Where(x => courseIds.Contains(x.CourseId));
+
+            var linkedAssignments = _enrollmentAssignmentRepo.GetQuery()
+                .AsNoTracking()
+                .Where(ea => ea.AssignmentId > 0 && ea.Enrollment != null && ea.Enrollment.CourseId.HasValue && courseIds.Contains(ea.Enrollment.CourseId.Value))
+                .Where(ea => ea.Assignment != null)
+                .Where(ea => !divisionId.HasValue || ea.Assignment!.DivisionId == divisionId.Value)
+                .Select(ea => new { CourseId = ea.Enrollment!.CourseId!.Value, AssignmentId = ea.AssignmentId });
+
+            var assignmentCounts = await singleCourseAssignments
+                .Union(multiCourseAssignments)
+                .Union(linkedAssignments)
+                .GroupBy(x => x.CourseId)
+                .Select(g => new { CourseId = g.Key, Count = g.Select(x => x.AssignmentId).Distinct().Count() })
                 .ToListAsync(cancellationToken);
 
             var assignmentCountMap = assignmentCounts.ToDictionary(a => a.CourseId, a => a.Count);
