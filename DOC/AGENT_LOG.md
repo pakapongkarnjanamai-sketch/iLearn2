@@ -2,6 +2,12 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-23 —] GitHub Copilot — commit + deploy QA/PROD (Antigravity report pages standardization)
+- ทำอะไร: Verify + commit + deploy งานของ Antigravity (standardize all report pages: Thai localization, infinite scroll, viewport height layout + CourseSummary column cleanup). **§0 Verify**: `npm run lint` ✓, `npm run build` ✓ (1.40s). **§1 Commit**: `566e2b4` "feat(reports): standardize all report pages — Thai localization, infinite scroll, viewport height layout" (5 files, 253 ins / 348 del). **§2 QA deploy**: API stamp `20260723082400` (SkipPublish=frontend-only) ✓; React robocopy ExitCode:3 ✓. **§3 PROD deploy**: API stamp `20260723082508` health check ✓; React robocopy ExitCode:3 ✓.
+- ไฟล์หลักที่แตะ: `DOC/AGENT_LOG.md`; server-side: QA + PROD admin-react deploy
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified: lint/build ผ่าน; QA+PROD health OK
+
 ## [2026-07-23 —] Antigravity — Standardize All Report Pages Design, Thai Localization & Infinite Scroll
 - ทำอะไร: ปรับปรุงโครงสร้าง UI หน้ารายงานทั้งหมดใน `iLearn.Admin.React/src/pages/reports` (`ComplianceReportPage.tsx`, `ActivityReportPage.tsx`, `TranscriptReportPage.tsx`) ให้มีมาตรฐานรูปแบบเดียวกับหน้า `CourseSummaryReportPage.tsx`: (1) ปรับ Layout เป็นแบบ Full-height Screen (`h-full flex flex-col min-h-0`) ขยายพื้นที่ตารางพอดีกรอบหน้าจอ (2) ปรับเปลี่ยนข้อความ ชื่อหัวตาราง ป้ายปุ่ม ป้ายสถานะ และช่องค้นหาเป็นภาษาไทยที่เข้าใจง่าย (3) ยกเลิกปุ่ม Load More โดยเปลี่ยนใช้ **Infinite Scroll** โหลดรายการในตารางเมื่อเลื่อนลงขอบล่าง พร้อมส่วนแสดงสถานะจำนวนรายการที่ด้านล่างตาราง (4) รวมปุ่ม Export CSV และปุ่มเปลี่ยนช่วงเวลาไว้ใน Card header อย่างเป็นระเบียบ
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/reports/ComplianceReportPage.tsx`, `iLearn.Admin.React/src/pages/reports/ActivityReportPage.tsx`, `iLearn.Admin.React/src/pages/reports/TranscriptReportPage.tsx`, `DOC/AGENT_LOG.md`
