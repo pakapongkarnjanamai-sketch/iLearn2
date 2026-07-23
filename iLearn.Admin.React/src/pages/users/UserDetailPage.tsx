@@ -144,26 +144,14 @@ export function UserDetailPage() {
           </FactGrid>
 
           <DetailSubSection title={t(ADMIN_LABELS.organizationInfo)}>
-            <FactGrid cols={2} className="gap-4 select-none">
-              <Fact
-                label={t(ADMIN_LABELS.division)}
-                labelClassName="text-slate-400 font-semibold"
-                valueClassName="mt-0.5 font-bold"
-              >
+            <FactGrid cols={2}>
+              <Fact label={t(ADMIN_LABELS.division)} valueClassName="font-semibold">
                 {user.division || '—'}
               </Fact>
-              <Fact
-                label={t(ADMIN_LABELS.department)}
-                labelClassName="text-slate-400 font-semibold"
-                valueClassName="mt-0.5 font-bold"
-              >
+              <Fact label={t(ADMIN_LABELS.department)} valueClassName="font-semibold">
                 {user.department || '—'}
               </Fact>
-              <Fact
-                label={t(ADMIN_LABELS.position)}
-                labelClassName="text-slate-400 font-semibold"
-                valueClassName="mt-0.5 font-bold"
-              >
+              <Fact label={t(ADMIN_LABELS.position)} valueClassName="font-semibold">
                 {user.position || '—'}
               </Fact>
             </FactGrid>

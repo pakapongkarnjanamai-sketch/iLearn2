@@ -7,7 +7,7 @@ import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { AppButton } from '../../components/ui/AppButton'
 import { Badge } from '../../components/ui/Badge'
-import { COMMON_LABELS, COURSE_LABELS, UI_LABELS, contentTypeLabel, t, tf } from '../../lib/labels'
+import { ADMIN_LABELS, COMMON_LABELS, COURSE_LABELS, UI_LABELS, contentTypeLabel, t, tf } from '../../lib/labels'
 import { IconButton } from '../../components/ui/IconButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
@@ -501,25 +501,25 @@ export function VersionDetailPage() {
                 </p>
               )}
 
-              <FactGrid className={`text-sm ${selectedVersion.note ? 'border-t border-slate-100 pt-5' : 'pt-2'}`}>
-                <Fact label={t(COURSE_LABELS.version)} valueClassName="font-semibold">v{selectedVersion.versionNumber}</Fact>
-                <Fact label={t(COURSE_LABELS.courseCode)} mono valueClassName="font-semibold">{data.course.courseCode}</Fact>
+              <FactGrid>
                 <Fact label={t(COURSE_LABELS.status)}>
                   <StatusBadge tone={selectedVersion.isActive ? 'success' : 'neutral'}>
                     {t(selectedVersion.isActive ? COMMON_LABELS.activeVersion : COMMON_LABELS.inactiveVersion)}
                   </StatusBadge>
                 </Fact>
-                <Fact label="Created Date" valueClassName="font-semibold">{formatDate(selectedVersion.createdAt)}</Fact>
-                <Fact label="SCORM Content Items" valueClassName="font-semibold">{selectedVersion.contentItems.length}</Fact>
+                <Fact label={t(COURSE_LABELS.version)} valueClassName="font-semibold">v{selectedVersion.versionNumber}</Fact>
+                <Fact label={t(COURSE_LABELS.courseCode)} mono valueClassName="font-semibold">{data.course.courseCode}</Fact>
+                <Fact label={t(COURSE_LABELS.createdDate)} valueClassName="font-semibold">{formatDate(selectedVersion.createdAt)}</Fact>
+                <Fact label={t(COURSE_LABELS.scormContentItems)} valueClassName="font-bold text-slate-800">{selectedVersion.contentItems.length}</Fact>
               </FactGrid>
 
               <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
-                Use the Controls panel to edit general information and manage version content.
+                {t(COURSE_LABELS.versionControlHint)}
               </div>
           </Card>
 
           <DetailTabs
-            tabs={[{ key: 'content', label: `Current Content (${currentContentItems.length})` }]}
+            tabs={[{ key: 'content', label: tf(COURSE_LABELS.currentContentWithCount, currentContentItems.length) }]}
             active={activeDetailTab}
             onChange={setActiveDetailTab}
           />
@@ -536,7 +536,7 @@ export function VersionDetailPage() {
                         <th className="px-3 py-2 text-left">{t(COURSE_LABELS.contentName)}</th>
                         <th className="w-28 px-3 py-2 text-left">{t(COURSE_LABELS.type)}</th>
                         <th className="w-28 px-3 py-2 text-left">{t(COURSE_LABELS.status)}</th>
-                        <th className="w-48 px-3 py-2 text-left">SCORM</th>
+                        <th className="w-48 px-3 py-2 text-left">{t(ADMIN_LABELS.scorm)}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">

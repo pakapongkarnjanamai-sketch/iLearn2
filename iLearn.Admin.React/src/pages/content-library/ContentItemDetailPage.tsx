@@ -293,36 +293,36 @@ export function ContentItemDetailPage() {
               {contentTypeLabel(item.typeId)}
             </Fact>
 
-            <Fact label="SCORM Version" valueClassName="font-semibold">
+            <Fact label={t(COURSE_LABELS.scormVersion)} valueClassName="font-semibold">
               {item.schemaVersion || '—'}
             </Fact>
 
-            <Fact label="Package Size" valueClassName="font-bold text-slate-800">
+            <Fact label={t(COURSE_LABELS.packageSize)} valueClassName="font-bold text-slate-800">
                 {formatBytes(item.fileLength)}
             </Fact>
 
-            <Fact label="Courses Linked" valueClassName="font-bold text-slate-800">
+            <Fact label={t(COURSE_LABELS.coursesLinked)} valueClassName="font-bold text-slate-800">
                 {formatNumber(item.courseIdsCount ?? 0)}
             </Fact>
 
-            <Fact label="File Storage Id" mono valueClassName="font-semibold">
+            <Fact label={t(COURSE_LABELS.fileStorageId)} mono valueClassName="font-semibold">
               {item.fileStorageId ?? '—'}
             </Fact>
 
-            <Fact label="Created" valueClassName="font-semibold">
+            <Fact label={t(COURSE_LABELS.createdDate)} valueClassName="font-semibold">
               {item.createdAt ? formatDateTime(item.createdAt) : '—'}
             </Fact>
 
-            <Fact label="Updated" valueClassName="font-semibold">
+            <Fact label={t(COURSE_LABELS.updated)} valueClassName="font-semibold">
               {item.updatedAt ? formatDateTime(item.updatedAt) : '—'}
             </Fact>
           </FactGrid>
 
           <FactGrid className="border-t border-slate-100 pt-5">
-            <Fact label="Launch Resource" mono colSpan="full">
+            <Fact label={t(COURSE_LABELS.launchResource)} mono colSpan="full">
               {item.launchHref || '—'}
             </Fact>
-            <Fact label="Server Path" mono colSpan="full">
+            <Fact label={t(COURSE_LABELS.serverPath)} mono colSpan="full">
               {item.url || '—'}
             </Fact>
           </FactGrid>

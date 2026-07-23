@@ -221,7 +221,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
           }
         >
           {/* Main Details Panel */}
-          <Card icon={Settings} title={`${entityTitle} ${t(ADMIN_LABELS.details)}`} bodyClassName="p-5 space-y-5">
+          <Card icon={Settings} title={t(ADMIN_LABELS.overview)} bodyClassName="p-5 space-y-5">
             <div className="space-y-4 max-w-xl">
               {isEditing ? (
                 // Edit Form Fields
@@ -297,11 +297,15 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                 </>
               ) : (
                 // Read-only Details View
-                <FactGrid cols={2} className="text-sm gap-y-4">
+                <FactGrid cols={2}>
+                  <Fact label={t(ADMIN_LABELS.status)}>
+                    <StatusText active={item?.isActive} />
+                  </Fact>
+
                   <Fact
                     label={t(ADMIN_LABELS.name)}
                     colSpan="full"
-                    valueClassName="text-slate-800 font-bold text-base select-all"
+                    valueClassName="font-semibold select-all"
                   >
                     {item?.name || '—'}
                   </Fact>
@@ -310,6 +314,7 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                     <Fact
                       label={t(ADMIN_LABELS.description)}
                       colSpan="full"
+                      valueClassName="font-semibold"
                     >
                       {item?.description || '—'}
                     </Fact>
@@ -318,18 +323,15 @@ export function MasterDataDetailPage({ isNew = false }: MasterDataDetailPageProp
                   {type === 'categories' && (
                     <Fact
                       label={t(ADMIN_LABELS.sortOrder)}
+                      valueClassName="font-semibold"
                     >
                       {item?.sortOrder !== undefined && item?.sortOrder !== null ? item.sortOrder : '—'}
                     </Fact>
                   )}
 
-                  <Fact label={t(ADMIN_LABELS.status)}>
-                    <StatusText active={item?.isActive} />
-                  </Fact>
-
                   <Fact
                     label={t(ADMIN_LABELS.lastModified)}
-                    valueClassName="text-slate-500 font-bold mt-1 text-xs"
+                    valueClassName="font-semibold"
                   >
                     {item?.updatedAt ? formatDateTime(item.updatedAt) : '—'}
                   </Fact>

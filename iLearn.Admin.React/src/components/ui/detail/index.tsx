@@ -57,9 +57,11 @@ type FactProps = {
 export function Fact({
   label,
   children,
+  mono = false,
   colSpan = 1,
   className,
   labelClassName,
+  valueClassName,
 }: FactProps) {
   const spanClass =
     colSpan === 'full' ? 'col-span-full' : colSpan === 2 ? 'sm:col-span-2' : ''
@@ -71,13 +73,59 @@ export function Fact({
   ]
     .filter(Boolean)
     .join(' ')
+  const valueClass = [mono ? 'font-mono' : '', valueClassName].filter(Boolean).join(' ')
 
   return (
     <div className={containerClass}>
       <dt className={labelClass}>{label}</dt>
-      <dd>{children}</dd>
+      <dd className={valueClass || undefined}>{children}</dd>
     </div>
   )
+}
+
+type StatTileProps = {
+  label: ReactNode
+  children: ReactNode
+  className?: string
+}
+
+/** Standard KPI tile component inside detail overview cards. */
+export function StatTile({ label, children, className }: StatTileProps) {
+  const containerClass = [
+    'rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  return (
+    <div className={containerClass}>
+      <div className="text-[10px] font-extrabold uppercase text-slate-400">{label}</div>
+      <div className="mt-0.5 flex items-center justify-center text-lg font-bold text-slate-800 tabular-nums">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+type StatTileRowProps = {
+  cols?: 2 | 3 | 4
+  className?: string
+  children: ReactNode
+}
+
+/** Horizontal row container for StatTile items. */
+export function StatTileRow({ cols = 3, className, children }: StatTileRowProps) {
+  const colClass =
+    cols === 2
+      ? 'grid-cols-2'
+      : cols === 4
+      ? 'grid-cols-2 sm:grid-cols-4'
+      : 'grid-cols-3'
+
+  const classes = ['grid gap-3', colClass, className].filter(Boolean).join(' ')
+
+  return <div className={classes}>{children}</div>
 }
 
 type DetailSubSectionProps = {

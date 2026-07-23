@@ -20,7 +20,7 @@ import { NotFoundState } from '../../components/ui/NotFoundState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
-import { DetailLayout, Fact, FactGrid } from '../../components/ui/detail'
+import { DetailLayout, Fact, FactGrid, StatTile, StatTileRow } from '../../components/ui/detail'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
@@ -743,25 +743,37 @@ export function AssignmentDetailPage() {
         }
       >
         <main className="space-y-6">
-          <Card icon={FileBarChart} title={t(ASSIGNMENT_LABELS.overview)} bodyClassName="p-5">
+          <Card icon={FileBarChart} title={t(ASSIGNMENT_LABELS.overview)} bodyClassName="p-5 space-y-5">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 items-center">
               <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
-                    <div className="text-[10px] font-extrabold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.learners)}</div>
-                    <div className="text-lg font-bold text-slate-800 tabular-nums mt-0.5">{assignment.totalEmployees}</div>
-                  </div>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
-                    <div className="text-[10px] font-extrabold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.courses)}</div>
-                    <div className="text-lg font-bold text-slate-800 tabular-nums mt-0.5">{assignment.totalCourses}</div>
-                  </div>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
-                    <div className="text-[10px] font-extrabold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.status)}</div>
-                    <div className="mt-1 flex justify-center">
-                      <StatusBadge>{learnerStatusLabel(assignmentStatus)}</StatusBadge>
-                    </div>
-                  </div>
+                <StatTileRow cols={3}>
+                  <StatTile label={t(ASSIGNMENT_LABELS.learners)}>
+                    {assignment.totalEmployees}
+                  </StatTile>
+                  <StatTile label={t(ASSIGNMENT_LABELS.courses)}>
+                    {assignment.totalCourses}
+                  </StatTile>
+                  <StatTile label={t(ASSIGNMENT_LABELS.status)}>
+                    <StatusBadge>{learnerStatusLabel(assignmentStatus)}</StatusBadge>
+                  </StatTile>
+                </StatTileRow>
+
+                <div className="flex items-start justify-between gap-2">
+                  <p className={`text-sm leading-relaxed max-w-2xl border-l-2 border-slate-200 pl-3 ${assignment.description ? 'text-slate-500 whitespace-pre-wrap' : 'text-slate-400 italic'}`}>
+                    {assignment.description || t(ASSIGNMENT_LABELS.noDescription)}
+                  </p>
+                  <IconButton
+                    icon={Edit3}
+                    title={t(ASSIGNMENT_LABELS.editDescription)}
+                    size="sm"
+                    tone="neutral"
+                    onClick={() => {
+                      setEditDescriptionInput(assignment.description || '')
+                      setShowEditDescriptionModal(true)
+                    }}
+                  />
                 </div>
+
                 <FactGrid className="pt-2">
                   <Fact label={t(ASSIGNMENT_LABELS.startDateLabel)} valueClassName="font-semibold">
                     {formatDate(assignment.startDate)}
@@ -782,23 +794,6 @@ export function AssignmentDetailPage() {
                       {assignment.learnerGroupName}
                     </Fact>
                   )}
-                  <Fact label={t(ASSIGNMENT_LABELS.description)} colSpan="full" valueClassName="font-semibold">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className={assignment.description ? 'text-slate-700 whitespace-pre-wrap' : 'text-slate-400 italic font-normal'}>
-                        {assignment.description || t(ASSIGNMENT_LABELS.noDescription)}
-                      </span>
-                      <IconButton
-                        icon={Edit3}
-                        title={t(ASSIGNMENT_LABELS.editDescription)}
-                        size="sm"
-                        tone="neutral"
-                        onClick={() => {
-                          setEditDescriptionInput(assignment.description || '')
-                          setShowEditDescriptionModal(true)
-                        }}
-                      />
-                    </div>
-                  </Fact>
                 </FactGrid>
               </div>
               <div className="w-full lg:w-[280px] shrink-0 border-t lg:border-t-0 lg:border-l border-slate-100 pt-4 lg:pt-0 lg:pl-6">

@@ -30,6 +30,8 @@ import {
   DetailLayout,
   Fact,
   FactGrid,
+  StatTile,
+  StatTileRow,
 } from '../../components/ui/detail'
 import { Card } from '../../components/ui/Card'
 import { ProgressBar } from '../../components/ui/ProgressBar'
@@ -534,18 +536,32 @@ export function CourseDetailPage() {
       >
         <main className="space-y-6">
           <Card icon={BookOpen} title={t(COURSE_LABELS.overview)} bodyClassName="p-5 space-y-5">
+              {data.kpi && (
+                <StatTileRow cols={3}>
+                  <StatTile label={t(COURSE_LABELS.versions)}>
+                    {data.kpi.versionCount}
+                  </StatTile>
+                  <StatTile label={t(COURSE_LABELS.activeLearners)}>
+                    {data.kpi.learnerCount}
+                  </StatTile>
+                  <StatTile label={t(COURSE_LABELS.assignmentBatches)}>
+                    {data.kpi.assignmentCount}
+                  </StatTile>
+                </StatTileRow>
+              )}
+
               {course.description && (
                 <p className="text-sm text-slate-500 leading-relaxed max-w-2xl border-l-2 border-slate-200 pl-3 whitespace-pre-wrap">
                   {course.description}
                 </p>
               )}
 
-              <FactGrid className={`text-sm ${course.description ? 'border-t border-slate-100 pt-5' : 'pt-2'}`}>
-                <Fact label={t(COURSE_LABELS.courseCode)} mono valueClassName="font-semibold">
-                  {course.courseCode}
-                </Fact>
+              <FactGrid>
                 <Fact label={t(COURSE_LABELS.status)}>
                   <CourseStatusText status={course.statusName} statusCode={course.status} />
+                </Fact>
+                <Fact label={t(COURSE_LABELS.courseCode)} mono valueClassName="font-semibold">
+                  {course.courseCode}
                 </Fact>
                 <Fact label={t(COURSE_LABELS.category)} valueClassName="font-semibold">
                   {categoryNames[course.categoryId] || '-'}
@@ -553,22 +569,9 @@ export function CourseDetailPage() {
                 <Fact label={t(COURSE_LABELS.courseType)} valueClassName="font-semibold">
                   {courseTypeNames[course.courseType] || '-'}
                 </Fact>
-                <Fact label={t(COURSE_LABELS.contentItems)} valueClassName="font-semibold">
+                <Fact label={t(COURSE_LABELS.contentItems)} valueClassName="font-bold text-slate-800">
                   {course.contentItems.length}
                 </Fact>
-                {data.kpi && (
-                  <>
-                    <Fact label="Versions" valueClassName="font-bold text-slate-800">
-                      {data.kpi.versionCount}
-                    </Fact>
-                    <Fact label="Active Learners" valueClassName="font-bold text-slate-800">
-                      {data.kpi.learnerCount}
-                    </Fact>
-                    <Fact label="Assignment Batches" valueClassName="font-bold text-slate-800">
-                      {data.kpi.assignmentCount}
-                    </Fact>
-                  </>
-                )}
               </FactGrid>
           </Card>
 

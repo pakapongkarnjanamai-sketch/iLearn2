@@ -580,9 +580,14 @@ export function LearnerGroupDetailPage() {
         }
       >
         <main className="space-y-6">
-          <Card icon={Settings} title={t(LEARNER_LABELS.overview)} bodyClassName="p-5">
+          <Card icon={Settings} title={t(LEARNER_LABELS.overview)} bodyClassName="p-5 space-y-5">
+            {group.description && (
+              <p className="text-sm text-slate-500 leading-relaxed max-w-2xl border-l-2 border-slate-200 pl-3 whitespace-pre-wrap">
+                {group.description}
+              </p>
+            )}
             <FactGrid>
-              <Fact label={t(LEARNER_LABELS.groupName)} valueClassName="font-bold text-slate-800">
+              <Fact label={t(LEARNER_LABELS.groupName)} valueClassName="font-semibold">
                 {group.name}
               </Fact>
               <Fact label={t(LEARNER_LABELS.members)} valueClassName="font-bold text-slate-800">
@@ -610,15 +615,10 @@ export function LearnerGroupDetailPage() {
               <Fact
                 label={t(LEARNER_LABELS.ownerCreator)}
                 colSpan="full"
-                valueClassName="font-bold"
+                valueClassName="font-semibold"
               >
                 {group.createdBy || t(LEARNER_LABELS.systemAdmin)}
               </Fact>
-              {group.description && (
-                <Fact label={t(LEARNER_LABELS.description)} colSpan="full">
-                  {group.description}
-                </Fact>
-              )}
             </FactGrid>
           </Card>
 
