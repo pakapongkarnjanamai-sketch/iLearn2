@@ -1,4 +1,5 @@
-﻿using iLearn.User.Extensions;
+using iLearn.User.Extensions;
+using iLearn.User.Middleware;
 using iLearn.Application.Common;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -78,6 +79,8 @@ builder.Services.AddUserServices(builder.Configuration);
 var app = builder.Build();
 
 // ── Middleware Pipeline ──
+app.UseCanonicalHostRedirect();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");

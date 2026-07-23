@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -29,6 +29,9 @@
     <ProjectReference Include="..\iLearn.Application\iLearn.Application.csproj" />
     <ProjectReference Include="..\iLearn.Domain\iLearn.Domain.csproj" />
     <ProjectReference Include="..\iLearn.Infrastructure\iLearn.Infrastructure.csproj" />
+    <ProjectReference Include="..\iLearn.User\iLearn.User.csproj">
+      <Aliases>ILearnUserApp</Aliases>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>

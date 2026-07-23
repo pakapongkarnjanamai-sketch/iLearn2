@@ -130,4 +130,5 @@ export const appConfig = {
   })(),
   environmentName: resolvedEnv.name,
   isProd: resolvedEnv.isProd,
+  canonicalDomain: getEnv('VITE_ILEARN_ADMIN_CANONICAL_DOMAIN'),
 } as const
