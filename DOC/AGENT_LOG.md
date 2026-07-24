@@ -2,6 +2,33 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-24] GitHub Copilot — PLAN-151 deploy QA+PROD learner web app manifest (PWA)
+- ทำอะไร: รับงาน deploy ต่อจาก Claude Code (โค้ดอยู่ใน working tree แล้ว) — รัน `deploy-user.ps1` (QA) + `deploy-user-prod.ps1` (PROD); smoke test ทุก acceptance criteria
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-151-learner-web-app-manifest-pwa.md` (Status→DONE, Implementer Notes), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี
+- Verified QA: `GET /iLearn/site.webmanifest` = 200 `application/manifest+json` ✓; HTML `rel="manifest"` ✓, `theme-color=#c2410c` (orange QA) ✓, iOS metas ✓
+- Verified PROD: `GET /iLearn/site.webmanifest` = 200 `application/manifest+json` ✓; HTML `rel="manifest"` ✓, `theme-color=#027d83` (teal PROD) ✓, iOS metas ✓; health check 200 ✓
+- Outstanding: iPad standalone UX + DevTools manifest tab — ผู้ใช้ยืนยันเอง
+
+## [2026-07-24 —] Claude Code — PLAN-151 add learner web app manifest (PWA / Add to Home Screen)
+- ทำอะไร: ผู้ใช้ขอเพิ่ม web app manifest ให้ฝั่ง Learner (เดิมไม่มี `.webmanifest` เลย iOS พึ่ง apple-touch-icon อย่างเดียว) — สร้าง `iLearn.User/wwwroot/site.webmanifest` (name/short_name=iLearn, display=standalone, scope/start_url=`./` relative → resolve `/iLearn/` ตาม PathBase, icons ชี้ favicon-16/32 + apple-touch-icon-180 ตามขนาดจริง) และแก้ `_DevExtremeLayout.cshtml` เพิ่ม `<link rel="manifest">` + iOS standalone metas (`apple-mobile-web-app-capable`, `status-bar-style`, `mobile-web-app-capable`) + env-aware `<meta name="theme-color">` (teal PROD / orange QA-DEV ผ่าน `__isProd` เทียบเท่า PLAN-149). ไม่แตะ favicon links (PLAN-150) / theming block (PLAN-149) / ไฟล์ .ico/.svg
+- ไฟล์หลักที่แตะ: `iLearn.User/wwwroot/site.webmanifest` (ใหม่), `iLearn.User/Views/Shared/_DevExtremeLayout.cshtml`, `DOC/PLANS/PLAN-151-learner-web-app-manifest-pwa.md` (ใหม่), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (static asset + view/layout only)
+- Verified: `dotnet build iLearn.User -o artifacts\verify-user` = 0 errors (มีแต่ NU1903 เดิม), cleanup ✓; ยืนยัน `site.webmanifest` ลงทะเบียนใน `staticwebassets.build.json` (จะรวมใน publish เหมือน favicon-*.png); `.webmanifest` อยู่ใน default content-type map ของ ASP.NET Core (`application/manifest+json`) → ไม่เสี่ยง 404 จาก middleware
+- Outstanding: **ยังไม่ deploy** — มอบ Copilot (PLAN-151 READY) รับไป deploy QA→PROD + smoke. จุดเสี่ยง: `.webmanifest` เป็นนามสกุลใหม่ ต้อง smoke `GET /iLearn/site.webmanifest` anon = 200 บน QA (เทียบบทเรียน `.svg` 401 PLAN-148 Part 2). Follow-up ถ้าอยากได้ Android install เต็ม: ต้อง gen icon 192/512 จาก source โลโก้ ≥512px
+
+## [2026-07-24 —] GitHub Copilot — PLAN-150 PNG favicon fix for Chromium tab icon
+- ทำอะไร: implement PLAN-150 โดยสร้าง favicon PNG สำหรับ Chromium จาก `apple-touch-icon-180.png` เป็น `iLearn.User/wwwroot/favicon-32.png` และ `iLearn.User/wwwroot/favicon-16.png` (downscale คุณภาพสูง) เพื่อเลี่ยง `.ico` decode fail; layout ฝั่ง Learner ถูกเตรียมไว้แล้วให้ชี้ไป PNG icon (no additional layout change needed รอบนี้). ไม่แตะไฟล์ `.ico`/`.svg` บน disk ตามข้อกำหนด
+- ไฟล์หลักที่แตะ: `iLearn.User/wwwroot/favicon-32.png`, `iLearn.User/wwwroot/favicon-16.png`, `DOC/PLANS/PLAN-150-favicon-remove-sizes-any-chrome-render.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (static asset only)
+- Verified:
+  - Build: `dotnet build iLearn.User -o artifacts\verify-user` ✓, cleanup `artifacts\verify-user` ✓
+  - QA deploy: `tools/deploy-user.ps1` stamp `20260724120026`
+  - PROD deploy: `tools/deploy-user-prod.ps1` stamp `20260724120134` (health `/iLearn/` = 200)
+  - QA smoke: `GET /iLearn/favicon-32.png` / `favicon-16.png` = 200 `image/png`; browser smoke on `https://ap-ntc2138-qawb.nikonoa.net/iLearn/` showed title `iLearn (QA)`, PNG icon links in head, console errors = 0
+  - PROD smoke: `GET /iLearn/favicon-32.png` / `favicon-16.png` = 200 `image/png`; browser smoke on `https://ap-ntc2137-prwb.nikonoa.net/iLearn/` showed title `iLearn`, PNG icon links in head, console errors = 0
+- Outstanding: no local DEV smoke in this round
+
 ## [2026-07-24 —] GitHub Copilot — PLAN-149 learner QA vs PROD theming (burnt orange + QA badge)
 - ทำอะไร: implement PLAN-149 ครบใน `iLearn.User` เพื่อแยกธีม QA ออกจาก PROD ด้วย runtime hostname detection โดยไม่แตะ favicon/scripts/footer: (1) `_DevExtremeLayout.cshtml` เพิ่ม `__isProd/__isDev/__envLabel`, title suffix (`iLearn (QA)/(DEV)` เฉพาะ non-PROD), inject `<style>` override ท้าย `<head>` สำหรับ non-PROD (`--brand-color: #c2410c`, `--brand-dark: #7c2d12`, `--brand-light: #ffedd5`, `--brand-lighter: #fff7ed`, `--brand-shadow-rgb: 194, 65, 12`), และเพิ่ม `.env-badge` ใน navbar brand เฉพาะ non-PROD; (2) `user-theme.css` เพิ่ม `--brand-shadow-rgb` default เป็น teal และแปลง rgba literal 6 จุดให้ผูกกับ `rgba(var(--brand-shadow-rgb), alpha)` เพื่อให้ focus/shadow เปลี่ยนตาม QA override อัตโนมัติ พร้อมเพิ่ม style `.env-badge`
 - ไฟล์หลักที่แตะ: `iLearn.User/Views/Shared/_DevExtremeLayout.cshtml`, `iLearn.User/wwwroot/css/user-theme.css`, `DOC/PLANS/PLAN-149-learner-qa-environment-theming-burnt-orange.md`, `DOC/AGENT_LOG.md`

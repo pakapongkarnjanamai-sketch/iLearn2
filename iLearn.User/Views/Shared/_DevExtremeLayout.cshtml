@@ -15,15 +15,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>iLearn@(__isProd ? "" : $" ({__envLabel})")</title>
 
-     @* Tab icon ใช้ .ico/.png ที่ anonymous-safe ทั้ง QA และ PROD
-         ห้ามเพิ่ม favicon.svg rel="icon" กลับเข้ามาจนกว่า QA IIS จะตอบ .svg เป็น 200 สำหรับ anonymous *@
-    <link href="~/favicon-tab.ico" rel="icon" type="image/x-icon" sizes="any" asp-append-version="true" />
-    <link href="~/favicon-tab.ico" rel="shortcut icon" type="image/x-icon" asp-append-version="true" />
-     <link href="~/apple-touch-icon-180.png" rel="icon" type="image/png" sizes="180x180" />
+     @* Tab icon = PNG (Chromium/Edge render ได้แน่นอน + anonymous-safe ทั้ง QA/PROD)
+         เดิมใช้ favicon.ico/favicon-tab.ico แต่ Chromium decode ไฟล์ .ico นี้ไม่ได้ = แท็บว่าง (PLAN-150)
+         ห้ามเพิ่ม favicon.svg rel="icon" กลับเข้ามาจนกว่า QA IIS จะตอบ .svg เป็น 200 สำหรับ anonymous (PLAN-148 Part 2) *@
+    <link href="~/favicon-32.png" rel="icon" type="image/png" sizes="32x32" asp-append-version="true" />
+    <link href="~/favicon-16.png" rel="icon" type="image/png" sizes="16x16" asp-append-version="true" />
+    <link href="~/favicon-32.png" rel="shortcut icon" type="image/png" asp-append-version="true" />
     <link rel="apple-touch-icon" sizes="180x180" href="~/apple-touch-icon-180.png" />
     <link rel="apple-touch-icon-precomposed" sizes="180x180" href="~/apple-touch-icon-precomposed.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="~/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="iLearn" />
+
+    @* PWA / Add to Home Screen (PLAN-151) — manifest ให้ Android/Chrome, iOS metas ให้ iPad/iPhone เปิดแบบ standalone
+       theme-color เป็น env-aware (teal=PROD, orange=QA/DEV) เทียบเท่า PLAN-149; manifest เป็น static จึงใช้ teal เป็น default *@
+    <link rel="manifest" href="~/site.webmanifest" asp-append-version="true" />
+    <meta name="theme-color" content="@(__isProd ? "#027d83" : "#c2410c")" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
     <link href="~/css/devextreme/bootstrap.min.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/lib/font-awesome/css/all.min.css" rel="stylesheet" asp-append-version="true" />
