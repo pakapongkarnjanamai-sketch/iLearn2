@@ -2,6 +2,56 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-24 —] GitHub Copilot — PLAN-149 learner QA vs PROD theming (burnt orange + QA badge)
+- ทำอะไร: implement PLAN-149 ครบใน `iLearn.User` เพื่อแยกธีม QA ออกจาก PROD ด้วย runtime hostname detection โดยไม่แตะ favicon/scripts/footer: (1) `_DevExtremeLayout.cshtml` เพิ่ม `__isProd/__isDev/__envLabel`, title suffix (`iLearn (QA)/(DEV)` เฉพาะ non-PROD), inject `<style>` override ท้าย `<head>` สำหรับ non-PROD (`--brand-color: #c2410c`, `--brand-dark: #7c2d12`, `--brand-light: #ffedd5`, `--brand-lighter: #fff7ed`, `--brand-shadow-rgb: 194, 65, 12`), และเพิ่ม `.env-badge` ใน navbar brand เฉพาะ non-PROD; (2) `user-theme.css` เพิ่ม `--brand-shadow-rgb` default เป็น teal และแปลง rgba literal 6 จุดให้ผูกกับ `rgba(var(--brand-shadow-rgb), alpha)` เพื่อให้ focus/shadow เปลี่ยนตาม QA override อัตโนมัติ พร้อมเพิ่ม style `.env-badge`
+- ไฟล์หลักที่แตะ: `iLearn.User/Views/Shared/_DevExtremeLayout.cshtml`, `iLearn.User/wwwroot/css/user-theme.css`, `DOC/PLANS/PLAN-149-learner-qa-environment-theming-burnt-orange.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (presentation/theme only)
+- Verified:
+  - Build: `dotnet build iLearn.User -o artifacts\verify-user` ✓ (มี warning vulnerability เดิม), cleanup `artifacts\verify-user` ✓
+  - QA deploy: `tools/deploy-user.ps1` stamp `20260724092554`
+  - PROD deploy: `tools/deploy-user-prod.ps1` stamp `20260724092705` (health `/iLearn/` = 200)
+  - Browser smoke (runtime):
+    - QA `https://ap-ntc2138-qawb.nikonoa.net/iLearn/`: title `iLearn (QA)`, computed `--brand-color=#c2410c`, `.env-badge=QA`, console errors = 0
+    - PROD `https://ap-ntc2137-prwb.nikonoa.net/iLearn/`: title `iLearn`, computed `--brand-color=#027d83`, `.env-badge` ไม่แสดง, console errors = 0
+  - Screenshot smoke: เก็บภาพ QA (burnt orange) และ PROD (teal) ใน session แล้ว
+- Outstanding: acceptance ข้อ Localhost (`DEV` badge/title) ยังไม่ได้รันในรอบนี้
+
+## [2026-07-24 —] GitHub Copilot — PLAN-148 follow-up hotfix (favicon-tab alias + redeploy)
+- ทำอะไร: หลังผู้ใช้ทดสอบแล้วแท็บยังไม่ขึ้น (อาการ cache ค้างฝั่ง Edge profile) ทำ hotfix เพิ่มโดยสร้าง `iLearn.User/wwwroot/favicon-tab.ico` (copy จากไฟล์เดิม) และแก้ layout ให้ใช้ URL ใหม่ทั้ง `rel="icon"` และ `rel="shortcut icon"` (`favicon-tab.ico` + `asp-append-version`) เพื่อบังคับ browser ดึงไอคอนใหม่แทน record cache เดิม
+- ไฟล์หลักที่แตะ: `iLearn.User/wwwroot/favicon-tab.ico` (ใหม่), `iLearn.User/Views/Shared/_DevExtremeLayout.cshtml`, `DOC/PLANS/PLAN-148-favicon-tab-icon-qa-svg-401-and-prod-cache.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (static asset + layout link only)
+- Verified:
+  - Build: `dotnet build iLearn.User -o artifacts\verify-user` ผ่าน
+  - QA deploy stamp `20260724085317`
+  - PROD deploy stamp `20260724085407` (health `/iLearn/` = 200)
+  - View-source QA/PROD: เจอ `favicon-tab.ico` ทั้ง `rel="icon"` และ `rel="shortcut icon"`
+  - Anonymous smoke: `GET /iLearn/favicon-tab.ico` = 200 `image/x-icon` ทั้ง QA และ PROD
+
+## [2026-07-24 —] GitHub Copilot — PLAN-148 favicon tab icon fix (QA/PROD deploy + smoke)
+- ทำอะไร: implement PLAN-148 Part 1 โดยแก้ `iLearn.User/Views/Shared/_DevExtremeLayout.cshtml` ให้เลิกประกาศ `favicon.svg` เป็น `rel="icon"` และย้าย `favicon.ico` ขึ้นเป็น icon หลัก (`rel="icon" type="image/x-icon" sizes="any" + asp-append-version`) พร้อมคง PNG/Apple touch links เดิมทั้งหมด; รัน build verify แล้ว deploy `iLearn.User` ไป QA/PROD
+- ไฟล์หลักที่แตะ: `iLearn.User/Views/Shared/_DevExtremeLayout.cshtml`, `DOC/PLANS/PLAN-148-favicon-tab-icon-qa-svg-401-and-prod-cache.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (view/layout only)
+- Verified:
+  - Build: `dotnet build iLearn.User -o artifacts\verify-user` ผ่าน (warnings เดิม)
+  - QA deploy: `tools/deploy-user.ps1` stamp `20260724084710`
+  - PROD deploy: `tools/deploy-user-prod.ps1` stamp `20260724084807`, health `/iLearn/` = 200
+  - Anonymous smoke:
+    - QA `/iLearn/favicon.ico` = 200 `image/x-icon`
+    - PROD `/iLearn/favicon.ico` = 200 `image/x-icon`
+    - QA `/iLearn/favicon.svg` = 401 (เดิม)
+    - PROD `/iLearn/favicon.svg` = 200 `image/svg+xml`
+    - QA/PROD `/iLearn/` = 200
+  - View-source QA/PROD: ไม่มี `favicon.svg rel=icon`, มี `favicon.ico rel=icon`, apple-touch links ครบ
+  - Browser automation smoke: console errors = 0 ทั้ง QA และ PROD
+- Outstanding: Part 2 (QA IIS drift) ยังไม่แก้เพราะไม่มีสิทธิ์ IIS admin ในงานนี้ — ต้อง escalate ให้ Infra align `.svg` anonymous access ให้เหมือน PROD ถ้าต้องการกลับไปใช้ SVG-first
+
+## [2026-07-24 —] Claude Code — เขียน PLAN-148: แก้ favicon แท็บหน้า Learner ไม่ขึ้น (มอบ Copilot)
+- ทำอะไร: ผู้ใช้รายงานแท็บ browser หน้า Learner (`/iLearn`) ไม่มีไอคอนทั้ง PROD และ QA. วินิจฉัยสด (Invoke-WebRequest anon vs credentialed ทั้งสอง env 2026-07-24): ไฟล์ไอคอนครบทุกตัวบน disk ทั้งคู่. **root cause แยก 2 เครื่อง** — layout ตั้ง `favicon.svg` เป็น `rel="icon"` หลัก, Edge/Chrome prefer SVG แล้ว (a) **QA:** `/iLearn/favicon.svg` = **401 anonymous** (IIS config drift ที่จับ `.svg` ใต้ Windows-Auth; `.ico`/`.png` = 200 anon ปกติ) → browser ขอ SVG ตอนหน้า login แบบ anon เจอ 401 ไม่ fallback = แท็บว่าง; PLAN-130 copy `.svg` ไป root แอปทำให้ 200 เฉพาะ credentialed แต่ anon ยัง 401 = แก้ไม่ตรงจุด (b) **PROD:** `/iLearn/favicon.svg` = 200 anon ปกติ, server ถูก — แท็บว่างเพราะ Edge favicon cache ค้างฝั่ง client. เขียน `PLAN-148` (READY): **Part 1** (code+deploy, ครอบทั้งสอง env) แก้ `_DevExtremeLayout.cshtml` ให้ tab icon พึ่ง `.ico`/PNG (anonymous-safe ทั้งคู่) เลิกประกาศ SVG rel=icon + `asp-append-version` บน `.ico` bust Edge cache; **Part 2** (IIS ops บน QA, ทำถ้ามีสิทธิ์ admin) align `.svg` anon ให้ = PROD ไม่งั้น escalate; **Part 3** PROD verify InPrivate (server ปกติ ไม่แตะ)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-148-favicon-tab-icon-qa-svg-401-and-prod-cache.md` (ใหม่ READY), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (แผนอย่างเดียว — ตอน implement แตะเฉพาะ view ของ `iLearn.User` + IIS ops บน QA)
+- Verified: — (แผน; วินิจฉัยจาก live smoke ทั้ง QA/PROD ใน session นี้ + git history layout/favicon + PLAN-119/120/130)
+- **ถึง Copilot:** Part 1 (แก้ layout + deploy `iLearn.User` QA/PROD) ทำได้ทันที ไม่ต้องรอ IIS; ห้ามลบ `favicon.svg` บน disk; ห้ามแก้ `\iLearn\web.config` บนเซิร์ฟเวอร์ (deploy เขียนทับ); ห้ามเอา `favicon.svg rel="icon"` กลับมาจนกว่า Part 2 (QA IIS) จะเสร็จ; ถ้าไม่มีสิทธิ์ IIS admin บน QA = จด Outstanding + escalate อย่า block Part 1
+
 ## [2026-07-24 —] GitHub Copilot — Commit `d4cdbfb` + deploy PLAN-147 to QA/PROD
 - ทำอะไร: commit งาน PLAN-147 เป็น `d4cdbfb` (`feat(admin-react): unify csv and xlsx report export`) แล้ว deploy `iLearn.Admin.React` ไป QA และ PROD ผ่าน wrapper มาตรฐาน `tools/deploy-admin-react.ps1` / `tools/deploy-admin-react-prod.ps1`
 - ไฟล์หลักที่แตะ: `DOC/AGENT_LOG.md` (entry นี้เท่านั้นหลัง deploy)

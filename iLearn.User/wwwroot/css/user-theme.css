@@ -4,6 +4,7 @@
     --brand-dark: #004d40;
     --brand-light: #e0f2f1;
     --brand-lighter: #f0f9f9;
+    --brand-shadow-rgb: 2, 125, 131;
     --secondary-bg: #f4f6f8;      /* พื้นหลังหน้าเดียวกันทุกหน้า */
     --success-color: #28a745;
     --danger-color: #dc3545;
@@ -77,7 +78,7 @@ a:hover {
 
 .btn-primary:focus,
 .btn-primary.focus {
-    box-shadow: 0 0 0 0.2rem rgba(2, 125, 131, 0.5) !important;
+    box-shadow: 0 0 0 0.2rem rgba(var(--brand-shadow-rgb), 0.5) !important;
 }
 
 /* Bootstrap Outline Buttons (.btn-outline-primary) */
@@ -120,7 +121,7 @@ a:hover {
 .form-control:focus,
 .form-select:focus {
     border-color: var(--brand-color);
-    box-shadow: 0 0 0 0.2rem rgba(2, 125, 131, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(var(--brand-shadow-rgb), 0.25);
 }
 
 .form-check-input:checked {
@@ -130,7 +131,7 @@ a:hover {
 
 .form-check-input:focus {
     border-color: var(--brand-color);
-    box-shadow: 0 0 0 0.2rem rgba(2, 125, 131, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(var(--brand-shadow-rgb), 0.25);
 }
 
 /* Custom Switch */
@@ -397,13 +398,28 @@ a:hover {
 }
 
 .shadow-brand {
-    box-shadow: 0 0.5rem 1rem rgba(2, 125, 131, 0.15) !important;
+    box-shadow: 0 0.5rem 1rem rgba(var(--brand-shadow-rgb), 0.15) !important;
 }
 
 .shadow-brand-sm {
-    box-shadow: 0 0.125rem 0.25rem rgba(2, 125, 131, 0.075) !important;
+    box-shadow: 0 0.125rem 0.25rem rgba(var(--brand-shadow-rgb), 0.075) !important;
 }
 
 .shadow-brand-lg {
-    box-shadow: 0 1rem 3rem rgba(2, 125, 131, 0.175) !important;
+    box-shadow: 0 1rem 3rem rgba(var(--brand-shadow-rgb), 0.175) !important;
+}
+
+/* PLAN-149: environment badge (rendered only in non-PROD via layout condition) */
+.env-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+    border-radius: var(--radius-pill);
+    background: #fff;
+    color: var(--brand-dark);
+    vertical-align: middle;
 }

@@ -2,16 +2,24 @@
 @using Microsoft.AspNetCore.Mvc.ViewFeatures
 @inject IConfiguration Configuration
 @inject IFileVersionProvider FileVersionProvider
+@{
+    var __host = Context.Request.Host.Host ?? "";
+    var __isProd = __host.Contains("prwb", StringComparison.OrdinalIgnoreCase);
+    var __isDev = __host.Contains("localhost", StringComparison.OrdinalIgnoreCase) || __host.StartsWith("127.");
+    var __envLabel = __isProd ? null : (__isDev ? "DEV" : "QA");
+}
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>iLearn</title>
+    <title>iLearn@(__isProd ? "" : $" ({__envLabel})")</title>
 
-    <link href="~/favicon.svg" rel="icon" type="image/svg+xml" asp-append-version="true" />
-    <link href="~/apple-touch-icon-180.png" rel="icon" type="image/png" sizes="180x180" />
-    <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+     @* Tab icon ใช้ .ico/.png ที่ anonymous-safe ทั้ง QA และ PROD
+         ห้ามเพิ่ม favicon.svg rel="icon" กลับเข้ามาจนกว่า QA IIS จะตอบ .svg เป็น 200 สำหรับ anonymous *@
+    <link href="~/favicon-tab.ico" rel="icon" type="image/x-icon" sizes="any" asp-append-version="true" />
+    <link href="~/favicon-tab.ico" rel="shortcut icon" type="image/x-icon" asp-append-version="true" />
+     <link href="~/apple-touch-icon-180.png" rel="icon" type="image/png" sizes="180x180" />
     <link rel="apple-touch-icon" sizes="180x180" href="~/apple-touch-icon-180.png" />
     <link rel="apple-touch-icon-precomposed" sizes="180x180" href="~/apple-touch-icon-precomposed.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="~/apple-touch-icon.png" />
@@ -37,6 +45,20 @@
     <link rel="stylesheet" href="~/css/user-theme.css" asp-append-version="true" />
 
     @await RenderSectionAsync("Styles", required: false)
+
+    @if (!__isProd)
+    {
+        <style>
+            /* PLAN-149: non-PROD brand override (QA/DEV). PROD remains untouched. */
+            :root {
+                --brand-color: #c2410c;
+                --brand-dark: #7c2d12;
+                --brand-light: #ffedd5;
+                --brand-lighter: #fff7ed;
+                --brand-shadow-rgb: 194, 65, 12;
+            }
+        </style>
+    }
 </head>
 
 <body class="d-flex flex-column min-vh-100">
@@ -46,6 +68,10 @@
             <div class="container-fluid">
                 <a class="navbar-brand" href="@Url.Action("Index", "Home")">
                     <i class="fas fa-graduation-cap"></i> iLearn
+                    @if (!__isProd)
+                    {
+                        <span class="env-badge">@__envLabel</span>
+                    }
                 </a>
                 <button class="navbar-toggler border-0 text-white" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
                     <i class="fas fa-bars"></i>
