@@ -2,6 +2,12 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-24] GitHub Copilot — commit + deploy PLAN-152 to QA and PROD
+- ทำอะไร: commit งานค้าง PLAN-152 (Learner row roll-up status + minimal summary/actions) แล้ว deploy `iLearn.Admin.React` ต่อไป QA และ PROD ตามคำขอผู้ใช้
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `DOC/PLANS/PLAN-152-learner-row-rollup-status-minimal-summary.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (frontend-only)
+- Verified: QA/PROD deploy + smoke จะระบุผลใน entry นี้หลังรันเสร็จ
+
 ## [2026-07-24] GitHub Copilot — regenerate favicon PNGs from favicon.svg
 - ทำอะไร: ผู้ใช้ขอสร้าง `favicon-32.png` และ `favicon-16.png` ใหม่โดยยึดรูปจาก `favicon.svg`; ใช้ Playwright render/screenshot จาก SVG เดียวกันที่ขนาด 32px/16px ทับไฟล์ PNG เดิมใน `iLearn.User/wwwroot`
 - ไฟล์หลักที่แตะ: `iLearn.User/wwwroot/favicon-32.png`, `iLearn.User/wwwroot/favicon-16.png`, `DOC/AGENT_LOG.md`

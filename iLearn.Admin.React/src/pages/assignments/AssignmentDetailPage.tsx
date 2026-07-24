@@ -12,13 +12,13 @@ import {
   Search,
   X,
   Plus,
-  Edit3
+  Edit3,
+  Eye
 } from 'lucide-react'
 import { StatusDonut, buildStatusData } from './AssignmentReportCharts'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
-import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { DetailLayout, Fact, FactGrid, StatTile, StatTileRow } from '../../components/ui/detail'
 import { ProgressBar } from '../../components/ui/ProgressBar'
@@ -113,6 +113,18 @@ const deriveAssignmentStatus = (a: AssignmentDetail) => {
   if (a.startDate && now < new Date(a.startDate).getTime()) return 'Upcoming'
   if (a.dueDate && now > new Date(a.dueDate).getTime()) return 'Overdue'
   return 'In Progress'
+}
+
+// รวมสถานะรายคอร์สเป็นสถานะรวมของ learner (mirror 5 keys ของ AssignmentStatusKeys.Learner)
+// ลำดับ: จบครบ → มีเกินกำหนด → เริ่มแล้ว/บางส่วน → ยังไม่เริ่ม → ยังไม่ถึงกำหนด
+const deriveLearnerRollupStatus = (courses: Array<{ status: string }>): string | null => {
+  if (courses.length === 0) return null
+  const s = courses.map(c => c.status)
+  if (s.every(x => x === 'Completed')) return 'Completed'
+  if (s.some(x => x === 'Overdue')) return 'Overdue'
+  if (s.some(x => x === 'InProgress' || x === 'Completed')) return 'InProgress'
+  if (s.some(x => x === 'NotStarted')) return 'NotStarted'
+  return 'Upcoming'
 }
 
 export function AssignmentDetailPage() {
@@ -948,7 +960,6 @@ export function AssignmentDetailPage() {
                     {visibleGroupedLearners.map((l) => {
                       const completedCount = l.courses.filter(c => c.isCompleted).length
                       const totalCount = l.courses.length
-                      const allCompleted = totalCount > 0 && completedCount === totalCount
                       const isSelected = selectedCodes.has(l.learnerCode)
 
                       return (
@@ -984,28 +995,29 @@ export function AssignmentDetailPage() {
                                 <span className="text-xs font-bold text-slate-700">
                                   {tf(ASSIGNMENT_LABELS.completedOf, completedCount, totalCount)}
                                 </span>
-                                <StatusBadge size="xxs" tone={allCompleted ? 'success' : 'neutral'}>
-                                  {learnerStatusLabel(allCompleted ? 'Completed' : 'InProgress')}
-                                </StatusBadge>
+                                {(() => {
+                                  const rollup = deriveLearnerRollupStatus(l.courses)
+                                  return rollup ? (
+                                    <StatusBadge size="xxs">{learnerStatusLabel(rollup)}</StatusBadge>
+                                  ) : null
+                                })()}
                               </div>
-                              {totalCount === 0 ? (
+                              {totalCount === 0 && (
                                 <span className="text-slate-400 text-xs italic">{t(ASSIGNMENT_LABELS.noCoursesAssigned)}</span>
-                              ) : (
-                                <div className="flex items-center gap-2">
-                                  <Badge tone="neutral" variant="soft" size="xxs">{tf(ASSIGNMENT_LABELS.courseCount, totalCount)}</Badge>
-                                  <AppButton
-                                    variant="ghost"
-                                    onClick={() => setCourseModalCode(l.learnerCode)}
-                                    className="px-2 py-0.5 text-xxs font-bold"
-                                  >
-                                    {t(ASSIGNMENT_LABELS.viewCourses)}
-                                  </AppButton>
-                                </div>
                               )}
                             </div>
                           </td>
                           <td className="p-3 text-center align-top">
                             <div className="inline-flex items-center gap-1.5">
+                              {totalCount > 0 && (
+                                <IconButton
+                                  onClick={() => setCourseModalCode(l.learnerCode)}
+                                  icon={Eye}
+                                  tone="neutral"
+                                  size="sm"
+                                  title={t(ASSIGNMENT_LABELS.viewCourses)}
+                                />
+                              )}
                               <IconButton
                                 onClick={() => handleResetLearner(l.learnerCode)}
                                 icon={RotateCcw}
