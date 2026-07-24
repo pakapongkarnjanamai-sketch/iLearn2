@@ -1,6 +1,6 @@
 # PLAN-147 — Unified CSV + XLSX Export (client-side, โค้ดร่วมกันทุกหน้า report)
 
-- **สถานะ:** DONE
+- **สถานะ:** VERIFIED
 - **Assigned:** GitHub Copilot (GPT)
 - **วันที่:** 2026-07-24
 - **ต่อยอดจาก:** PLAN-143/145/146 (report pages + server Excel)
@@ -136,3 +136,20 @@ npm run build          # ยืนยัน bundle ไม่โตผิดป�
 - เพิ่ม label `export`, `exportExcelDetail`, `exportAllExcel`, `exportFilteredExcel` เพื่อให้หน้า assignment report และ report summary ไม่ต้อง hardcode copy ใหม่
 - Verification ที่รันใน session นี้: `npm run lint` ✓, `npm run build` ✓, grep ยืนยันไม่เหลือ call site ของ `exportRowsAsCsv` นอก `csvExport.ts`/`tableExport.ts`
 - ยังไม่ได้ทำ manual browser smoke ดาวน์โหลดไฟล์จริงและเปิดตรวจ `.csv` / `.xlsx` ทั้ง th/en ใน session นี้
+
+## Reviewer Notes (Claude Code — 2026-07-24)
+
+**สถาปัตยกรรมตรงตามการตัดสินใจที่ยืนยันไว้ทั้งสองข้อ:**
+- `exportRows(format, filename, header, rows)` ใน `src/lib/tableExport.ts` เป็นจุดเดียวสำหรับทั้ง CSV/XLSX, `csvExport.ts` ยังเป็นแหล่งเดียวของ CSV escaping/BOM — grep ยืนยัน `exportRowsAsCsv` ถูกเรียกจากที่เดียวคือ `tableExport.ts` เท่านั้น (ไม่มี escaping สองชุด)
+- 2 หน้ารวย (Assignment/Learner Group Summary) `handleExportExcel` เดิมไม่ถูกแตะเลย — ยังยิง server endpoint เดิม, label แยกชัดเจนเป็น "Excel รายละเอียดรายคน" ไม่ปนกับ xlsx flat ของหน้าอื่น — **ไม่ downgrade**
+- ตรวจ production build จริง: `write-excel-file/browser` ถูก dynamic `import()` แยกเป็น chunk `browser-*.js` (70.79 kB) — grep ยืนยัน `writeXlsxFile`/`write-excel-file` **ไม่มี** ใน main bundle `index-*.js` เลย (0 matches) → ตรงกับกติกา lazy-load ในแผน
+- `npm run lint` ✓ (0 errors), `npm run build` ✓ — รันซ้ำเองยืนยันแล้ว
+
+**พบ 1 จุด (minor, ไม่ block):** `AssignmentReportPage.tsx` — ปุ่ม "Export Filtered" (CSV+XLSX) ใช้ `hasRows={filtered.length > 0}` ควบคุมการซ่อน/แสดงทั้งกลุ่ม ขณะที่โค้ดเดิมใช้ `ControlAction` render เสมอ แล้วใช้ `disabled={!isFiltered}` + tooltip อธิบายเหตุผล — ผลคือถ้าผู้ใช้กรอง/ค้นหาแล้วได้ 0 แถวพอดี (isFiltered=true แต่ filtered.length=0) ปุ่มจะ**หายไปทั้งหมด**แทนที่จะโชว์แบบ disabled พร้อม toast อธิบายตอนกด (พฤติกรรมเดิม) — edge case เล็กน้อย ไม่กระทบ flow ปกติ ไม่ต้องแก้ด่วนแต่จดไว้เผื่อผู้ใช้เจอ
+- ปุ่ม "Export All" เปลี่ยนจาก render เสมอ → ซ่อนเมื่อ `data.learners.length === 0` ถือว่าดีขึ้น (ตรงกับ pattern หน้าอื่นที่ซ่อนปุ่มเมื่อไม่มีข้อมูล) ไม่ใช่ปัญหา
+
+**Manual file-open smoke ยังไม่ปิดครบ:** Copilot commit+deploy ไป QA/PROD แล้ว (`d4cdbfb`, `992a4c1`) โดยที่ DoD ข้อ "เปิดไฟล์ .csv/.xlsx จริงทั้ง th/en" ยังไม่ได้ทำ (จดไว้เองใน AGENT_LOG ว่า Outstanding) — ผมพยายามรัน dev server เพื่อทดสอบเองแต่ local API (`localhost:7128`, Windows auth) ไม่ได้รันใน session นี้ ทำให้หน้า report โหลดข้อมูลไม่ขึ้น (ค้างที่ "กำลังโหลด...") — **ยังไม่ได้ verify การเปิดไฟล์จริงด้วยตัวเอง** แนะนำให้ดาวน์โหลด+เปิดไฟล์ CSV และ XLSX จริงบน QA (ภาษาไทยไม่เพี้ยน, ตัวเลข sort ได้) ก่อนถือว่าปิดงานสมบูรณ์
+
+**สรุป:** โค้ดและสถาปัตยกรรมถูกต้องตามแผนและการตัดสินใจที่ยืนยันไว้ครบ, lint/build ผ่าน, ไม่มี duplicate logic — ตั้งสถานะ VERIFIED โดยมีหมายเหตุ 2 ข้อข้างต้น (1 minor UX edge case ที่ไม่บังคับแก้, 1 verification gap ที่แนะนำให้ปิดบน QA)
+
+**Fix เก็บตก (Claude Code — 2026-07-24):** แก้จุด minor ข้างต้นแล้ว — `AssignmentReportPage.tsx` ExportMenu "Export Filtered" เปลี่ยน `hasRows={filtered.length > 0}` → `hasRows` (เสมอ) ให้ปุ่มไม่หายไปเมื่อกรองได้ 0 แถวพอดี กลับไปใช้ `disabled={!isFiltered}` ควบคุมแทนเหมือน `ControlAction` เดิม — `npm run lint` ✓ `npm run build` ✓ (ยืนยัน bundle chunk-split ยังเหมือนเดิม `browser-CeIAsFQ3.js` 70.79 kB) — **ยังไม่ commit** (รอผู้ใช้สั่ง)

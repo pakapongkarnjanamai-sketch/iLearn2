@@ -295,7 +295,7 @@ export function AssignmentReportPage() {
               className="flex-col items-stretch [&>button]:w-full"
             />
             <ExportMenu
-              hasRows={filtered.length > 0}
+              hasRows
               onExport={(format) => exportReport(format, filtered, 'filtered')}
               csv={{
                 label: t(ASSIGNMENT_LABELS.exportFilteredCsv),

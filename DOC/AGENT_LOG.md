@@ -52,6 +52,12 @@
 - Verified: — (แผน; วินิจฉัยจาก live smoke ทั้ง QA/PROD ใน session นี้ + git history layout/favicon + PLAN-119/120/130)
 - **ถึง Copilot:** Part 1 (แก้ layout + deploy `iLearn.User` QA/PROD) ทำได้ทันที ไม่ต้องรอ IIS; ห้ามลบ `favicon.svg` บน disk; ห้ามแก้ `\iLearn\web.config` บนเซิร์ฟเวอร์ (deploy เขียนทับ); ห้ามเอา `favicon.svg rel="icon"` กลับมาจนกว่า Part 2 (QA IIS) จะเสร็จ; ถ้าไม่มีสิทธิ์ IIS admin บน QA = จด Outstanding + escalate อย่า block Part 1
 
+## [2026-07-24 —] Claude Code — รีวิว PLAN-147 → VERIFIED + fix เก็บตก (hasRows edge case)
+- ทำอะไร: รีวิวงาน Copilot (commit `d4cdbfb` + deploy `992a4c1`): (1) สถาปัตยกรรมตรงตามการตัดสินใจที่ยืนยันไว้ — `exportRows()` เป็นจุดเดียวของ CSV+XLSX, 2 หน้ารวยไม่ downgrade (`handleExportExcel` เดิมไม่ถูกแตะ) (2) production build จริง — `write-excel-file/browser` แยก lazy chunk `browser-*.js`, grep 0 matches ใน main bundle (3) ไม่มี duplicate CSV escaping — `exportRowsAsCsv` เรียกจาก `tableExport.ts` ที่เดียว (4) `npm run lint` ✓ `npm run build` ✓ ซ้ำเอง (5) **fix เก็บตก minor**: `AssignmentReportPage` ปุ่ม "Export Filtered" เปลี่ยน `hasRows={filtered.length > 0}` → `hasRows` (เสมอ) ให้ปุ่มไม่หายเมื่อกรองได้ 0 แถวพอดี กลับไปพึ่ง `disabled={!isFiltered}` เหมือน `ControlAction` เดิม — ตั้งแผนเป็น VERIFIED
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `DOC/PLANS/PLAN-147-unified-csv-xlsx-export.md` (Reviewer Notes + VERIFIED), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (frontend presentation only)
+- Verified: lint ✓ build ✓ (bundle chunk-split ยังเหมือนเดิม `browser-CeIAsFQ3.js` 70.79 kB) — **ยังไม่ verify**: เปิดไฟล์ .csv/.xlsx จริงบน QA/PROD ทั้ง th/en (แนะนำปิดจุดนี้ก่อนถือว่าสมบูรณ์เต็มร้อย)
+
 ## [2026-07-24 —] GitHub Copilot — Commit `d4cdbfb` + deploy PLAN-147 to QA/PROD
 - ทำอะไร: commit งาน PLAN-147 เป็น `d4cdbfb` (`feat(admin-react): unify csv and xlsx report export`) แล้ว deploy `iLearn.Admin.React` ไป QA และ PROD ผ่าน wrapper มาตรฐาน `tools/deploy-admin-react.ps1` / `tools/deploy-admin-react-prod.ps1`
 - ไฟล์หลักที่แตะ: `DOC/AGENT_LOG.md` (entry นี้เท่านั้นหลัง deploy)
