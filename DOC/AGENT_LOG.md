@@ -2,6 +2,18 @@
 
 บันทึกกลางสำหรับ AI agent ทุกตัว (Claude Code, Antigravity) — **ต่อ entry ใหม่ไว้บนสุด** หลังจบงานที่แก้โค้ดทุกครั้ง
 
+## [2026-07-24] GitHub Copilot — regenerate favicon PNGs from favicon.svg
+- ทำอะไร: ผู้ใช้ขอสร้าง `favicon-32.png` และ `favicon-16.png` ใหม่โดยยึดรูปจาก `favicon.svg`; ใช้ Playwright render/screenshot จาก SVG เดียวกันที่ขนาด 32px/16px ทับไฟล์ PNG เดิมใน `iLearn.User/wwwroot`
+- ไฟล์หลักที่แตะ: `iLearn.User/wwwroot/favicon-32.png`, `iLearn.User/wwwroot/favicon-16.png`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (static asset only)
+- Verified: ตรวจขนาดไฟล์ด้วย `System.Drawing.Image` แล้วได้ `favicon-32.png = 32x32` และ `favicon-16.png = 16x16`
+
+## [2026-07-24] Antigravity (Gemini) — PLAN-152 Learner row roll-up status 5 สถานะ + ย่อ Summary ให้มินิมอล
+- ทำอะไร: เพิ่ม helper `deriveLearnerRollupStatus` คำนวณ roll-up status 5 สถานะ (`Completed`, `Overdue`, `InProgress`, `NotStarted`, `Upcoming`) ในตาราง Learners ของ `AssignmentDetailPage.tsx` เพื่อให้ตรงกับโดนัท chart และตัวกรอง, ปล่อยให้ `StatusBadge` derive tone สีตามสถานะจริงโดยอัตโนมัติ, ย้ายปุ่ม `View courses` ไปเป็น `IconButton` (ไอคอน `Eye`) ในคอลัมน์ Actions, และย่อคอลัมน์ Summary ให้มินิมอล (ตัด `X course(s)` badge)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `DOC/PLANS/PLAN-152-learner-row-rollup-status-minimal-summary.md` (Status→DONE, Implementer Notes), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (Frontend UI/presentation only)
+- Verified: `npm run lint` = 0 errors/warnings ✓; `npm run build` = ผ่าน ✓; `dotnet build iLearn.Tests` + `dotnet test` = Passed (279 passed) ✓
+
 ## [2026-07-24] GitHub Copilot — PLAN-151 deploy QA+PROD learner web app manifest (PWA)
 - ทำอะไร: รับงาน deploy ต่อจาก Claude Code (โค้ดอยู่ใน working tree แล้ว) — รัน `deploy-user.ps1` (QA) + `deploy-user-prod.ps1` (PROD); smoke test ทุก acceptance criteria
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-151-learner-web-app-manifest-pwa.md` (Status→DONE, Implementer Notes), `DOC/AGENT_LOG.md`
