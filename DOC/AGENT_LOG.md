@@ -6,7 +6,7 @@
 - ทำอะไร: commit งานค้าง PLAN-152 (Learner row roll-up status + minimal summary/actions) แล้ว deploy `iLearn.Admin.React` ต่อไป QA และ PROD ตามคำขอผู้ใช้
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `DOC/PLANS/PLAN-152-learner-row-rollup-status-minimal-summary.md`, `DOC/AGENT_LOG.md`
 - Contract ที่เปลี่ยน: ไม่มี (frontend-only)
-- Verified: QA/PROD deploy + smoke จะระบุผลใน entry นี้หลังรันเสร็จ
+- Verified: `git commit` = `00d944f`; deploy QA ผ่าน (`tools/deploy-admin-react.ps1`, `CopySucceeded=True`, `RobocopyExitCode=3`), deploy PROD ผ่าน (`tools/deploy-admin-react-prod.ps1`, `CopySucceeded=True`, `RobocopyExitCode=3`); smoke QA: `/iLearn/admin-react/` = 200, `assets/index-mJm00-Jd.js` = 200; smoke PROD: `/iLearn/admin-react/` = 200, `assets/index-mJm00-Jd.js` = 200
 
 ## [2026-07-24] GitHub Copilot — regenerate favicon PNGs from favicon.svg
 - ทำอะไร: ผู้ใช้ขอสร้าง `favicon-32.png` และ `favicon-16.png` ใหม่โดยยึดรูปจาก `favicon.svg`; ใช้ Playwright render/screenshot จาก SVG เดียวกันที่ขนาด 32px/16px ทับไฟล์ PNG เดิมใน `iLearn.User/wwwroot`
