@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ChevronDown, Download, Printer, Users } from 'lucide-react'
+import { ChevronDown, Printer, Users } from 'lucide-react'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { DetailCard, DetailLayout, DetailSubSection } from '../../components/ui/detail'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
+import { ExportMenu } from '../../components/ui/ExportMenu'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { Card } from '../../components/ui/Card'
@@ -12,11 +13,11 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { fetchWithAccessControl } from '../../lib/apiClient'
-import { exportRowsAsCsv } from '../../lib/csvExport'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { toast } from '../../lib/toast'
 import { formatDate, formatPercent } from '../../lib/format'
 import { ASSIGNMENT_LABELS, COMMON_LABELS, LEARNER_STATUS_KEYS, REPORT_LABELS, UI_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
+import { exportRows, type ExportFormat } from '../../lib/tableExport'
 import { DETAIL_TABLE_CHUNK_SIZE, shouldLoadMoreOnScroll } from '../../lib/tableStandards'
 import { StatusDonut, CourseCompletionBars, buildStatusData, buildCourseBarData } from './AssignmentReportCharts'
 
@@ -212,7 +213,7 @@ export function AssignmentReportPage() {
       })
   }, [data])
 
-  const exportCsv = (rows: LearnerRow[], scope: 'all' | 'filtered') => {
+  const exportReport = async (format: ExportFormat, rows: LearnerRow[], scope: 'all' | 'filtered') => {
     if (!data || rows.length === 0) {
       toast.info(t(ASSIGNMENT_LABELS.noRowsToExport))
       return
@@ -246,8 +247,7 @@ export function AssignmentReportPage() {
       l.completedDate ? formatDate(l.completedDate) : '',
     ])
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-    const filename = `assignment-${data.assignmentNo || id}-report-${scope}-${stamp}.csv`
-    exportRowsAsCsv(filename, header, body)
+    await exportRows(format, `assignment-${data.assignmentNo || id}-report-${scope}-${stamp}`, header, body)
   }
 
   const handlePrint = () => {
@@ -287,17 +287,28 @@ export function AssignmentReportPage() {
             <ControlAction icon={Printer} onClick={handlePrint}>
               {t(ASSIGNMENT_LABELS.printReport)}
             </ControlAction>
-            <ControlAction icon={Download} onClick={() => exportCsv(data.learners, 'all')}>
-              {t(ASSIGNMENT_LABELS.exportAllCsv)}
-            </ControlAction>
-            <ControlAction
-              icon={Download}
-              onClick={() => exportCsv(filtered, 'filtered')}
-              disabled={!isFiltered}
-              title={isFiltered ? undefined : t(ASSIGNMENT_LABELS.filterBeforeExport)}
-            >
-              {t(ASSIGNMENT_LABELS.exportFilteredCsv)}
-            </ControlAction>
+            <ExportMenu
+              hasRows={data.learners.length > 0}
+              onExport={(format) => exportReport(format, data.learners, 'all')}
+              csv={{ label: t(ASSIGNMENT_LABELS.exportAllCsv) }}
+              xlsx={{ label: t(ASSIGNMENT_LABELS.exportAllExcel) }}
+              className="flex-col items-stretch [&>button]:w-full"
+            />
+            <ExportMenu
+              hasRows={filtered.length > 0}
+              onExport={(format) => exportReport(format, filtered, 'filtered')}
+              csv={{
+                label: t(ASSIGNMENT_LABELS.exportFilteredCsv),
+                disabled: !isFiltered,
+                title: isFiltered ? undefined : t(ASSIGNMENT_LABELS.filterBeforeExport),
+              }}
+              xlsx={{
+                label: t(ASSIGNMENT_LABELS.exportFilteredExcel),
+                disabled: !isFiltered,
+                title: isFiltered ? undefined : t(ASSIGNMENT_LABELS.filterBeforeExport),
+              }}
+              className="flex-col items-stretch [&>button]:w-full"
+            />
           </ControlsSidebar>
         }
       >

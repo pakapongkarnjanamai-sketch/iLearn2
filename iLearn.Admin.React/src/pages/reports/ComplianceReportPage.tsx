@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   Percent,
-  Download,
   ChevronRight,
   TrendingUp,
 } from 'lucide-react'
@@ -20,16 +19,16 @@ import {
   YAxis,
 } from 'recharts'
 import { Card } from '../../components/ui/Card'
+import { ExportMenu } from '../../components/ui/ExportMenu'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { StatusBadge } from '../../components/ui/StatusBadge'
-import { AppButton } from '../../components/ui/AppButton'
 import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { formatDate, formatPercent, formatNumber } from '../../lib/format'
 import { DASHBOARD_LABELS, REPORT_LABELS, UI_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
-import { exportRowsAsCsv } from '../../lib/csvExport'
+import { exportRows, type ExportFormat } from '../../lib/tableExport'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 import { BRAND, tooltipStyle, axisStyle } from '../../lib/chartTheme'
 import { toast } from '../../lib/toast'
@@ -106,7 +105,7 @@ export function ComplianceReportPage() {
     return activeTab === 'division' ? data.byDivision : data.byDepartment
   }, [data, activeTab])
 
-  const handleExportCsv = () => {
+  const handleExport = async (format: ExportFormat) => {
     if (!data || data.overdueRows.length === 0) {
       toast.info(t(REPORT_LABELS.noRowsToExport))
       return
@@ -136,7 +135,7 @@ export function ComplianceReportPage() {
       formatPercent(r.progress).replace('%', ''),
     ])
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-    exportRowsAsCsv(`compliance-overdue-report-${stamp}.csv`, header, body)
+    await exportRows(format, `compliance-overdue-report-${stamp}`, header, body)
   }
 
   if (loading) {
@@ -353,18 +352,7 @@ export function ComplianceReportPage() {
         title={t(REPORT_LABELS.compDetailsTitle)}
         className="flex-1 flex flex-col min-h-64"
         bodyClassName="flex-1 flex flex-col min-h-0"
-        actions={
-          data.overdueRows.length > 0 && (
-            <AppButton
-              onClick={handleExportCsv}
-              icon={Download}
-              variant="secondary"
-              size="sm"
-            >
-              {t(REPORT_LABELS.exportCsv)}
-            </AppButton>
-          )
-        }
+        actions={<ExportMenu hasRows={data.overdueRows.length > 0} onExport={handleExport} />}
       >
         <div className="border-b border-slate-100 bg-slate-50/20 px-5 shrink-0">
           <ListToolbar

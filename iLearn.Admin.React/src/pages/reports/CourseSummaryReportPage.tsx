@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Download,
   ArrowUpDown,
 } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
+import { ExportMenu } from '../../components/ui/ExportMenu'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { Badge } from '../../components/ui/Badge'
-import { AppButton } from '../../components/ui/AppButton'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { formatNumber } from '../../lib/format'
 import { DASHBOARD_LABELS, REPORT_LABELS, UI_LABELS, learnerStatusLabel, t } from '../../lib/labels'
-import { exportRowsAsCsv } from '../../lib/csvExport'
+import { exportRows, type ExportFormat } from '../../lib/tableExport'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 import { toast } from '../../lib/toast'
 import type { CourseSummaryReportDto } from './reportTypes'
@@ -114,7 +113,7 @@ export function CourseSummaryReportPage() {
     }
   }
 
-  const handleExportCsv = () => {
+  const handleExport = async (format: ExportFormat) => {
     if (!data || data.rows.length === 0) {
       toast.info(t(REPORT_LABELS.noRowsToExport))
       return
@@ -144,7 +143,7 @@ export function CourseSummaryReportPage() {
       r.overdueCount,
     ])
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-    exportRowsAsCsv(`course-summary-report-${stamp}.csv`, header, body)
+    await exportRows(format, `course-summary-report-${stamp}`, header, body)
   }
 
   if (loading) {
@@ -166,18 +165,7 @@ export function CourseSummaryReportPage() {
         title={t(REPORT_LABELS.csTitle)}
         className="flex-1 flex flex-col min-h-0"
         bodyClassName="flex-1 flex flex-col min-h-0"
-        actions={
-          data.rows.length > 0 && (
-            <AppButton
-              onClick={handleExportCsv}
-              icon={Download}
-              variant="secondary"
-              size="sm"
-            >
-              {t(REPORT_LABELS.exportCsv)}
-            </AppButton>
-          )
-        }
+        actions={<ExportMenu hasRows={data.rows.length > 0} onExport={handleExport} />}
       >
         <div className="border-b border-slate-100 bg-slate-50/20 px-5 shrink-0">
           <ListToolbar

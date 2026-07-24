@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Activity,
-  Download,
   CheckCircle2,
   BookOpen,
   Users,
@@ -17,13 +16,13 @@ import {
   Legend,
 } from 'recharts'
 import { Card } from '../../components/ui/Card'
+import { ExportMenu } from '../../components/ui/ExportMenu'
 import { LoadingState } from '../../components/ui/LoadingState'
-import { AppButton } from '../../components/ui/AppButton'
 import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { formatNumber } from '../../lib/format'
 import { REPORT_LABELS, t, tf } from '../../lib/labels'
-import { exportRowsAsCsv } from '../../lib/csvExport'
+import { exportRows, type ExportFormat } from '../../lib/tableExport'
 import { toast } from '../../lib/toast'
 import { BRAND, tooltipStyle, axisStyle } from '../../lib/chartTheme'
 import type { ActivityReportDto } from './reportTypes'
@@ -75,7 +74,7 @@ export function ActivityReportPage() {
     }
   }, [data])
 
-  const handleExportCsv = () => {
+  const handleExport = async (format: ExportFormat) => {
     if (!data || data.months.length === 0) {
       toast.info(t(REPORT_LABELS.noRowsToExport))
       return
@@ -95,7 +94,7 @@ export function ActivityReportPage() {
       formatNumber(r.totalHoursPlayed, 1),
     ])
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-    exportRowsAsCsv(`training-activity-report-${stamp}.csv`, header, body)
+    await exportRows(format, `training-activity-report-${stamp}`, header, body)
   }
 
   if (loading) {
@@ -230,16 +229,7 @@ export function ActivityReportPage() {
               onChange={(val) => setMonths(Number(val))}
               variant="segment"
             />
-            {data.months.length > 0 && (
-              <AppButton
-                onClick={handleExportCsv}
-                icon={Download}
-                variant="secondary"
-                size="sm"
-              >
-                {t(REPORT_LABELS.exportCsv)}
-              </AppButton>
-            )}
+            <ExportMenu hasRows={data.months.length > 0} onExport={handleExport} />
           </div>
         }
       >

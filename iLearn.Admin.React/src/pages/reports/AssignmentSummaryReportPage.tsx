@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type UIEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowUpDown, Download, ExternalLink, FileSpreadsheet } from 'lucide-react'
+import { ArrowUpDown, ExternalLink } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
+import { ExportMenu } from '../../components/ui/ExportMenu'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { AppButton } from '../../components/ui/AppButton'
 import { ListToolbar } from '../../components/ui/ListToolbar'
@@ -9,10 +10,10 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { buildApiUrl, fetchWithAccessControl } from '../../lib/apiClient'
-import { exportRowsAsCsv } from '../../lib/csvExport'
 import { downloadBlob, filenameFromContentDisposition } from '../../lib/downloadBlob'
 import { formatDate, formatNumber, formatPercent } from '../../lib/format'
 import { DASHBOARD_LABELS, REPORT_LABELS, UI_LABELS, getLang, learnerStatusLabel, t } from '../../lib/labels'
+import { exportRows } from '../../lib/tableExport'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 import { toast } from '../../lib/toast'
 import type { AssignmentSummaryReportDto } from './reportTypes'
@@ -181,7 +182,7 @@ export function AssignmentSummaryReportPage() {
     }
   }
 
-  const handleExportCsv = () => {
+  const handleExportCsv = async () => {
     if (!data || filteredRows.length === 0) {
       toast.info(t(REPORT_LABELS.noRowsToExport))
       return
@@ -220,7 +221,7 @@ export function AssignmentSummaryReportPage() {
       formatPercent(row.completionRate).replace('%', ''),
     ])
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-    exportRowsAsCsv(`assignment-summary-report-${stamp}.csv`, header, body)
+    await exportRows('csv', `assignment-summary-report-${stamp}`, header, body)
   }
 
   const handleExportExcel = async () => {
@@ -278,16 +279,16 @@ export function AssignmentSummaryReportPage() {
         className="flex min-h-0 flex-1 flex-col"
         bodyClassName="flex min-h-0 flex-1 flex-col"
         actions={
-          data.rows.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <AppButton onClick={handleExportExcel} icon={FileSpreadsheet} variant="secondary" size="sm" loading={exportingExcel}>
-                {exportingExcel ? t(REPORT_LABELS.exportingExcel) : t(REPORT_LABELS.exportExcel)}
-              </AppButton>
-              <AppButton onClick={handleExportCsv} icon={Download} variant="secondary" size="sm">
-                {t(REPORT_LABELS.exportCsv)}
-              </AppButton>
-            </div>
-          )
+          <ExportMenu
+            hasRows={data.rows.length > 0}
+            csv={{ onClick: handleExportCsv }}
+            xlsx={{
+              label: t(REPORT_LABELS.exportExcelDetail),
+              loadingLabel: t(REPORT_LABELS.exportingExcel),
+              onClick: handleExportExcel,
+              loading: exportingExcel,
+            }}
+          />
         }
       >
         <div className="shrink-0 border-b border-slate-100 bg-slate-50/20 px-5 py-3">
