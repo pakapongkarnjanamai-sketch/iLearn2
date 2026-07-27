@@ -33,7 +33,16 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { formatDate } from '../../lib/format'
-import { ASSIGNMENT_LABELS, COMMON_LABELS, LEARNER_STATUS_KEYS, UI_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
+import {
+  ASSIGNMENT_LABELS,
+  COMMON_LABELS,
+  LEARNER_STATUS_KEYS,
+  UI_LABELS,
+  learnerStatusLabel,
+  t,
+  tf,
+  type LearnerStatusKey,
+} from '../../lib/labels'
 import { DetailTabs } from '../../components/ui/DetailTabs'
 import { DETAIL_TABLE_CHUNK_SIZE, shouldLoadMoreOnScroll } from '../../lib/tableStandards'
 
@@ -117,7 +126,7 @@ const deriveAssignmentStatus = (a: AssignmentDetail) => {
 
 // รวมสถานะรายคอร์สเป็นสถานะรวมของ learner (mirror 5 keys ของ AssignmentStatusKeys.Learner)
 // ลำดับ: จบครบ → มีเกินกำหนด → เริ่มแล้ว/บางส่วน → ยังไม่เริ่ม → ยังไม่ถึงกำหนด
-const deriveLearnerRollupStatus = (courses: Array<{ status: string }>): string | null => {
+const deriveLearnerRollupStatus = (courses: Array<{ status: string }>): LearnerStatusKey | null => {
   if (courses.length === 0) return null
   const s = courses.map(c => c.status)
   if (s.every(x => x === 'Completed')) return 'Completed'
@@ -172,7 +181,7 @@ export function AssignmentDetailPage() {
 
   // Learners tab: search / status filter / bulk selection
   const [learnerSearch, setLearnerSearch] = useState('')
-  const [learnerStatusFilter, setLearnerStatusFilter] = useState<string>('All')
+  const [learnerStatusFilter, setLearnerStatusFilter] = useState<'All' | LearnerStatusKey>('All')
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(new Set())
   const [bulkWorking, setBulkWorking] = useState<'reset' | 'remove' | null>(null)
 
@@ -235,21 +244,44 @@ export function AssignmentDetailPage() {
     return groupedLearners.find(l => l.learnerCode === courseModalCode) ?? null
   }, [groupedLearners, courseModalCode])
 
+  const groupedLearnersWithRollup = useMemo(() => {
+    return groupedLearners.map(learner => {
+      const rollupStatus = deriveLearnerRollupStatus(learner.courses)
+      return {
+        learner,
+        rollupStatus,
+        // Learners with zero courses are counted as NotStarted in donut/filter so totals stay aligned.
+        chartAndFilterStatus: rollupStatus ?? 'NotStarted',
+      }
+    })
+  }, [groupedLearners])
+
+  const learnerCompletionRate = useMemo(() => {
+    const withCourses = groupedLearnersWithRollup.filter(x => x.learner.courses.length > 0)
+    if (withCourses.length === 0) return 0
+    const done = withCourses.filter(x => x.rollupStatus === 'Completed').length
+    return Math.round((done / withCourses.length) * 100)
+  }, [groupedLearnersWithRollup])
+
+  const learnerStatusDonutData = useMemo(() => {
+    return buildStatusData(groupedLearnersWithRollup.map(x => ({ status: x.chartAndFilterStatus })))
+  }, [groupedLearnersWithRollup])
+
   const filteredLearners = useMemo(() => {
     const q = learnerSearch.trim().toLowerCase()
-    return groupedLearners.filter(l => {
-      if (learnerStatusFilter !== 'All' && !l.courses.some(c => c.status === learnerStatusFilter)) {
+    return groupedLearnersWithRollup.filter(({ learner, chartAndFilterStatus }) => {
+      if (learnerStatusFilter !== 'All' && chartAndFilterStatus !== learnerStatusFilter) {
         return false
       }
       if (!q) return true
       return (
-        l.learnerCode.toLowerCase().includes(q) ||
-        (l.learnerName ?? '').toLowerCase().includes(q) ||
-        (l.division ?? '').toLowerCase().includes(q) ||
-        (l.department ?? '').toLowerCase().includes(q)
+        learner.learnerCode.toLowerCase().includes(q) ||
+        (learner.learnerName ?? '').toLowerCase().includes(q) ||
+        (learner.division ?? '').toLowerCase().includes(q) ||
+        (learner.department ?? '').toLowerCase().includes(q)
       )
-    })
-  }, [groupedLearners, learnerSearch, learnerStatusFilter])
+    }).map(x => x.learner)
+  }, [groupedLearnersWithRollup, learnerSearch, learnerStatusFilter])
 
   const loadAssignmentDetails = useCallback(async () => {
     setLoading(true)
@@ -820,8 +852,8 @@ export function AssignmentDetailPage() {
               </div>
               <div className="w-full lg:w-70 shrink-0 border-t lg:border-t-0 lg:border-l border-slate-100 pt-4 lg:pt-0 lg:pl-6">
                 <StatusDonut
-                  data={buildStatusData(assignment.learners)}
-                  completionRate={assignment.completionRate}
+                  data={learnerStatusDonutData}
+                  completionRate={learnerCompletionRate}
                   activeStatus={learnerStatusFilter}
                 />
               </div>

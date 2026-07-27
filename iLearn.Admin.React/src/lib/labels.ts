@@ -887,7 +887,6 @@ export const ASSIGNMENT_LABELS = {
   showingOf: { th: 'แสดง {0} จาก {1}', en: 'Showing {0} of {1}' },
   loadMore: { th: 'โหลดเพิ่ม', en: 'Load more' },
   openLearnerProfile: { th: 'เปิดโปรไฟล์ผู้เรียน', en: 'Open learner profile' },
-  courseCount: { th: '{0} คอร์ส', en: '{0} course(s)' },
   close: { th: 'ปิด', en: 'Close' },
   cancel: { th: 'ยกเลิก', en: 'Cancel' },
   confirm: { th: 'ยืนยัน', en: 'Confirm' },
