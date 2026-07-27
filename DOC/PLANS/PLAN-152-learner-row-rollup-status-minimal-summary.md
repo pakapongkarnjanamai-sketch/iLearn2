@@ -1,6 +1,6 @@
 # PLAN-152 — Learner row: roll-up status 5 สถานะ + ย่อ Summary ให้มินิมอล
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** Antigravity (Gemini) — implementer
 - **Reviewer:** Claude Code
 - **Author:** Claude Code (planner)
@@ -158,3 +158,32 @@ npm run build   # tsc -b && vite build
   - `npm run lint` = 0 errors, 0 warnings
   - `npm run build` (tsc -b && vite build) = ผ่านเรียบร้อย
   - `dotnet build iLearn.Tests` + `dotnet test` = Passed (279 passed, 0 failed)
+
+---
+
+## Reviewer Notes (Claude Code — 2026-07-27)
+
+**ผลรีวิว: VERIFIED** — implement ตรงตาม Scope ทุกข้อ ไม่มีการขยายขอบเขต
+
+ตรวจแล้วผ่าน:
+1. `deriveLearnerRollupStatus` ตรงกับ spec ในแผนทุกบรรทัด — เคส `[Completed, NotStarted]` (จบบางส่วน) → `InProgress` ถูกต้องตามเจตนา
+2. `StatusBadge` ไม่ส่ง `tone` → derive จาก label เอง ✓ · `IconButton` `tone="neutral"` มีจริง (เป็น default ใน `IconButton.tsx:46`) ✓
+3. ไม่แตะ `buildStatusData` / `learnerStatusFilter` / modal / backend ตามข้อห้ามในแผน ✓
+4. รัน verification ซ้ำเอง: `npm run lint` ✓ · `npm run build` ✓ · bundle hash `index-mJm00-Jd.js` **ตรงกับที่ deploy QA/PROD จริง** (ดู AGENT_LOG entry deploy) = ของที่ขึ้นเซิร์ฟเวอร์คือ commit `00d944f` จริง
+
+### Finding 1 (MEDIUM — ยังไม่แก้ในรอบนี้ ⇒ แตกเป็น [PLAN-153](./PLAN-153-learner-status-filter-rollup-alignment.md))
+
+ป้ายแถวตอนนี้เป็น **roll-up ระดับคน** แต่ตัวกรอง/โดนัทยังเป็น **ระดับคอร์ส** ⇒ ยังขัดกันเองในเคสผสม (เคสในภาพที่ผู้ใช้แจ้งหายไปแล้วจริง แต่ปัญหาเชิงระบบยังอยู่)
+
+พิสูจน์: learner ที่มีคอร์ส `[Completed, NotStarted]`
+- ป้ายแถว = `In Progress` (roll-up)
+- โดนัท `In Progress` = **0** (นับรายคอร์ส: 1 Completed + 1 Not Started)
+- กด filter `In Progress` → แถวนี้ **หายไป** เพราะ filter ใช้ `l.courses.some(c => c.status === filter)` ([:241](../../iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx#L241)) ไม่ได้เทียบกับ roll-up
+
+= ผู้ใช้เห็นป้าย `In Progress` แต่กรอง `In Progress` แล้วไม่เจอแถวนั้น
+
+### Finding 2 (MINOR)
+`deriveLearnerRollupStatus` คืน `string | null` ไม่ใช่ `LearnerStatusKey | null` — พิมพ์ key ผิด (เช่น `'Notstarted'`) จะหลุด compile ไปโผล่เป็นข้อความดิบบน badge เพราะ `learnerStatusLabel` fallback คืนค่า input เดิม ([labels.ts:86-90](../../iLearn.Admin.React/src/lib/labels.ts#L86)). แก้ราคาถูก: ใช้ `LearnerStatusKey` เป็น return type + `courses: Array<{ status: string }>` → เทียบกับ `LEARNER_STATUS_KEYS`
+
+### Finding 3 (TRIVIAL)
+`ASSIGNMENT_LABELS.courseCount` ([labels.ts:890](../../iLearn.Admin.React/src/lib/labels.ts#L890)) ไม่มีผู้ใช้แล้วหลังตัด badge `X course(s)` — แผนอนุญาตให้ปล่อยไว้ได้ ถ้าจะเก็บกวาดค่อยรวมกับ labels sweep รอบหน้า
