@@ -61,6 +61,21 @@ const readResponseBody = async (response: Response) => {
 }
 
 export const fetchWithAccessControl = async <TResponse>(path: string, init: RequestInit = {}) => {
+  const response = await fetchResponseWithAccessControl(path, init)
+
+  if (response.status === 204) {
+    return undefined as TResponse
+  }
+
+  const responseText = await response.text()
+  if (!responseText) {
+    return undefined as TResponse
+  }
+
+  return JSON.parse(responseText) as TResponse
+}
+
+export const fetchResponseWithAccessControl = async (path: string, init: RequestInit = {}) => {
   const response = await fetch(buildApiUrl(path), {
     ...init,
     credentials: 'include',
@@ -73,16 +88,7 @@ export const fetchWithAccessControl = async <TResponse>(path: string, init: Requ
     throw new ApiError(finalMessage, response.status, raw)
   }
 
-  if (response.status === 204) {
-    return undefined as TResponse
-  }
-
-  const responseText = await response.text()
-  if (!responseText) {
-    return undefined as TResponse
-  }
-
-  return JSON.parse(responseText) as TResponse
+  return response
 }
 
 export type UploadPhase = 'uploading' | 'processing'
@@ -177,4 +183,4 @@ export const uploadWithProgress = <TResponse>(
       xhr.abort()
     },
   }
-}
+}

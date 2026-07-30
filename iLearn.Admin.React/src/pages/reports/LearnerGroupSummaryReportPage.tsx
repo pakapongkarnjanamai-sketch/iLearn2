@@ -7,7 +7,8 @@ import { ExportMenu } from '../../components/ui/ExportMenu'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { ProgressBar } from '../../components/ui/ProgressBar'
-import { buildApiUrl, fetchWithAccessControl } from '../../lib/apiClient'
+import { ReportKpiTile } from '../../components/ui/ReportKpiTile'
+import { ApiError, fetchResponseWithAccessControl, fetchWithAccessControl } from '../../lib/apiClient'
 import { downloadBlob, filenameFromContentDisposition } from '../../lib/downloadBlob'
 import { formatDate, formatNumber, formatPercent } from '../../lib/format'
 import { DASHBOARD_LABELS, REPORT_LABELS, getLang, learnerStatusLabel, t } from '../../lib/labels'
@@ -47,22 +48,6 @@ function isDueDateInRange(dueDate: string | null | undefined, from: string, to: 
 
   const date = dueDate.slice(0, 10)
   return (!from || date >= from) && (!to || date <= to)
-}
-
-function KpiTile({ label, value, tone = 'slate' }: { label: string; value: string; tone?: 'slate' | 'indigo' | 'emerald' | 'rose' }) {
-  const toneClass = {
-    slate: 'text-slate-900',
-    indigo: 'text-indigo-700',
-    emerald: 'text-emerald-700',
-    rose: 'text-rose-600',
-  }[tone]
-
-  return (
-    <div className="border-r border-slate-200/70 px-4 py-3 last:border-r-0">
-      <div className="text-[10px] font-extrabold uppercase text-slate-400">{label}</div>
-      <div className={`mt-1 text-lg font-bold tabular-nums ${toneClass}`}>{value}</div>
-    </div>
-  )
 }
 
 export function LearnerGroupSummaryReportPage() {
@@ -211,16 +196,15 @@ export function LearnerGroupSummaryReportPage() {
       if (fromDate) params.set('from', fromDate)
       if (toDate) params.set('to', toDate)
       params.set('lang', getLang())
-      const response = await fetch(buildApiUrl(`Reports/learner-groups/export?${params.toString()}`), {
-        credentials: 'include',
+      const response = await fetchResponseWithAccessControl(`Reports/learner-groups/export?${params.toString()}`, {
         headers: { Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
       })
-      if (!response.ok) throw new Error(response.statusText || t(REPORT_LABELS.exportExcelFailed))
 
       const blob = await response.blob()
       downloadBlob(blob, filenameFromContentDisposition(response.headers.get('content-disposition'), 'learner-group-report.xlsx'))
-    } catch {
-      toast.error(t(REPORT_LABELS.exportExcelFailed))
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : t(REPORT_LABELS.exportExcelFailed)
+      toast.error(message || t(REPORT_LABELS.exportExcelFailed))
     } finally {
       setExportingExcel(false)
     }
@@ -246,12 +230,12 @@ export function LearnerGroupSummaryReportPage() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs sm:grid-cols-3 xl:grid-cols-6">
-        <KpiTile label={t(REPORT_LABELS.lgTotalGroups)} value={formatNumber(data.totalGroups)} />
-        <KpiTile label={t(REPORT_LABELS.lgTotalMembers)} value={formatNumber(data.totalMembers)} tone="indigo" />
-        <KpiTile label={t(REPORT_LABELS.lgGroupsWithAssignments)} value={formatNumber(data.groupsWithAssignments)} />
-        <KpiTile label={t(REPORT_LABELS.lgTotalAssignments)} value={formatNumber(data.totalAssignments)} />
-        <KpiTile label={t(REPORT_LABELS.lgTotalEnrollments)} value={formatNumber(data.totalEnrollments)} tone="emerald" />
-        <KpiTile label={t(REPORT_LABELS.lgOverallCompletion)} value={formatPercent(data.completionRate)} />
+        <ReportKpiTile label={t(REPORT_LABELS.lgTotalGroups)} value={formatNumber(data.totalGroups)} />
+        <ReportKpiTile label={t(REPORT_LABELS.lgTotalMembers)} value={formatNumber(data.totalMembers)} tone="info" />
+        <ReportKpiTile label={t(REPORT_LABELS.lgGroupsWithAssignments)} value={formatNumber(data.groupsWithAssignments)} />
+        <ReportKpiTile label={t(REPORT_LABELS.lgTotalAssignments)} value={formatNumber(data.totalAssignments)} />
+        <ReportKpiTile label={t(REPORT_LABELS.lgTotalEnrollments)} value={formatNumber(data.totalEnrollments)} tone="success" />
+        <ReportKpiTile label={t(REPORT_LABELS.lgOverallCompletion)} value={formatPercent(data.completionRate)} />
       </div>
 
       <Card

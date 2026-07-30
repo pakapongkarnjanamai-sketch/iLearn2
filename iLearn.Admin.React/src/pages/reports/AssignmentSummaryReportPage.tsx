@@ -7,9 +7,10 @@ import { LoadingState } from '../../components/ui/LoadingState'
 import { AppButton } from '../../components/ui/AppButton'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { ProgressBar } from '../../components/ui/ProgressBar'
+import { ReportKpiTile } from '../../components/ui/ReportKpiTile'
 import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { StatusBadge } from '../../components/ui/StatusBadge'
-import { buildApiUrl, fetchWithAccessControl } from '../../lib/apiClient'
+import { ApiError, fetchResponseWithAccessControl, fetchWithAccessControl } from '../../lib/apiClient'
 import { downloadBlob, filenameFromContentDisposition } from '../../lib/downloadBlob'
 import { formatDate, formatNumber, formatPercent } from '../../lib/format'
 import { DASHBOARD_LABELS, REPORT_LABELS, getLang, learnerStatusLabel, t } from '../../lib/labels'
@@ -51,22 +52,6 @@ function isDueDateInRange(dueDate: string | null | undefined, from: string, to: 
 
   const date = dueDate.slice(0, 10)
   return (!from || date >= from) && (!to || date <= to)
-}
-
-function KpiTile({ label, value, tone = 'slate' }: { label: string; value: string; tone?: 'slate' | 'indigo' | 'emerald' | 'rose' }) {
-  const toneClass = {
-    slate: 'text-slate-900',
-    indigo: 'text-indigo-700',
-    emerald: 'text-emerald-700',
-    rose: 'text-rose-600',
-  }[tone]
-
-  return (
-    <div className="border-r border-slate-200/70 px-4 py-3 last:border-r-0">
-      <div className="text-[10px] font-extrabold uppercase text-slate-400">{label}</div>
-      <div className={`mt-1 text-lg font-bold tabular-nums ${toneClass}`}>{value}</div>
-    </div>
-  )
 }
 
 export function AssignmentSummaryReportPage() {
@@ -231,16 +216,15 @@ export function AssignmentSummaryReportPage() {
       if (fromDate) params.set('from', fromDate)
       if (toDate) params.set('to', toDate)
       params.set('lang', getLang())
-      const response = await fetch(buildApiUrl(`Reports/assignments/export?${params.toString()}`), {
-        credentials: 'include',
+      const response = await fetchResponseWithAccessControl(`Reports/assignments/export?${params.toString()}`, {
         headers: { Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
       })
-      if (!response.ok) throw new Error(response.statusText || t(REPORT_LABELS.exportExcelFailed))
 
       const blob = await response.blob()
       downloadBlob(blob, filenameFromContentDisposition(response.headers.get('content-disposition'), 'assignment-report.xlsx'))
-    } catch {
-      toast.error(t(REPORT_LABELS.exportExcelFailed))
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : t(REPORT_LABELS.exportExcelFailed)
+      toast.error(message || t(REPORT_LABELS.exportExcelFailed))
     } finally {
       setExportingExcel(false)
     }
@@ -266,12 +250,12 @@ export function AssignmentSummaryReportPage() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xs sm:grid-cols-3 xl:grid-cols-6">
-        <KpiTile label={t(REPORT_LABELS.csColAssignments)} value={formatNumber(data.totalAssignments)} />
-        <KpiTile label={t(REPORT_LABELS.asgActiveAssignments)} value={formatNumber(data.activeAssignments)} tone="indigo" />
-        <KpiTile label={t(REPORT_LABELS.asgCompletedAssignments)} value={formatNumber(data.completedAssignments)} tone="emerald" />
-        <KpiTile label={t(REPORT_LABELS.asgOverdueAssignments)} value={formatNumber(data.overdueAssignments)} tone="rose" />
-        <KpiTile label={t(REPORT_LABELS.asgTotalEnrollments)} value={formatNumber(data.totalEnrollments)} />
-        <KpiTile label={t(REPORT_LABELS.asgOverallCompletion)} value={formatPercent(data.completionRate)} />
+        <ReportKpiTile label={t(REPORT_LABELS.csColAssignments)} value={formatNumber(data.totalAssignments)} />
+        <ReportKpiTile label={t(REPORT_LABELS.asgActiveAssignments)} value={formatNumber(data.activeAssignments)} tone="info" />
+        <ReportKpiTile label={t(REPORT_LABELS.asgCompletedAssignments)} value={formatNumber(data.completedAssignments)} tone="success" />
+        <ReportKpiTile label={t(REPORT_LABELS.asgOverdueAssignments)} value={formatNumber(data.overdueAssignments)} tone="danger" />
+        <ReportKpiTile label={t(REPORT_LABELS.asgTotalEnrollments)} value={formatNumber(data.totalEnrollments)} />
+        <ReportKpiTile label={t(REPORT_LABELS.asgOverallCompletion)} value={formatPercent(data.completionRate)} />
       </div>
 
       <Card
