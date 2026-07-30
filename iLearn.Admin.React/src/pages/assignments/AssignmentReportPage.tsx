@@ -14,11 +14,11 @@ import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { toast } from '../../lib/toast'
-import { formatDate, formatDateTime, formatPercent } from '../../lib/format'
+import { formatDate, formatDateTime } from '../../lib/format'
 import { ASSIGNMENT_LABELS, COMMON_LABELS, LEARNER_STATUS_KEYS, REPORT_LABELS, learnerStatusLabel, t } from '../../lib/labels'
 import { exportWorkbook } from '../../lib/tableExport'
 import { DETAIL_TABLE_CHUNK_SIZE, shouldLoadMoreOnScroll } from '../../lib/tableStandards'
-import { StatusDonut, CourseCompletionBars, buildStatusData, buildCourseBarData } from './AssignmentReportCharts'
+import { StatusDonut, buildStatusData } from './AssignmentReportCharts'
 
 // Mirrors LearnerProgressDto (iLearn.Application/DTOs/AssignmentDashboardDto.cs)
 type LearnerRow = {
@@ -67,9 +67,7 @@ type GroupSummary = {
   groupName: string
   learnerCount: number
   enrollments: number
-  completed: number
   overdue: number
-  completionRate: number
 }
 
 type AssignmentReportExportKey = 'admin-workbook'
@@ -165,11 +163,6 @@ export function AssignmentReportPage() {
     return buildStatusData(data.learners)
   }, [data])
 
-  const courseBarData = useMemo(() => {
-    if (!data) return []
-    return buildCourseBarData(data.courses)
-  }, [data])
-
   const groupSummaries = useMemo<GroupSummary[]>(() => {
     if (!data) return []
     const groups = new Map<string, LearnerRow[]>()
@@ -198,14 +191,11 @@ export function AssignmentReportPage() {
 
     return Array.from(groups.entries())
       .map(([groupName, rows]) => {
-        const completed = rows.filter((row) => row.isCompleted).length
         return {
           groupName,
           learnerCount: new Set(rows.map((row) => row.learnerCode)).size,
           enrollments: rows.length,
-          completed,
           overdue: rows.filter((row) => row.status === 'Overdue').length,
-          completionRate: rows.length === 0 ? 0 : (completed / rows.length) * 100,
         }
       })
       .sort((a, b) => {
@@ -426,14 +416,10 @@ export function AssignmentReportPage() {
             </div>
 
             {/* Stat tiles */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 px-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3 px-1">
               <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
                 <div className="text-[10px] font-extrabold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.learners)}</div>
                 <div className="text-lg font-bold text-slate-800 tabular-nums mt-0.5">{data.totalEmployees}</div>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.completed)}</div>
-                <div className="text-lg font-bold text-slate-800 tabular-nums mt-0.5">{data.chartData.completed}</div>
               </div>
               <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2.5 text-center">
                 <div className="text-[10px] font-extrabold text-slate-400 uppercase">{t(ASSIGNMENT_LABELS.overdue)}</div>
@@ -447,34 +433,20 @@ export function AssignmentReportPage() {
 
             {/* Print-only fallback: full stats without charts */}
             <div className="hidden print:block pt-3 px-1">
-              <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-2 text-xs">
                 <div><span className="font-bold text-slate-500">Not Started:</span> {data.chartData.notStarted}</div>
                 <div><span className="font-bold text-slate-500">In Progress:</span> {data.chartData.inProgress}</div>
-                <div><span className="font-bold text-slate-500">Completion:</span> {formatPercent(data.completionRate)}</div>
               </div>
             </div>
 
-            {/* Charts: donut + bars */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 print:hidden">
-              <div>
-                <DetailSubSection title={t(ASSIGNMENT_LABELS.statusOverview)}>
-                  <StatusDonut
-                    data={statusChartData}
-                    completionRate={data.completionRate}
-                    activeStatus={statusFilter}
-                  />
-                </DetailSubSection>
-              </div>
-              {data.courses.length > 0 && (
-                <div>
-                  <DetailSubSection title={t(ASSIGNMENT_LABELS.completionByCourse)}>
-                    <CourseCompletionBars
-                      data={courseBarData}
-                      activeCourse={courseFilter}
-                    />
-                  </DetailSubSection>
-                </div>
-              )}
+            {/* Charts: status only */}
+            <div className="pt-4 print:hidden">
+              <DetailSubSection title={t(ASSIGNMENT_LABELS.statusOverview)}>
+                <StatusDonut
+                  data={statusChartData}
+                  activeStatus={statusFilter}
+                />
+              </DetailSubSection>
             </div>
           </DetailCard>
 
@@ -488,9 +460,7 @@ export function AssignmentReportPage() {
                       <th className="p-3 pl-5">{t(ASSIGNMENT_LABELS.byLearnerGroup)}</th>
                       <th className="p-3 text-center">{t(ASSIGNMENT_LABELS.learners)}</th>
                       <th className="p-3 text-center">{t(ASSIGNMENT_LABELS.enrollments)}</th>
-                      <th className="p-3 text-center">{t(ASSIGNMENT_LABELS.completed)}</th>
                       <th className="p-3 text-center">{t(ASSIGNMENT_LABELS.overdue)}</th>
-                      <th className="p-3 pr-5">{t(ASSIGNMENT_LABELS.completion)}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -499,17 +469,10 @@ export function AssignmentReportPage() {
                         <td className="p-3 pl-5 font-semibold text-slate-800 text-xs">{row.groupName}</td>
                         <td className="p-3 text-center text-xs">{row.learnerCount}</td>
                         <td className="p-3 text-center text-xs">{row.enrollments}</td>
-                        <td className="p-3 text-center text-xs">{row.completed}</td>
                         <td className="p-3 text-center text-xs">
                           <span className={row.overdue > 0 ? 'font-bold text-red-600' : 'text-slate-400'}>
                             {row.overdue}
                           </span>
-                        </td>
-                        <td className="p-3 pr-5">
-                          <div className="flex items-center gap-3">
-                            <ProgressBar value={row.completionRate} completed={row.completionRate >= 100} maxWidthClass="max-w-28" />
-                            <span className="text-xxs font-bold text-slate-500">{formatPercent(row.completionRate)}</span>
-                          </div>
                         </td>
                       </tr>
                     ))}
@@ -588,7 +551,7 @@ export function AssignmentReportPage() {
                     <th className="p-3">{t(ASSIGNMENT_LABELS.courses)}</th>
                     <th className="p-3">{t(ASSIGNMENT_LABELS.status)}</th>
                     <th className="p-3">{t(REPORT_LABELS.colProgress)}</th>
-                    <th className="p-3 pr-5">{t(ASSIGNMENT_LABELS.completedDate)}</th>
+                    <th className="p-3 pr-5">{t(ASSIGNMENT_LABELS.dueDate)}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -617,7 +580,7 @@ export function AssignmentReportPage() {
                         <ProgressBar value={row.progress} completed={row.isCompleted} />
                       </td>
                       <td className="p-3 pr-5 text-slate-600 text-xs">
-                        {row.completedDate ? formatDate(row.completedDate) : '—'}
+                        {row.dueDate ? formatDate(row.dueDate) : '—'}
                       </td>
                     </tr>
                   ))}

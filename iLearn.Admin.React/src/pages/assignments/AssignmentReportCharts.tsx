@@ -1,17 +1,13 @@
 import {
-  Bar,
-  BarChart,
   Cell,
   Pie,
   PieChart,
   ResponsiveContainer,
   Tooltip,
-  XAxis,
-  YAxis,
 } from 'recharts'
-import { STATUS_COLORS, BRAND, axisStyle } from '../../lib/chartTheme'
+import { STATUS_COLORS } from '../../lib/chartTheme'
 import { formatPercent } from '../../lib/format'
-import { ASSIGNMENT_LABELS, LEARNER_STATUS_KEYS, learnerStatusLabel, t, tf } from '../../lib/labels'
+import { ASSIGNMENT_LABELS, LEARNER_STATUS_KEYS, learnerStatusLabel, t } from '../../lib/labels'
 
 type StatusEntry = { status: string; label: string; count: number }
 
@@ -37,7 +33,7 @@ const assignmentReportTooltipItemStyle = {
 
 type StatusDonutProps = {
   data: StatusEntry[]
-  completionRate: number
+  completionRate?: number
   activeStatus?: string
 }
 
@@ -88,8 +84,17 @@ export function StatusDonut({ data, completionRate, activeStatus }: StatusDonutP
         </ResponsiveContainer>
         {/* Center label */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-xl font-bold text-slate-800 tabular-nums leading-none">{formatPercent(completionRate)}</span>
-          <span className="text-xxs font-semibold text-slate-400 mt-0.5">{t(ASSIGNMENT_LABELS.completion)}</span>
+          {completionRate !== undefined ? (
+            <>
+              <span className="text-xl font-bold text-slate-800 tabular-nums leading-none">{formatPercent(completionRate)}</span>
+              <span className="text-xxs font-semibold text-slate-400 mt-0.5">{t(ASSIGNMENT_LABELS.completion)}</span>
+            </>
+          ) : (
+            <>
+              <span className="text-xl font-bold text-slate-800 tabular-nums leading-none">{total}</span>
+              <span className="text-xxs font-semibold text-slate-400 mt-0.5">{t(ASSIGNMENT_LABELS.enrollments)}</span>
+            </>
+          )}
         </div>
       </div>
       {/* Legend */}
@@ -113,75 +118,6 @@ export function StatusDonut({ data, completionRate, activeStatus }: StatusDonutP
   )
 }
 
-type CourseBarEntry = {
-  assignmentRuleId: number
-  courseCode: string
-  courseTitle: string
-  pct: number
-  completedLearners: number
-  totalLearners: number
-  isCourseDeleted: boolean
-}
-
-type CourseCompletionBarsProps = {
-  data: CourseBarEntry[]
-  activeCourse?: 'All' | number
-}
-
-export function CourseCompletionBars({ data, activeCourse }: CourseCompletionBarsProps) {
-  if (!data || data.length === 0) {
-    return <EmptyChart label={t(ASSIGNMENT_LABELS.noCourseData)} />
-  }
-
-  const sorted = [...data].sort((a, b) => a.pct - b.pct)
-  const hasActive = activeCourse !== undefined && activeCourse !== 'All'
-
-  return (
-    <div className="flex flex-col gap-2 [&_.recharts-surface_*:focus]:outline-none [&_.recharts-surface:focus]:outline-none [&_.recharts-wrapper:focus]:outline-none">
-      <ResponsiveContainer width="100%" height={Math.max(160, sorted.length * 32 + 24)}>
-        <BarChart accessibilityLayer={false} data={sorted} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
-          <XAxis type="number" domain={[0, 100]} tickLine={false} axisLine={false} tick={axisStyle} unit="%" />
-          <YAxis
-            type="category"
-            dataKey="courseCode"
-            tickLine={false}
-            axisLine={false}
-            tick={axisStyle}
-            width={110}
-          />
-          <Bar
-            dataKey="pct"
-            radius={[0, 4, 4, 0]}
-            maxBarSize={20}
-            isAnimationActive={false}
-          >
-            {sorted.map((entry) => (
-              <Cell
-                key={entry.assignmentRuleId}
-                fill={entry.isCourseDeleted ? '#94a3b8' : BRAND}
-                fillOpacity={hasActive && entry.assignmentRuleId !== activeCourse ? 0.35 : 1}
-              />
-            ))}
-          </Bar>
-          <Tooltip
-            contentStyle={assignmentReportTooltipStyle}
-            cursor={false}
-            isAnimationActive={false}
-            itemStyle={assignmentReportTooltipItemStyle}
-            labelFormatter={() => ''}
-            labelStyle={assignmentReportTooltipLabelStyle}
-            formatter={(_value, _name, props) => {
-              const entry = (props as { payload?: CourseBarEntry })?.payload
-              if (!entry) return ['', '']
-              return [tf(ASSIGNMENT_LABELS.completedOf, entry.completedLearners, entry.totalLearners), entry.courseTitle]
-            }}
-          />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  )
-}
-
 /** Build StatusDonut data from raw learner rows */
 export function buildStatusData(learners: Array<{ status: string }>): StatusEntry[] {
   const counts = new Map<string, number>()
@@ -192,26 +128,6 @@ export function buildStatusData(learners: Array<{ status: string }>): StatusEntr
     status: key,
     label: learnerStatusLabel(key),
     count: counts.get(key) ?? 0,
-  }))
-}
-
-/** Build CourseCompletionBars data from course summary rows */
-export function buildCourseBarData(courses: Array<{
-  assignmentRuleId: number
-  courseCode: string
-  courseTitle: string
-  completedLearners: number
-  totalLearners: number
-  isCourseDeleted: boolean
-}>): CourseBarEntry[] {
-  return courses.map(c => ({
-    assignmentRuleId: c.assignmentRuleId,
-    courseCode: c.courseCode,
-    courseTitle: c.courseTitle,
-    pct: c.totalLearners === 0 ? 0 : (c.completedLearners / c.totalLearners) * 100,
-    completedLearners: c.completedLearners,
-    totalLearners: c.totalLearners,
-    isCourseDeleted: c.isCourseDeleted,
   }))
 }
 

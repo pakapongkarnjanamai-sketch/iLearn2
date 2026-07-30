@@ -24,6 +24,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-30] GitHub Copilot — PLAN-170 remove completion-focused UI from assignment report
+- ทำอะไร: ตัด Completion ออกจาก UI หน้า assignment report โดยลบ completion KPI tile, ลบ print-only completion text, ลบ section `Completion by Course`, ลบคอลัมน์ `Completed`/`Completion` ในตาราง group summary, และเปลี่ยนคอลัมน์ท้าย learner table จาก `Completed Date` เป็น `Due Date`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentReportCharts.tsx`, `DOC/PLANS/PLAN-170-assignment-report-remove-completion-ui.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (frontend presentation only); `StatusDonut` ปรับให้ `completionRate` เป็น optional เพื่อคง compatibility กับหน้าอื่น
+- Verified: `get_errors` ✓, `npm run lint` ✓, `npm run build` ✓
+
 ## [2026-07-30] GitHub Copilot — PLAN-169 remove Timeline column from assignment report
 - ทำอะไร: ตัดคอลัมน์ `Timeline` ออกจากตาราง learner detail บนหน้า assignment report โดยลบทั้ง header และ row cell ที่แสดง Start/Due date timeline; ปรับ empty-state `colSpan` จาก 6 เป็น 5 และลบ import `tf` ที่ไม่ใช้แล้ว
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `DOC/PLANS/PLAN-169-assignment-report-remove-timeline-column.md`, `DOC/AGENT_LOG.md`
