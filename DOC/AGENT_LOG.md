@@ -24,6 +24,32 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-30] Claude Code — แก้ Finding 1-4 ของ PLAN-157 เอง → READY (PLAN-156 → SUPERSEDED)
+- ทำอะไร: ผู้ใช้สั่งให้ reviewer ลงมือแก้เอง — (1) กฎ `<button>` scope ขัดกันเอง: เขียน §1 ใหม่ให้ enforce เฉพาะ `src/pages/**` แล้ว**ลบ allowlist shared components ทั้งก้อน** (ไฟล์นอก scope ไม่ต้องมีลิสต์ให้ผิด) ย้ายของจริงไป §1b "Known remaining debt" — `LearnerDirectorySelector.tsx` มี native button **11 จุด** เป็น control จริงไม่ใช่ primitive boundary ⇒ ต้องเปิดแผนแยก, `AppTable.tsx` มีจุดเดียว (บรรทัด 365) ซึ่ง §2 refactor แล้วเหลือศูนย์ (2) ตัด `data-standard-exception` (React forward `data-*` ขึ้น production DOM) ไปใช้ `eslint-disable-next-line ... -- <reason>` (3) ตัด custom TS-API script + `standards:check` ทิ้ง เปลี่ยนเป็น ESLint flat-config 3 บล็อก โดยใช้ **rule ต่างชื่อ** (`no-restricted-globals` สำหรับ fetch / `no-restricted-syntax` สำหรับ JSX button) เพราะ flat config แทนที่ option array ไม่ merge, negative check ใช้ `--stdin-filename` ไม่ต้อง commit fixture (4) ตัด `AppLinkButton` + shared style map ออก เพราะ consumer = 0 (`<Link>` ใน Batch A+B มีจุดเดียวและเป็น inline text link ที่แผนบอกเองให้คงไว้) จด `CourseDetailPage.tsx:655` เป็น candidate แรกของแผนถัดไป · บวก minor 5-10 (§4 header-merge invariant, ห้ามเขียน filename parser ซ้ำเพราะ `downloadBlob.ts` มีแล้ว, HealthCheckPage ไม่ต้องแก้เพราะคอมเมนต์มีอยู่แล้ว, ตัดคำว่า CI เพราะ `.github/workflows` ว่าง, เลิกจองเลข 158-163, PLAN-156 → SUPERSEDED) + เพิ่มตาราง Verified baseline
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-157-*.md` (→READY), `DOC/PLANS/PLAN-156-*.md` (→SUPERSEDED), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (plan/docs only — ยังไม่แตะโค้ดแอป)
+- Verified: **รัน ESLint config ที่เขียนใน §1 กับ working tree จริง** ผ่าน `eslint.probe.config.js` ชั่วคราว (ลบแล้ว, `eslint.config.js` ตัวจริงไม่ถูกแตะ — `git status` ยืนยันเหลือแค่ไฟล์ docs): กฎทั้งสองยิงถูกผ่าน `--stdin-filename` ✓, override ปิด fetch rule ให้ 4 ไฟล์ allowlist ได้ ✓, button rule ไม่รั่วไป `components/ui` ✓, รัน `src/pages/**` ได้ **19 + 2 เป๊ะ ตรงตาราง baseline ทุกไฟล์** ✓; `git diff --check` ✓; `plan-status.ps1` อ่าน header ทั้งสองไฟล์ได้ ✓
+- งานที่เหลือของ GPT: implement ตาม Delivery order ข้อ 1 (ESLint rules ที่ `'warn'` + AppTable action → IconButton) — เรียก `-Next` เอาเลขแผนตอนสร้างไฟล์
+
+## [2026-07-30] Claude Code — รีวิว PLAN-156/157 → คง DRAFT ทั้งคู่ (4 finding ต้องแก้ก่อน READY)
+- ทำอะไร: verify claim ทางเทคนิคของ PLAN-157 กับโค้ดจริงทุกข้อ — **ถูกหมด** (fetchWithAccessControl JSON.parse จริง, direct fetch 3 จุด, fetch whitelist ตรง, AppButton/IconButton variant+tone ตรง, AppTable action มี stopPropagation/title, CourseVersionService UtcNow 2 จุด บรรทัด 200/581 บน CourseVersion+CourseContentItem, KpiTile byte-identical, TS 6.0.2, -Next=158). แต่พบ 4 finding: (1) §1 กฎ button สองข้อขัดกันเรื่อง scope + allowlist ตกไฟล์ `LearnerDirectorySelector.tsx` (2) `data-standard-exception` ship ขึ้น DOM production ควรใช้ eslint-disable comment (3) custom TS-API script ทำได้ด้วย `no-restricted-syntax` + flat-config override ที่มีอยู่แล้ว (4) `AppLinkButton` มี consumer ~0 — `<Link>` ใน Batch A+B มี 1 จุดและเป็น inline text link ที่แผนบอกเองว่าให้คงไว้. บวก minor 6 ข้อ (§4.4 ทำแล้ว, downloadBlob helper มีอยู่แล้ว, Accept header invariant, **ไม่มี CI จริง — `.github/workflows` ว่าง**, การจองเลข 158-163, PLAN-156 ควรเป็น SUPERSEDED)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-156-*.md` (+Reviewer Notes), `DOC/PLANS/PLAN-157-*.md` (+Reviewer Notes), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (review/docs only)
+- Verified: baseline ของ GPT ตรงกับที่วัดเองเป๊ะ (19 raw button/10 ไฟล์, 3 fetch, 2 UtcNow); `plan-status.ps1` อ่าน header ทั้งสองไฟล์ได้ ✓; `git diff --check` ✓
+- งานที่เหลือของ GPT: แก้ finding 1-4 ใน PLAN-157 Reviewer Notes แล้วค่อยตั้ง READY
+
+## [2026-07-30] GitHub Copilot — review PLAN-156 and add executable standards contract
+- ทำอะไร: ตรวจ PLAN-156 พบ guardrail `<button>` ก่อน migration ทำให้ fail จาก baseline, `fetchWithAccessControl` ใช้กับ binary export ไม่ได้, และยังไม่มี `AppLinkButton`/baseline ที่วัดได้ จึงสร้าง PLAN-157 เป็น execution contract โดยคง PLAN-156 เป็น strategy/history
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-157-admin-standards-rollout-execution-contract.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (plan/docs only)
+- Verified: `plan-status -Next` หลังสร้าง = PLAN-158; `git diff --check` ✓; baseline ยืนยัน page raw buttons 19 จุด/10 ไฟล์, direct fetch 3 จุด, Application `DateTime.UtcNow` 2 จุดใน `CourseVersionService`
+
+## [2026-07-30] GitHub Copilot — PLAN-156 rollout plan for standards sustainability
+- ทำอะไร: สร้างแผน `PLAN-156` สำหรับ rollout มาตรฐานร่วมแบบยั่งยืน (phase 0-4) ครอบคลุม guardrails, UI primitives adoption, API/export helper consolidation, token dedup, และ backend time-source consistency
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-156-admin-standards-sustainability-rollout.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (plan/docs only)
+- Verified: ใช้เลขแผนจาก `tools/plan-status.ps1 -Next` = PLAN-156; `git diff --check` ไม่มี whitespace issues
+
 ## [2026-07-30] GitHub Copilot — remove React Admin grid footer/status bars
 - ทำอะไร: สำรวจ `iLearn.Admin.React/src` แล้วถอด shared `AppTableFooter`, ลบข้อความ `All records loaded`/`Scroll down to load more`/แถบ `Showing X of Y` ใต้ grid-like tables และปรับ `LearnerDirectorySelector` ให้เหลือเฉพาะ selection tray
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/AppTable.tsx`, `src/components/shared/LearnerDirectorySelector.tsx`, detail/report/list pages หลายไฟล์, `src/lib/labels.ts`, `DOC/AGENT_LOG.md`
