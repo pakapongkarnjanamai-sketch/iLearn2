@@ -8,9 +8,8 @@ import { LoadingState } from '../../components/ui/LoadingState'
 import { NotificationRow } from '../../components/shared/NotificationRow'
 import { useNotifications } from '../../lib/notificationContext'
 import { fetchWithAccessControl } from '../../lib/apiClient'
-import { formatNumber } from '../../lib/format'
 import type { NotificationDto, NotificationListDto } from '../../lib/notificationTypes'
-import { ADMIN_LABELS, UI_LABELS, t, tf } from '../../lib/labels'
+import { ADMIN_LABELS, t } from '../../lib/labels'
 import { shouldLoadMoreOnScroll } from '../../lib/tableStandards'
 
 type ApiResponse<T> = { success: boolean; data: T; message?: string }
@@ -135,8 +134,6 @@ export function NotificationsPage() {
     setFilter(value)
   }
 
-  const hasMore = items.length < totalCount
-
   return (
     <div className="flex flex-col gap-4 max-w-4xl mx-auto w-full">
       <Card
@@ -179,18 +176,6 @@ export function NotificationsPage() {
                   onClick={handleItemClick}
                 />
               ))}
-            </div>
-
-            {/* Showing X of Y + scroll loading hint */}
-            <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500">
-              <span>
-                {tf(ADMIN_LABELS.showingOf, formatNumber(items.length), formatNumber(totalCount))}
-              </span>
-              {hasMore && (
-                <span className="text-xxs font-semibold text-indigo-600">
-                  {loadingMore ? t(ADMIN_LABELS.loadingNotifications) : t(UI_LABELS.scrollToLoadMore)}
-                </span>
-              )}
             </div>
           </>
         )}

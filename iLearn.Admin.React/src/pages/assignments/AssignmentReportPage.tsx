@@ -16,7 +16,7 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { toast } from '../../lib/toast'
 import { formatDate, formatPercent } from '../../lib/format'
-import { ASSIGNMENT_LABELS, COMMON_LABELS, LEARNER_STATUS_KEYS, REPORT_LABELS, UI_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
+import { ASSIGNMENT_LABELS, COMMON_LABELS, LEARNER_STATUS_KEYS, REPORT_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
 import { exportRows, type ExportFormat } from '../../lib/tableExport'
 import { DETAIL_TABLE_CHUNK_SIZE, shouldLoadMoreOnScroll } from '../../lib/tableStandards'
 import { StatusDonut, CourseCompletionBars, buildStatusData, buildCourseBarData } from './AssignmentReportCharts'
@@ -538,17 +538,6 @@ export function AssignmentReportPage() {
                 </tbody>
               </table>
             </div>
-
-            {filtered.length > 0 && (
-              <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2 print:hidden">
-                <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
-                  {t(REPORT_LABELS.rowsShowing)} {visible.length} {t(REPORT_LABELS.rowsOf)} {filtered.length}
-                </span>
-                {filtered.length > visible.length && (
-                  <span className="text-xxs font-semibold text-indigo-600">{t(UI_LABELS.scrollToLoadMore)}</span>
-                )}
-              </div>
-            )}
           </Card>
         </div>
       </DetailLayout>

@@ -633,31 +633,8 @@ export function LearnerDirectorySelector({
             </table>
           </div>
 
-          {/* Grid pagination footer */}
-          <footer className="p-2.5 short:p-2 border-t border-slate-100 bg-slate-50/60 flex justify-between items-center text-slate-500 text-xs font-semibold select-none shrink-0">
-            <div>
-              {totalCount > 0 ? (
-                <span>
-                  Showing <strong className="text-slate-800">{learners.length}</strong> of{" "}
-                  <strong className="text-slate-800">{totalCount}</strong> learners
-                  {learners.length < totalCount ? (
-                    <span className="text-slate-400 font-normal"> (Scroll down to load more)</span>
-                  ) : (
-                    <span className="text-emerald-600 font-bold"> (All records loaded)</span>
-                  )}
-                </span>
-              ) : (
-                <span>{t(LEARNER_LABELS.noDirectoryRecords)}</span>
-              )}
-            </div>
-            
+          <div className="p-2.5 short:p-2 border-t border-slate-100 bg-slate-50/60 flex justify-end items-center text-slate-500 text-xs font-semibold select-none shrink-0">
             <div className="flex items-center gap-3.5 select-none">
-              {loading && learners.length > 0 && (
-                <span className="text-indigo-600 text-xxs font-bold uppercase tracking-wider animate-pulse mr-1">
-                  Loading more...
-                </span>
-              )}
-
               <div className="flex items-center gap-2">
                 <Badge tone="neutral" variant="soft" size="xxs">
                   {tf(LEARNER_LABELS.selected, selectedLearners.length)}
@@ -683,7 +660,7 @@ export function LearnerDirectorySelector({
                 )}
               </div>
             </div>
-          </footer>
+          </div>
 
         </div>
       </div>

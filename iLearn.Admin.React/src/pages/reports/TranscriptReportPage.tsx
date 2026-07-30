@@ -18,7 +18,7 @@ import { Badge } from '../../components/ui/Badge'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { formatDate, formatPercent, formatDuration, formatNumber } from '../../lib/format'
-import { DASHBOARD_LABELS, NAV_LABELS, REPORT_LABELS, UI_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
+import { DASHBOARD_LABELS, NAV_LABELS, REPORT_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 import { toast } from '../../lib/toast'
 import type { TranscriptReportDto } from './reportTypes'
@@ -322,21 +322,6 @@ export function TranscriptReportPage() {
                 </tbody>
               </table>
             </div>
-
-            {/* Footer showing row count & infinite scroll status */}
-            {filteredTranscriptRows.length > 0 && (
-              <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-2.5 text-xs text-slate-500 font-medium flex items-center justify-between shrink-0 print:hidden">
-                <span>
-                  {t(REPORT_LABELS.rowsShowing)} <strong className="text-slate-800 tabular-nums">{visibleTranscriptRows.length}</strong> {t(REPORT_LABELS.rowsOf)}{' '}
-                  <strong className="text-slate-800 tabular-nums">{filteredTranscriptRows.length}</strong> {t(REPORT_LABELS.rowsUnit)}
-                </span>
-                {visibleTranscriptRows.length < filteredTranscriptRows.length && (
-                  <span className="text-xxs text-indigo-600 font-semibold flex items-center gap-1">
-                    {t(UI_LABELS.scrollToLoadMore)}
-                  </span>
-                )}
-              </div>
-            )}
           </Card>
         </div>
       )}

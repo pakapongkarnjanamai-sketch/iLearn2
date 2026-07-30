@@ -37,7 +37,7 @@ import { Card } from '../../components/ui/Card'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { formatDate } from '../../lib/format'
-import { COMMON_LABELS, COURSE_LABELS, REPORT_LABELS, UI_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
+import { COMMON_LABELS, COURSE_LABELS, REPORT_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
 import { DetailTabs } from '../../components/ui/DetailTabs'
 import { DETAIL_TABLE_CHUNK_SIZE, shouldLoadMoreOnScroll } from '../../lib/tableStandards'
 
@@ -673,17 +673,6 @@ export function CourseDetailPage() {
                   </tbody>
                 </table>
               </div>
-
-              {versions.length > 0 && (
-                <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
-                  <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
-                    {tf(COURSE_LABELS.showingOf, visibleVersions.length, versions.length)}
-                  </span>
-                  {versions.length > visibleVersions.length && (
-                    <span className="text-xxs font-semibold text-indigo-600">{t(UI_LABELS.scrollToLoadMore)}</span>
-                  )}
-                </div>
-              )}
             </Card>
           )}
 
@@ -740,17 +729,6 @@ export function CourseDetailPage() {
                       </tbody>
                     </table>
                   </div>
-
-                  {learners.length > 0 && (
-                    <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
-                      <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
-                        Showing {visibleLearners.length} of {learners.length}
-                      </span>
-                      {learners.length > visibleLearners.length && (
-                        <span className="text-xxs font-semibold text-indigo-600">{t(UI_LABELS.scrollToLoadMore)}</span>
-                      )}
-                    </div>
-                  )}
                 </>
               )}
             </Card>
@@ -808,17 +786,6 @@ export function CourseDetailPage() {
                       </tbody>
                     </table>
                   </div>
-
-                  {assignments.length > 0 && (
-                    <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
-                      <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
-                        Showing {visibleAssignments.length} of {assignments.length}
-                      </span>
-                      {assignments.length > visibleAssignments.length && (
-                        <span className="text-xxs font-semibold text-indigo-600">{t(UI_LABELS.scrollToLoadMore)}</span>
-                      )}
-                    </div>
-                  )}
                 </>
               )}
             </Card>

@@ -27,7 +27,7 @@ import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { formatDate, formatPercent, formatNumber } from '../../lib/format'
-import { DASHBOARD_LABELS, REPORT_LABELS, UI_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
+import { DASHBOARD_LABELS, REPORT_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
 import { exportRows, type ExportFormat } from '../../lib/tableExport'
 import { DETAIL_TABLE_CHUNK_SIZE } from '../../lib/tableStandards'
 import { BRAND, tooltipStyle, axisStyle } from '../../lib/chartTheme'
@@ -435,21 +435,6 @@ export function ComplianceReportPage() {
             </tbody>
           </table>
         </div>
-
-        {/* Footer showing row count & infinite scroll status */}
-        {filteredOverdueRows.length > 0 && (
-          <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-2.5 text-xs text-slate-500 font-medium flex items-center justify-between shrink-0">
-            <span>
-              {t(REPORT_LABELS.rowsShowing)} <strong className="text-slate-800 tabular-nums">{visibleOverdueRows.length}</strong> {t(REPORT_LABELS.rowsOf)}{' '}
-              <strong className="text-slate-800 tabular-nums">{filteredOverdueRows.length}</strong> {t(REPORT_LABELS.rowsUnit)}
-            </span>
-            {visibleOverdueRows.length < filteredOverdueRows.length && (
-              <span className="text-xxs text-indigo-600 font-semibold flex items-center gap-1">
-                {t(UI_LABELS.scrollToLoadMore)}
-              </span>
-            )}
-          </div>
-        )}
       </Card>
     </div>
   )

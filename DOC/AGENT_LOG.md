@@ -24,6 +24,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-30] GitHub Copilot — remove React Admin grid footer/status bars
+- ทำอะไร: สำรวจ `iLearn.Admin.React/src` แล้วถอด shared `AppTableFooter`, ลบข้อความ `All records loaded`/`Scroll down to load more`/แถบ `Showing X of Y` ใต้ grid-like tables และปรับ `LearnerDirectorySelector` ให้เหลือเฉพาะ selection tray
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/AppTable.tsx`, `src/components/shared/LearnerDirectorySelector.tsx`, detail/report/list pages หลายไฟล์, `src/lib/labels.ts`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (frontend presentation only)
+- Verified: `npm run lint` ✓, `npm run build` ✓; grep ยืนยันไม่มี `All records loaded`/`AppTableFooter`/`scrollToLoadMore`/`<footer>` ใน `iLearn.Admin.React/src`
+
 ## [2026-07-30] Claude Code — แก้ Finding 1-4 ของ PLAN-155 เอง → VERIFIED
 - ทำอะไร: ผู้ใช้สั่งให้ reviewer ลงมือแก้เอง — (1) `set-ilearn-prod-app-pools.ps1` เพิ่มฟิลด์ `ActualPool` ที่ **re-read จาก IIS จริง** หลังเขียน แล้วย้าย shared-pool check มาฝั่ง local หลังพิมพ์ตาราง (`-AuditOnly` = warn ไม่ล้ม, apply = throw ถ้าแยกไม่สำเร็จ) (2) ครอบ preflight ด้วย `if (-not $Rollback)` กันบล็อก rollback ฉุกเฉิน (3) ติด tag `ILEARN-TOPOLOGY:` ให้ throw ที่เป็น violation จริง แล้ว re-throw แม้ไม่มี `-IisCredential` ส่วน connection error ยัง warn ตามเดิม (4) แก้ code block ใน DEPLOY-CHECKLIST §8 + Verification ของแผนเป็น `& .\tools\...` และย้ายคำเตือน `-File` ขึ้นก่อน block + เพิ่มหัวข้อ Deploy preflight
 - ไฟล์หลักที่แตะ: `tools/set-ilearn-prod-app-pools.ps1`, `tools/deploy-side-by-side.ps1`, `DOC/DEPLOY-CHECKLIST.md`, `DOC/PLANS/PLAN-155-*.md` (→VERIFIED), `DOC/AGENT_LOG.md`

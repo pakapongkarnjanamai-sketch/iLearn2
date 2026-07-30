@@ -692,17 +692,6 @@ export function LearnerGroupDetailPage() {
                   </tbody>
                 </table>
               </div>
-
-              {group.members.length > 0 && (
-                <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
-                  <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
-                    {tf(LEARNER_LABELS.showingOf, visibleMembers.length, group.members.length)}
-                  </span>
-                  {group.members.length > visibleMembers.length && (
-                    <span className="text-xxs font-semibold text-indigo-600">{t(UI_LABELS.scrollToLoadMore)}</span>
-                  )}
-                </div>
-              )}
             </Card>
           )}
         </main>

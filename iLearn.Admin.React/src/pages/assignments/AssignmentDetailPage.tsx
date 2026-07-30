@@ -37,7 +37,6 @@ import {
   ASSIGNMENT_LABELS,
   COMMON_LABELS,
   LEARNER_STATUS_KEYS,
-  UI_LABELS,
   learnerStatusLabel,
   t,
   tf,
@@ -896,17 +895,6 @@ export function AssignmentDetailPage() {
                   ))}
                 </ul>
               </div>
-
-              {assignment.courses.length > 0 && (
-                <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
-                  <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
-                    {tf(ASSIGNMENT_LABELS.showingOf, visibleCourses.length, assignment.courses.length)}
-                  </span>
-                  {assignment.courses.length > visibleCourses.length && (
-                    <span className="text-xxs font-semibold text-indigo-600">{t(UI_LABELS.scrollToLoadMore)}</span>
-                  )}
-                </div>
-              )}
             </Card>
           )}
 
@@ -1079,20 +1067,6 @@ export function AssignmentDetailPage() {
                   </tbody>
                 </table>
               </div>
-
-              {filteredLearners.length > 0 && (
-                <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/40 px-3 py-2">
-                  <span className="text-xxs font-semibold uppercase tracking-wide text-slate-500">
-                    {tf(ASSIGNMENT_LABELS.showingOf, visibleGroupedLearners.length, filteredLearners.length)}
-                    {filteredLearners.length !== groupedLearners.length && (
-                      <span className="normal-case font-normal text-slate-400"> {tf(ASSIGNMENT_LABELS.filteredFrom, groupedLearners.length)}</span>
-                    )}
-                  </span>
-                  {filteredLearners.length > visibleGroupedLearners.length && (
-                    <span className="text-xxs font-semibold text-indigo-600">{t(UI_LABELS.scrollToLoadMore)}</span>
-                  )}
-                </div>
-              )}
             </Card>
           )}
         </main>

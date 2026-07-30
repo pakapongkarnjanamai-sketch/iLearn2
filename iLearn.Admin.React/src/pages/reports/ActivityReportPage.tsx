@@ -274,15 +274,6 @@ export function ActivityReportPage() {
             </tbody>
           </table>
         </div>
-
-        {/* Footer showing row count */}
-        {data.months.length > 0 && (
-          <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-2.5 text-xs text-slate-500 font-medium flex items-center justify-between shrink-0">
-            <span>
-              {tf(REPORT_LABELS.actShowingMonths, data.months.length)}
-            </span>
-          </div>
-        )}
       </Card>
     </div>
   )

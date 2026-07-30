@@ -11,7 +11,6 @@ import { formatDate } from '../../lib/format'
 import { COMMON_LABELS, t, type LabelPair, UI_LABELS } from '../../lib/labels'
 import { Badge } from './Badge'
 import { AppTableSearch } from './table/AppTableSearch'
-import { AppTableFooter } from './table/AppTableFooter'
 
 type TableRecord = Record<string, unknown>
 type FilterExpression = unknown[]
@@ -394,13 +393,6 @@ export function AppTable<T extends TableRecord>({
             </div>
           )}
         </div>
-
-        {/* Infinite Scroll Footer */}
-        <AppTableFooter
-          loadedCount={data.length}
-          totalCount={totalCount}
-          loading={loading}
-        />
       </div>
     </div>
   )

@@ -10,7 +10,7 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { buildApiUrl, fetchWithAccessControl } from '../../lib/apiClient'
 import { downloadBlob, filenameFromContentDisposition } from '../../lib/downloadBlob'
 import { formatDate, formatNumber, formatPercent } from '../../lib/format'
-import { DASHBOARD_LABELS, REPORT_LABELS, UI_LABELS, getLang, learnerStatusLabel, t } from '../../lib/labels'
+import { DASHBOARD_LABELS, REPORT_LABELS, getLang, learnerStatusLabel, t } from '../../lib/labels'
 import { exportRows } from '../../lib/tableExport'
 import { DETAIL_TABLE_CHUNK_SIZE, shouldLoadMoreOnScroll } from '../../lib/tableStandards'
 import { toast } from '../../lib/toast'
@@ -386,20 +386,6 @@ export function LearnerGroupSummaryReportPage() {
             </tbody>
           </table>
         </div>
-
-        {filteredRows.length > 0 && (
-          <div className="flex shrink-0 items-center justify-between border-t border-slate-100 bg-slate-50/50 px-5 py-2.5 text-xs font-medium text-slate-500">
-            <span>
-              {t(REPORT_LABELS.rowsShowing)} <strong className="tabular-nums text-slate-800">{visibleGroupRows.length}</strong> {t(REPORT_LABELS.rowsOf)}{' '}
-              <strong className="tabular-nums text-slate-800">{filteredRows.length}</strong> {t(REPORT_LABELS.rowsUnit)}
-            </span>
-            {visibleGroupRows.length < filteredRows.length && (
-              <span className="flex items-center gap-1 text-xxs font-semibold text-indigo-600">
-                {t(UI_LABELS.scrollToLoadMore)}
-              </span>
-            )}
-          </div>
-        )}
       </Card>
     </div>
   )
