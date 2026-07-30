@@ -24,6 +24,47 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-30] Claude Code — แก้ Finding 1-4 ของ PLAN-155 เอง → VERIFIED
+- ทำอะไร: ผู้ใช้สั่งให้ reviewer ลงมือแก้เอง — (1) `set-ilearn-prod-app-pools.ps1` เพิ่มฟิลด์ `ActualPool` ที่ **re-read จาก IIS จริง** หลังเขียน แล้วย้าย shared-pool check มาฝั่ง local หลังพิมพ์ตาราง (`-AuditOnly` = warn ไม่ล้ม, apply = throw ถ้าแยกไม่สำเร็จ) (2) ครอบ preflight ด้วย `if (-not $Rollback)` กันบล็อก rollback ฉุกเฉิน (3) ติด tag `ILEARN-TOPOLOGY:` ให้ throw ที่เป็น violation จริง แล้ว re-throw แม้ไม่มี `-IisCredential` ส่วน connection error ยัง warn ตามเดิม (4) แก้ code block ใน DEPLOY-CHECKLIST §8 + Verification ของแผนเป็น `& .\tools\...` และย้ายคำเตือน `-File` ขึ้นก่อน block + เพิ่มหัวข้อ Deploy preflight
+- ไฟล์หลักที่แตะ: `tools/set-ilearn-prod-app-pools.ps1`, `tools/deploy-side-by-side.ps1`, `DOC/DEPLOY-CHECKLIST.md`, `DOC/PLANS/PLAN-155-*.md` (→VERIFIED), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (deploy tooling/docs only — ไม่แตะ IIS PROD ที่ apply ไปแล้ว)
+- Verified: parser ✓ ทั้ง 2 สคริปต์, `git diff --check` ✓, **test ดึง logic ที่แก้แล้วมารันจริง 17 assertion ผ่านหมด** (F1 warn/throw ถูกทุกเคสรวม apply ที่ย้ายสำเร็จบางตัว, F3 violation บล็อกได้แม้ไม่มี credential, F2/F4 static check)
+- Outstanding: **ยังไม่ได้รันกับ PROD IIS จริง** (ไม่มีสิทธิ์ WinRM) — apply ครั้งหน้าให้ดูคอลัมน์ `ActualPool` ตรงกับ `TargetPool` ทุกแถว · Finding 5-6 (minor) ยังไม่แก้ ถ้าจะทำให้เปิดแผนใหม่
+
+## [2026-07-30] Claude Code — รีวิว PLAN-154 → VERIFIED / PLAN-155 → ตีกลับ READY (safety check ไม่ทำงานจริง)
+- ทำอะไร: ตรวจงาน app-pool split เอง — อ่าน `web.config` PROD จริง (inprocess ครบ 3 ✓), smoke เอง (`/iLearn/` 307→200, API 401, admin-react 200, admin 401 ไม่ใช่ 500 ✓) ⇒ ผลลัพธ์ IIS **ถูกต้อง ไม่ต้อง revert**. แต่ **ดึง logic guard ออกมารันจริงกับข้อมูล audit-before ของแผนเอง** พบ 3 บั๊กในของที่สร้างมากัน incident ซ้ำ: (1) guard ใน `set-ilearn-prod-app-pools.ps1` group `TargetPool` ที่ hardcode ไม่ซ้ำอยู่แล้ว = **dead code fire ไม่ได้เลย** (2) preflight บรรทัด 517 อยู่**ก่อน**สาขา `-Rollback` บรรทัด 522 = บล็อก rollback ฉุกเฉิน (3) `catch` แยก "ต่อ WinRM ไม่ได้" กับ "เจอ topology พังจริง" ไม่ออก + wrapper ไม่มี default `-IisCredential` = เส้นทาง default ไม่ enforce. บวก (4) DEPLOY-CHECKLIST §8 code block สั่ง `pwsh -File ... -IisCredential` ที่ย่อหน้าถัดไปเขียนเองว่าห้ามทำ
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-154-*.md` (→VERIFIED), `DOC/PLANS/PLAN-155-*.md` (→READY + Reviewer Notes 6 finding), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (review/docs only)
+- Verified: parser ✓ ทั้ง 2 สคริปต์, `git diff --check` ✓, PROD smoke 4 endpoint ✓, grep หา password หลุดในไฟล์ = ไม่พบ (เจอแค่ username เดิม)
+- งานที่เหลือของ GPT: แก้สคริปต์+เอกสารตาม Finding 1-4 ใน PLAN-155 (ไม่ต้องแตะ IIS อีก)
+
+## [2026-07-30] GitHub Copilot — PLAN-155 durable PROD iLearn app-pool split applied
+- ทำอะไร: apply แยก PROD IIS app pools ถาวรจาก `iLearn.Dedicated` เป็น `iLearn.User`/`iLearn.Service`/`iLearn.Admin`/`iLearn.Admin.React`/`iLearn.Static`, คืน ASP.NET Core apps เป็น `hostingModel="inprocess"`, และเพิ่ม deploy preflight guard กันใช้ pool ผิด
+- ไฟล์หลักที่แตะ: `tools/set-ilearn-prod-app-pools.ps1`, `tools/deploy-side-by-side.ps1`, `DOC/PLANS/PLAN-155-prod-ilearn-durable-app-pool-split-rollout.md`, `DOC/DEPLOY-CHECKLIST.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (IIS runtime + deploy tooling/docs only)
+- Verified: parser ✓, wrong-pool guard ✓, PROD audit before/after ✓, smoke `/iLearn/` 200 + API 401/200 + admin-react 200 + admin 403/no 500, deploy wrapper preflight User/API/Admin ✓
+- Outstanding: rotate/confirm rotation of the app-pool service-account password outside agent logs if not already done
+
+## [2026-07-30] GitHub Copilot — PLAN-155 durable iLearn app-pool split rollout plan
+- ทำอะไร: เขียน follow-up plan เพื่อเปลี่ยน PLAN-154 จาก mitigation (`outofprocess`) เป็น durable PROD IIS app-pool split + deploy safety checks
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-155-prod-ilearn-durable-app-pool-split-rollout.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (plan/docs only)
+- Verified: PLAN-155 status header ✓, `set-ilearn-prod-app-pools.ps1` parser ✓, `git diff --check` ✓
+
+## [2026-07-27] GitHub Copilot — PROD /iLearn 500.35 mitigation + app-pool split runbook
+- ทำอะไร: ตรวจ PROD `/iLearn/` พบ 500.35 จากหลาย ASP.NET Core apps อยู่ pool เดียว (`iLearn.Dedicated`); mitigate โดยตั้ง active Learner/API/MVC Admin `web.config` เป็น `hostingModel="outofprocess"` ให้ตรงกันชั่วคราวจน root กลับมา 200
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-154-prod-ilearn-app-pool-split-50035.md`, `tools/set-ilearn-prod-app-pools.ps1`, `DOC/DEPLOY-CHECKLIST.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (IIS runtime mitigation + deploy tooling/docs)
+- Verified: PowerShell parser ✓, `git diff --check` ✓, PROD smoke `/iLearn/` 200 + `/iLearn/Service/api/admin/session/me` 200 with credentials + `/iLearn/admin-react/` 200
+- Outstanding: ถาวรต้องรัน `tools/set-ilearn-prod-app-pools.ps1` ด้วย IIS admin credential; session นี้ WinRM `Access is denied`; active configs ยังเป็น `outofprocess` จนกว่า split pool แล้ว script คืน `inprocess`
+
+## [2026-07-27] GitHub Copilot — สร้าง iLearn.Dedicated app pool บน PROD และย้าย iLearn apps ทั้งหมด
+- ทำอะไร: remote ไป `ap-ntc2137-prwb` แล้วสร้าง App Pool ใหม่ `iLearn.Dedicated`, ตั้งค่า `Integrated` + `AlwaysRunning` + `SpecificUser`, ผูกทุก app ใต้ `/iLearn*` ไป pool ใหม่, ตรวจยืนยันการผูกครบ 7 app และสตาร์ต pool สำเร็จ
+- ไฟล์หลักที่แตะ: `DOC/DEPLOY-CHECKLIST.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน: ไม่มี (IIS runtime operation + docs only)
+- Verified: ตรวจจาก remote IIS ได้ `PoolState=Started`, `TotalApps=7`, `AppsOnTargetPool=7`
+- Outstanding: แนะนำหมุน password account `NIKONOA\Z001927` ทันที เพราะมีจังหวะที่ command output เผยค่า password
+
 ## [2026-07-27] Claude Code — รีวิว PLAN-153 → VERIFIED (smoke test ตรรกะจริง AC1-AC7 ผ่านหมด)
 - ทำอะไร: รีวิวงาน PLAN-153 (ทำโดย **GitHub Copilot** แม้แผน assign ให้ Gemini — งานถูก ไม่ตีกลับ): รัน `npm run lint`/`npm run build` เองอิสระ ✓ + **smoke test โดยดึงฟังก์ชัน `deriveLearnerRollupStatus` ออกจากไฟล์ source มารันจริง** (ไม่ใช่ mock) แล้วจำลอง donut/filter/% ตามโค้ด → roll-up ถูก 7/7 เคส, **AC1-AC7 ผ่านหมด** (AC1 ป้าย `In Progress` แล้วกรองเจอจริง = Finding 1 ปิด · AC4 `Not Started 3` ไม่ใช่ 6 · AC6 เลขกลาง 33% ไม่ใช่ 67%). เจอ observation: ตัวหารเลขกลาง (คนที่มีคอร์ส) ≠ ประชากรวงแหวน (คนทั้งหมด) แต่ตรวจ backend แล้ว **learner ที่ไม่มีคอร์สเกิดไม่ได้** (`CourseCode` fallback `"-"` truthy เสมอ) ⇒ defensive code ไม่ต้องแก้
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-153-*.md` (→VERIFIED + Reviewer Notes), `DOC/AGENT_LOG.md`

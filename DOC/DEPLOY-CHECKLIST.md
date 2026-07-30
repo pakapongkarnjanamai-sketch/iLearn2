@@ -103,3 +103,61 @@ Example rollback targets:
 - Record the final live stamp in the ticket, release note, or team chat.
 - Keep the previous deploy folder until the new release is confirmed stable.
 - Do not delete old side-by-side folders during the same deploy session.
+
+## 8. Emergency: Split iLearn App Pools (Production)
+
+Use this when `/iLearn/` returns `HTTP Error 500.35 - ASP.NET Core does not support multiple apps in the same app pool`, or when a partial workaround returns `HTTP Error 500.34 - ASP.NET Core does not support mixing hosting models`.
+
+Do not put all `/iLearn*` applications into one shared app pool. ASP.NET Core in-process hosting supports only one app per app pool. The stable production mapping is one process boundary per ASP.NET Core app:
+
+| IIS application | App pool | Hosting model |
+|---|---|---|
+| `/iLearn` | `iLearn.User` | `inprocess` |
+| `/iLearn/Service` | `iLearn.Service` | `inprocess` |
+| `/iLearn/admin` | `iLearn.Admin` | `inprocess` |
+| `/iLearn/admin-react` | `iLearn.Admin.React` | static app pool |
+| `/iLearn/student` | `iLearn.Static` | static/redirect app pool, if present |
+
+Audit first:
+
+```powershell
+pwsh -NoLogo -NoProfile -File .\tools\set-ilearn-prod-app-pools.ps1 -AuditOnly
+```
+
+If the current shell is not an IIS admin on `ap-ntc2137-prwb`, the audit itself will return WinRM `Access is denied`; rerun it with `-IisCredential`.
+
+Apply with an IIS admin credential when the current shell has no remote IIS rights. If newly-created pools must run as a fixed service account, pass that account as `-AppPoolCredential`; do not print or paste the password into chat/logs.
+
+**Call the script with `&` from the current PowerShell 7 session — never through a nested `pwsh -File`.** `-File` passes every argument as a string, so a `PSCredential` object arrives as the literal text `System.Management.Automation.PSCredential` and authentication fails with a confusing error.
+
+```powershell
+$iisCredential = Get-Credential
+$appPoolCredential = Get-Credential
+
+& .\tools\set-ilearn-prod-app-pools.ps1 `
+    -AuditOnly `
+    -IisCredential $iisCredential
+
+& .\tools\set-ilearn-prod-app-pools.ps1 `
+    -IisCredential $iisCredential `
+    -AppPoolCredential $appPoolCredential
+```
+
+The audit prints the current mapping first, then warns if several ASP.NET Core apps share one pool (the 500.35 topology). The apply run re-reads the bindings from IIS afterwards and fails if the split did not take.
+
+After applying, verify:
+
+- `GET https://ap-ntc2137-prwb/iLearn/` returns 200.
+- `GET https://ap-ntc2137-prwb/iLearn/Service/api/admin/session/me` returns 200 with Windows credentials and 401 without credentials.
+- `GET https://ap-ntc2137-prwb/iLearn/admin-react/` returns 200.
+
+If IIS admin access is temporarily unavailable and production is down, a reversible mitigation is to set the active ASP.NET Core `web.config` files for `/iLearn`, `/iLearn/Service`, and `/iLearn/admin` to the same `hostingModel="outofprocess"`. This avoids 500.35/500.34 but is not the preferred steady state; split the app pools and return to `inprocess` afterward.
+
+### Deploy preflight
+
+`deploy-side-by-side.ps1` audits this topology before every PROD deploy of `/iLearn`, `/iLearn/Service`, and `/iLearn/admin`:
+
+- Wrong `-AppPoolName` for the deploy root fails immediately, without touching the server.
+- If the remote audit finds ASP.NET Core apps sharing a pool, or a pool bound to the wrong app, the deploy is **blocked** — passing `-IisCredential` is not required for that.
+- If the audit cannot run at all (WinRM refused, access denied, host unreachable) it only warns; pass `-IisCredential` to make an unreachable audit fail the deploy too.
+- `-Rollback` skips the preflight entirely. Rollback only repoints `web.config` at the previous stamp folder, so it stays available while the topology is broken.

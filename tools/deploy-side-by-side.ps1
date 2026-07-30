@@ -291,6 +291,147 @@ function Invoke-AppPoolAction {
     return Invoke-Command @remoteParams
 }
 
+function Get-IlearnProdAppPoolExpectation {
+    param([Parameter(Mandatory)][string]$RootPath)
+
+    $normalizedRoot = ($RootPath.TrimEnd('\', '/') -replace '/', '\')
+    if ($normalizedRoot -match '^\\\\ap-ntc2137-prwb\\wwwroot\\iLearn\\Service$') {
+        return [pscustomobject]@{ IisPath = '/iLearn/Service'; ExpectedPool = 'iLearn.Service' }
+    }
+    if ($normalizedRoot -match '^\\\\ap-ntc2137-prwb\\wwwroot\\iLearn\\admin$') {
+        return [pscustomobject]@{ IisPath = '/iLearn/admin'; ExpectedPool = 'iLearn.Admin' }
+    }
+    if ($normalizedRoot -match '^\\\\ap-ntc2137-prwb\\wwwroot\\iLearn$') {
+        return [pscustomobject]@{ IisPath = '/iLearn'; ExpectedPool = 'iLearn.User' }
+    }
+
+    return $null
+}
+
+function Test-IlearnProdAppPoolIsolation {
+    param(
+        [Parameter(Mandatory)][string]$RootPath,
+        [string]$PoolName,
+        [string]$TargetHost,
+        [pscredential]$Credential
+    )
+
+    $expectation = Get-IlearnProdAppPoolExpectation -RootPath $RootPath
+    if ($null -eq $expectation) {
+        return
+    }
+
+    if ([string]::IsNullOrWhiteSpace($PoolName)) {
+        Write-Warning "iLearn PROD deploy is missing -AppPoolName; expected $($expectation.ExpectedPool) for $($expectation.IisPath)."
+    }
+    elseif ($PoolName -ne $expectation.ExpectedPool) {
+        throw "Invalid iLearn PROD deploy target: $($expectation.IisPath) must use app pool '$($expectation.ExpectedPool)', not '$PoolName'."
+    }
+
+    if ([string]::IsNullOrWhiteSpace($TargetHost)) {
+        Write-Warning "iLearn PROD app-pool isolation remote audit skipped: -IisHost was not provided."
+        return
+    }
+
+    $remoteParams = @{
+        ComputerName = $TargetHost
+        ArgumentList = @($expectation.IisPath, $expectation.ExpectedPool)
+        ScriptBlock  = {
+            param([string]$CurrentIisPath, [string]$CurrentExpectedPool)
+
+            Import-Module WebAdministration
+            $siteName = 'Default Web Site'
+            $aspNetApps = @(
+                [pscustomobject]@{ Path = '/iLearn'; ExpectedPool = 'iLearn.User' },
+                [pscustomobject]@{ Path = '/iLearn/Service'; ExpectedPool = 'iLearn.Service' },
+                [pscustomobject]@{ Path = '/iLearn/admin'; ExpectedPool = 'iLearn.Admin' }
+            )
+
+            function ConvertTo-IisPath {
+                param([string]$ApplicationPath)
+
+                $basePath = "IIS:\Sites\$siteName"
+                $trimmed = $ApplicationPath.Trim('/')
+                if ([string]::IsNullOrWhiteSpace($trimmed)) {
+                    return $basePath
+                }
+
+                return (Join-Path $basePath ($trimmed -replace '/', '\'))
+            }
+
+            $mappings = foreach ($app in $aspNetApps) {
+                $iisPath = ConvertTo-IisPath -ApplicationPath $app.Path
+                if (-not (Test-Path -LiteralPath $iisPath)) {
+                    throw "Required IIS application not found: $($app.Path) ($iisPath)"
+                }
+
+                $iisApp = Get-ItemProperty -LiteralPath $iisPath
+                [pscustomobject]@{
+                    Path = $app.Path
+                    ApplicationPool = [string]$iisApp.applicationPool
+                    ExpectedPool = $app.ExpectedPool
+                }
+            }
+
+            # Findings below are real topology violations, not "could not reach the server", so they
+            # carry a tag the caller re-throws even without -IisCredential. Keep the tag literal in
+            # sync with $topologyTag in the calling function (a scriptblock can't read outer scope).
+            $tag = 'ILEARN-TOPOLOGY:'
+
+            $sharedPools = @($mappings |
+                Group-Object ApplicationPool |
+                Where-Object { $_.Count -gt 1 })
+            if ($sharedPools.Count -gt 0) {
+                $summary = ($sharedPools | ForEach-Object { "$($_.Name): $($_.Count) ASP.NET Core apps" }) -join '; '
+                throw "$tag ASP.NET Core apps share app pools ($summary). Run tools/set-ilearn-prod-app-pools.ps1 before deploying."
+            }
+
+            $wrongMappings = @($mappings | Where-Object { $_.ApplicationPool -ne $_.ExpectedPool })
+            if ($wrongMappings.Count -gt 0) {
+                $summary = ($wrongMappings | ForEach-Object { "$($_.Path)=$($_.ApplicationPool), expected $($_.ExpectedPool)" }) -join '; '
+                throw "$tag invalid PROD IIS app-pool mapping: $summary."
+            }
+
+            $current = $mappings | Where-Object { $_.Path -eq $CurrentIisPath } | Select-Object -First 1
+            if ($null -eq $current -or $current.ApplicationPool -ne $CurrentExpectedPool) {
+                throw "$tag invalid current app mapping for $CurrentIisPath."
+            }
+
+            return $mappings
+        }
+    }
+
+    if ($Credential) {
+        $remoteParams.Credential = $Credential
+    }
+
+    # Must match the literal thrown inside the remote scriptblock above.
+    $topologyTag = 'ILEARN-TOPOLOGY:'
+
+    try {
+        $mappings = Invoke-Command @remoteParams
+        $summary = ($mappings | Sort-Object Path | ForEach-Object { "$($_.Path)->$($_.ApplicationPool)" }) -join ', '
+        Write-Host "iLearn PROD app-pool isolation preflight OK: $summary" -ForegroundColor DarkGray
+    }
+    catch {
+        $message = [string]$_.Exception.Message
+
+        # A tagged failure means the audit ran and found a broken topology — that is the 500.35
+        # outage waiting to happen, so it blocks the deploy whether or not a credential was passed.
+        # Everything else (WinRM refused, access denied, host unreachable) means the audit could not
+        # run at all; without a credential that is expected, so it only warns.
+        if ($message.Contains($topologyTag)) {
+            throw "iLearn PROD app-pool isolation preflight failed: $($message.Replace("$topologyTag ", ''))"
+        }
+
+        if ($Credential) {
+            throw "iLearn PROD app-pool isolation preflight failed: $message"
+        }
+
+        Write-Warning "Could not audit remote iLearn PROD app-pool isolation ($message). Provide -IisCredential to enforce the topology before deploy."
+    }
+}
+
 function Invoke-Robocopy {
     param(
         [Parameter(Mandatory)][string]$Source,
@@ -389,6 +530,14 @@ if (-not (Test-Path -LiteralPath $webConfigPath)) {
 
 if ($OfflineStrategy -eq 'AppPool' -and -not ($AppPoolName -and $IisHost)) {
     throw "OfflineStrategy 'AppPool' requires both -AppPoolName and -IisHost (and IIS admin rights, e.g. -IisCredential)."
+}
+
+# Rollback only flips the aspNetCore `arguments` in web.config back to the previous stamp folder —
+# it never touches app pools, so a broken pool topology is neither caused nor worsened by it.
+# Gating rollback on this preflight would slam the emergency exit shut during exactly the incident
+# it exists to prevent, so the check runs on deploys only.
+if (-not $Rollback) {
+    Test-IlearnProdAppPoolIsolation -RootPath $DeployRoot -PoolName $AppPoolName -TargetHost $IisHost -Credential $IisCredential
 }
 
 $appOfflinePath = Join-Path $DeployRoot 'app_offline.htm'
