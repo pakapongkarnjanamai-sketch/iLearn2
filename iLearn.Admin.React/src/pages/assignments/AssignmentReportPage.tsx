@@ -15,7 +15,7 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { toast } from '../../lib/toast'
 import { formatDate, formatDateTime, formatPercent } from '../../lib/format'
-import { ASSIGNMENT_LABELS, COMMON_LABELS, LEARNER_STATUS_KEYS, REPORT_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
+import { ASSIGNMENT_LABELS, COMMON_LABELS, LEARNER_STATUS_KEYS, REPORT_LABELS, learnerStatusLabel, t } from '../../lib/labels'
 import { exportWorkbook } from '../../lib/tableExport'
 import { DETAIL_TABLE_CHUNK_SIZE, shouldLoadMoreOnScroll } from '../../lib/tableStandards'
 import { StatusDonut, CourseCompletionBars, buildStatusData, buildCourseBarData } from './AssignmentReportCharts'
@@ -588,7 +588,6 @@ export function AssignmentReportPage() {
                     <th className="p-3">{t(ASSIGNMENT_LABELS.courses)}</th>
                     <th className="p-3">{t(ASSIGNMENT_LABELS.status)}</th>
                     <th className="p-3">{t(REPORT_LABELS.colProgress)}</th>
-                    <th className="p-3">{t(ASSIGNMENT_LABELS.timeline)}</th>
                     <th className="p-3 pr-5">{t(ASSIGNMENT_LABELS.completedDate)}</th>
                   </tr>
                 </thead>
@@ -617,10 +616,6 @@ export function AssignmentReportPage() {
                       <td className="p-3">
                         <ProgressBar value={row.progress} completed={row.isCompleted} />
                       </td>
-                      <td className="p-3 text-slate-400 text-xxs leading-relaxed">
-                        {row.startDate && <div>{tf(ASSIGNMENT_LABELS.startDate, formatDate(row.startDate))}</div>}
-                        {row.dueDate && <div className="mt-0.5">{tf(ASSIGNMENT_LABELS.dueDate, formatDate(row.dueDate))}</div>}
-                      </td>
                       <td className="p-3 pr-5 text-slate-600 text-xs">
                         {row.completedDate ? formatDate(row.completedDate) : '—'}
                       </td>
@@ -628,7 +623,7 @@ export function AssignmentReportPage() {
                   ))}
                   {filtered.length === 0 && (
                     <tr>
-                      <td className="p-6 text-center text-slate-400" colSpan={6}>
+                      <td className="p-6 text-center text-slate-400" colSpan={5}>
                         {t(ASSIGNMENT_LABELS.noLearnersFound)}
                       </td>
                     </tr>

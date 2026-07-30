@@ -24,6 +24,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-30] GitHub Copilot — PLAN-169 remove Timeline column from assignment report
+- ทำอะไร: ตัดคอลัมน์ `Timeline` ออกจากตาราง learner detail บนหน้า assignment report โดยลบทั้ง header และ row cell ที่แสดง Start/Due date timeline; ปรับ empty-state `colSpan` จาก 6 เป็น 5 และลบ import `tf` ที่ไม่ใช้แล้ว
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `DOC/PLANS/PLAN-169-assignment-report-remove-timeline-column.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (frontend table presentation only)
+- Verified: `get_errors` ✓, `npm run lint` ✓, `npm run build` ✓
+
 ## [2026-07-30] GitHub Copilot — PLAN-168 remove completion metrics from assignment workbook export
 - ทำอะไร: ปรับ `Export Excel Workbook` ของหน้า assignment report ให้ตัดข้อมูลเชิง completion ออก โดยลบ `Completed`/`Completion Rate` จาก `Overview`, ลบ `Completed Date` จาก `Learner Detail`, ลบ `Completed Learners`/`Completion %` จาก `Course Summary`, และลบ `Completed`/`Completion %` จาก `Group Summary`
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `DOC/PLANS/PLAN-168-assignment-report-workbook-remove-completion-metrics.md`, `DOC/AGENT_LOG.md`
