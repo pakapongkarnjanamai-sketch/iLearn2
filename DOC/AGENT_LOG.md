@@ -24,6 +24,42 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-30] GitHub Copilot — implement PLAN-163 Delivery #6 (Batch C complete + lint error enforcement)
+- ทำอะไร: ปิด Batch C โดยย้าย native `<button>` ที่เหลือใน `AssignmentGanttPage`, `VersionFormPage`, `LearnerGroupEditorPage`, `LearnerListPage`, `TranscriptReportPage` ไปใช้ `AppButton`/`IconButton`; flip `no-restricted-globals(fetch)` และ `no-restricted-syntax(JSX button)` ใน `eslint.config.js` จาก `warn` เป็น `error`; เพิ่ม section `Lint Guardrails And Exceptions` ใน React README พร้อมเหตุผล allowlist และอัปเดตแผนแม่ `PLAN-157` เป็น `DONE` พร้อมสรุปลำดับ child plans 158-163
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentGanttPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionFormPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupEditorPage.tsx`, `iLearn.Admin.React/src/pages/learners/LearnerListPage.tsx`, `iLearn.Admin.React/src/pages/reports/TranscriptReportPage.tsx`, `iLearn.Admin.React/eslint.config.js`, `iLearn.Admin.React/README.md`, `DOC/PLANS/PLAN-163-admin-standards-delivery6-batchc-and-error-enforcement.md`, `DOC/PLANS/PLAN-157-admin-standards-rollout-execution-contract.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (frontend standards enforcement + UI primitive adoption only)
+- Verified: `npm run lint` ✓ (ผ่านภายใต้ error rules), `npm run build` ✓, allowlist lint command output ว่าง ✓, stdin probes ของ `<button>`/`fetch` fail เป็น errors ตามคาด ✓, `git diff --check` ✓ (มีเฉพาะ CRLF warning)
+
+## [2026-07-30] GitHub Copilot — implement PLAN-162 Delivery #5 (shared report KPI tile + CourseVersion clock fix)
+- ทำอะไร: เพิ่ม shared `ReportKpiTile` และ refactor `AssignmentSummaryReportPage` + `LearnerGroupSummaryReportPage` ให้ใช้ component เดียว (semantic tone `neutral|info|success|danger`); แก้ `CourseVersionService` ให้ `CreatedAt` ของ `CourseVersion`/`CourseContentItem` ใช้ `_dateTime.Now` แทน `DateTime.UtcNow`; เพิ่มเทสต์ deterministic ใหม่ใน `CourseVersionLearnerPolicyTests` และขยาย harness ให้ assert `CourseContentItem.CreatedAt` ได้
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/ReportKpiTile.tsx`, `iLearn.Admin.React/src/pages/reports/AssignmentSummaryReportPage.tsx`, `iLearn.Admin.React/src/pages/reports/LearnerGroupSummaryReportPage.tsx`, `iLearn.Application/Services/CourseVersionService.cs`, `iLearn.Tests/CourseVersionLearnerPolicyTests.cs`, `DOC/PLANS/PLAN-162-admin-standards-delivery5-kpi-tile-and-courseversion-clock.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (shared UI extraction + internal timestamp source consistency + test only)
+- Verified: `npm run lint` ✓ (0 errors, 6 warnings), `npm run build` ✓, `dotnet test artifacts\\verify-plan162\\iLearn.Tests.dll --filter FullyQualifiedName~CourseVersionLearnerPolicyTests` ✓ (8/8), cleanup temp artifacts ✓, `git diff --check` ✓ (มีเฉพาะ CRLF warning)
+
+## [2026-07-30] GitHub Copilot — implement PLAN-161 Delivery #4 response helper + report export migration
+- ทำอะไร: เพิ่ม `fetchResponseWithAccessControl` ใน `apiClient.ts` (ใช้ auth/header merge/error mapping เดิม) และ refactor `fetchWithAccessControl<T>` ให้ reuse helper นี้; migrate Excel export ของ `AssignmentSummaryReportPage` และ `LearnerGroupSummaryReportPage` จาก direct `fetch` ไป helper ใหม่พร้อมคง `Accept` xlsx + `downloadBlob`/`filenameFromContentDisposition`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/lib/apiClient.ts`, `iLearn.Admin.React/src/pages/reports/AssignmentSummaryReportPage.tsx`, `iLearn.Admin.React/src/pages/reports/LearnerGroupSummaryReportPage.tsx`, `DOC/PLANS/PLAN-161-admin-standards-delivery4-response-helper-and-report-exports.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (frontend helper/usage refactor only)
+- Verified: `npm run lint` ✓ (0 errors; warnings ลดจาก 8 → 6), `npm run build` ✓, direct `fetch(` ใน report export 2 หน้าไม่เหลือ (`rg` no-match) ✓, `git diff --check` ✓ (มีเฉพาะ CRLF warning)
+
+## [2026-07-30] GitHub Copilot — implement PLAN-160 Batch B native-button migration (Course/LearnerGroup detail pages)
+- ทำอะไร: เดินต่อจาก PLAN-159 ตาม PLAN-157 โดย migrate native `<button>` ใน 3 ไฟล์ Batch B เป็น shared primitives: `CourseEditorPage` (select-existing-content tile + add-content icon buttons), `VersionDetailPage` (tile + add-content icon button), `LearnerGroupDetailPage` (clear queue, remove row, close modal)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseEditorPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionDetailPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `DOC/PLANS/PLAN-160-admin-standards-batch-b-native-button-migration.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (UI primitive adoption only)
+- Verified: `npm run lint` ✓ (0 errors; warnings ลดจาก 16 → 8), `npm run build` ✓, `rg -n "<button|</button>"` ในไฟล์ Batch B ไม่พบแล้ว ✓, `git diff --check` ✓ (มีเฉพาะ CRLF warning)
+
+## [2026-07-30] GitHub Copilot — implement PLAN-159 Batch A native-button migration (Assignment pages)
+- ทำอะไร: ทำต่อจาก PLAN-158 ตาม PLAN-157 delivery #2 โดย migrate native `<button>` ใน Batch A สองไฟล์เป็น `AppButton` ทั้งหมด: `BulkAssignPage` (clear selected courses) และ `AssignmentDetailPage` (clear selected learners, remove not found, clear queue, remove queued row)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/BulkAssignPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentDetailPage.tsx`, `DOC/PLANS/PLAN-159-admin-standards-batch-a-native-button-migration.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (UI primitive adoption only)
+- Verified: `npm run lint` ✓ (0 errors; warnings ลดจาก 21 → 16), `npm run build` ✓, `rg -n "<button|</button>"` ในสองไฟล์ Batch A ไม่พบแล้ว ✓, `git diff --check` ✓ (มีเฉพาะ CRLF warning)
+
+## [2026-07-30] GitHub Copilot — implement PLAN-158 phase-0 standards guardrails + AppTable action primitive
+- ทำอะไร: เริ่ม rollout ตาม PLAN-157 delivery #1 โดยเพิ่ม ESLint guardrails ระดับ `warn` ใน `eslint.config.js` (`no-restricted-globals` สำหรับ `fetch` ใน `src/**` + allowlist 4 ไฟล์, และ `no-restricted-syntax` บล็อก native `<button>` ใน `src/pages/**`) และ refactor `AppTable` row actions ให้ใช้ `IconButton` แทน native `<button>`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/eslint.config.js`, `iLearn.Admin.React/src/components/ui/AppTable.tsx`, `DOC/PLANS/PLAN-158-admin-standards-phase0-warn-and-apptable.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (frontend lint policy + shared UI primitive usage only)
+- Verified: `npm run lint` ✓ (0 errors, 21 warnings expected), `npm run build` ✓, rule probes ผ่าน `npx eslint --stdin --stdin-filename src/pages/__probe__.tsx` ทั้ง button/fetch ✓, allowlist files lint clean ✓, `git diff --check` ✓ (มีเฉพาะ CRLF warning)
+
 ## [2026-07-30] Claude Code — แก้ Finding 1-4 ของ PLAN-157 เอง → READY (PLAN-156 → SUPERSEDED)
 - ทำอะไร: ผู้ใช้สั่งให้ reviewer ลงมือแก้เอง — (1) กฎ `<button>` scope ขัดกันเอง: เขียน §1 ใหม่ให้ enforce เฉพาะ `src/pages/**` แล้ว**ลบ allowlist shared components ทั้งก้อน** (ไฟล์นอก scope ไม่ต้องมีลิสต์ให้ผิด) ย้ายของจริงไป §1b "Known remaining debt" — `LearnerDirectorySelector.tsx` มี native button **11 จุด** เป็น control จริงไม่ใช่ primitive boundary ⇒ ต้องเปิดแผนแยก, `AppTable.tsx` มีจุดเดียว (บรรทัด 365) ซึ่ง §2 refactor แล้วเหลือศูนย์ (2) ตัด `data-standard-exception` (React forward `data-*` ขึ้น production DOM) ไปใช้ `eslint-disable-next-line ... -- <reason>` (3) ตัด custom TS-API script + `standards:check` ทิ้ง เปลี่ยนเป็น ESLint flat-config 3 บล็อก โดยใช้ **rule ต่างชื่อ** (`no-restricted-globals` สำหรับ fetch / `no-restricted-syntax` สำหรับ JSX button) เพราะ flat config แทนที่ option array ไม่ merge, negative check ใช้ `--stdin-filename` ไม่ต้อง commit fixture (4) ตัด `AppLinkButton` + shared style map ออก เพราะ consumer = 0 (`<Link>` ใน Batch A+B มีจุดเดียวและเป็น inline text link ที่แผนบอกเองให้คงไว้) จด `CourseDetailPage.tsx:655` เป็น candidate แรกของแผนถัดไป · บวก minor 5-10 (§4 header-merge invariant, ห้ามเขียน filename parser ซ้ำเพราะ `downloadBlob.ts` มีแล้ว, HealthCheckPage ไม่ต้องแก้เพราะคอมเมนต์มีอยู่แล้ว, ตัดคำว่า CI เพราะ `.github/workflows` ว่าง, เลิกจองเลข 158-163, PLAN-156 → SUPERSEDED) + เพิ่มตาราง Verified baseline
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-157-*.md` (→READY), `DOC/PLANS/PLAN-156-*.md` (→SUPERSEDED), `DOC/AGENT_LOG.md`

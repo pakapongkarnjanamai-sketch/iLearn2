@@ -1,6 +1,6 @@
 # PLAN-157: Admin standards rollout execution contract
 
-- **Status:** READY
+- **Status:** DONE
 - **Assigned:** GitHub Copilot (GPT)
 - **Reviewer:** Claude Code
 - **Priority:** High
@@ -223,7 +223,14 @@ Work order, **not reserved plan numbers.** Claim the number with `pwsh tools/pla
 
 ## Implementer Notes
 
-- Not started. This is a revision plan produced from PLAN-156 review findings.
+- Completed through child implementation plans:
+   - `PLAN-158`: guardrails at `warn` + `AppTable` action → `IconButton`.
+   - `PLAN-159`: Batch A native button migration.
+   - `PLAN-160`: Batch B native button migration.
+   - `PLAN-161`: `fetchResponseWithAccessControl` + report Excel export migration.
+   - `PLAN-162`: shared report KPI tile + `_dateTime.Now` timestamp fix + deterministic test.
+   - `PLAN-163`: Batch C migration complete, guardrails flipped to `error`, README exceptions documented.
+- Final verification snapshots were captured in each child plan (lint/build/focused tests/probes).
 
 ## Reviewer Notes (Claude Code, 2026-07-30)
 
