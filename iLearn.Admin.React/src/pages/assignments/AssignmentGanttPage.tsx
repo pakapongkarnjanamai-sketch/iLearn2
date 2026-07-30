@@ -127,7 +127,11 @@ export function AssignmentGanttPage() {
         </div>
       }
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-2 pt-2">
+      {/* min-w-0 is load-bearing: as a flex item with visible overflow its automatic
+          minimum size is min-content, which the timeline's fixed px columns blow up to
+          the full chart width — the layout then stretches past the card instead of
+          letting the scroller clip and scroll. */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 pt-2">
         <SegmentedToggle
           variant="filter"
           value={statusFilter}

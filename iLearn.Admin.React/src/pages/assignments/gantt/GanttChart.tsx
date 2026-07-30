@@ -35,40 +35,26 @@ export function GanttChart({ tasks, timeline, zoom, scrollerRef }: GanttChartPro
   const rowsBackground = buildRowsBackground(timeline.rangeStart, zoom, timeline.pxPerDay)
 
   return (
-    <div ref={scrollerRef} className="min-h-0 flex-1 overflow-auto custom-scrollbar">
-      <div className="relative min-h-full" style={{ width: `${tableWidth}px`, minWidth: '100%' }}>
+    // Sized to its content instead of flex-1: a stretched scroller parks the horizontal
+    // scrollbar at the bottom of the card, far below the last row, where nobody finds it.
+    <div ref={scrollerRef} className="min-h-0 overflow-auto custom-scrollbar">
+      <div className="relative" style={{ width: `${tableWidth}px`, minWidth: '100%' }}>
         {/*
           Every cell pins its own `gridRow`: with auto-placement, a column-1 item that
           follows a column-2 item starts a new row, which silently drops each name cell
           one row below its bar. Pinned rows also free the DOM order to encode the
-          freeze-pane paint order (equal z-index ⇒ later sibling wins), so the four
-          layers below stay at z-10 and never need to climb the app's z-ladder:
-          name cells → bar rows → timeline header → corner.
+          freeze-pane paint order (equal z-index ⇒ later sibling wins), so every layer
+          stays at z-10 and never climbs the app's z-ladder:
+          bar rows (z-auto) → hover cards (z-10, inside a bar) → name cells → header → corner.
+          The timeline column takes the leftover width so row and header borders reach the
+          right edge of the card at zoom levels narrower than the viewport.
         */}
         <div
           className="grid"
           style={{
-            gridTemplateColumns: `${NAME_COL_W}px ${timeline.widthPx}px`,
+            gridTemplateColumns: `${NAME_COL_W}px minmax(${timeline.widthPx}px, 1fr)`,
           }}
         >
-          {tasks.map((task, index) => (
-            <div
-              key={`name-${task.id}`}
-              className="sticky left-0 z-10 col-start-1 col-end-2 flex items-center gap-2 border-r border-b border-slate-100 bg-white px-3"
-              style={{ gridRow: index + 2, height: `${ROW_H}px` }}
-            >
-              <span className="shrink-0 font-mono text-xs text-slate-500">{task.assignmentNo}</span>
-              {task.title !== task.assignmentNo && (
-                <>
-                  <span className="text-slate-300">-</span>
-                  <span className="truncate text-xs font-semibold text-slate-700" title={task.title}>
-                    {task.title}
-                  </span>
-                </>
-              )}
-            </div>
-          ))}
-
           {tasks.map((task, index) => {
             const layout = getTaskLayout(task, timeline.rangeStart, timeline.pxPerDay)
             return (
@@ -91,6 +77,24 @@ export function GanttChart({ tasks, timeline, zoom, scrollerRef }: GanttChartPro
               </div>
             )
           })}
+
+          {tasks.map((task, index) => (
+            <div
+              key={`name-${task.id}`}
+              className="sticky left-0 z-10 col-start-1 col-end-2 flex items-center gap-2 border-r border-b border-slate-100 bg-white px-3"
+              style={{ gridRow: index + 2, height: `${ROW_H}px` }}
+            >
+              <span className="shrink-0 font-mono text-xs text-slate-500">{task.assignmentNo}</span>
+              {task.title !== task.assignmentNo && (
+                <>
+                  <span className="text-slate-300">-</span>
+                  <span className="truncate text-xs font-semibold text-slate-700" title={task.title}>
+                    {task.title}
+                  </span>
+                </>
+              )}
+            </div>
+          ))}
 
           <div
             className="sticky top-0 z-10 col-start-2 col-end-3 bg-white"

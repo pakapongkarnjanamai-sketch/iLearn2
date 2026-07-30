@@ -221,4 +221,26 @@ Measured per zoom with the real page (temporary harness, deleted). Every cell wh
 
 Consequence worth knowing: a very narrow edge segment now shows a truncated label (`Sept 26` → `S` at 16px) instead of bleeding into its neighbour. `npm run lint` clean, `npm run build` OK.
 
-Two measurement traps hit while verifying this, noted so the next pass does not repeat them: `scrollWidth` still exceeds `clientWidth` after `overflow-hidden` (it reports content size, not painted size — assert computed `overflow` instead), and measuring straight after `button.click()` returns the **pre-render** DOM, so all three zooms looked identical until an `await` was added between the click and the measurement.
+### Fourth pass — QA feedback: tooltip sliced, chart not fitting (Claude Code, 2026-07-30)
+
+Reported from QA with screenshots: the hover card rendered in fragments, and the chart ran past the card with no visible way to scroll.
+
+- **Tooltip** — the card sat at `z-auto` inside its bar row, so the **bars of the rows below** (later siblings, also `z-auto`) painted straight over it; only the slivers between them stayed visible. The card now takes `z-10`, and the grid emits **bar rows before name cells** (was the reverse) so the frozen name column, which is also `z-10`, still covers a card that reaches it. Both layers remain at `z-10` — the app's z-ladder is untouched.
+- **Chart not fitting / no scrollbar** — root cause was a missing `min-w-0` on the page's flex wrapper in `AssignmentGanttPage.tsx`. As a flex item with visible overflow its automatic minimum size is min-content, which the timeline's fixed px columns inflate to the full chart width, so the layout stretched past the card instead of letting the scroller clip. Measured at Day zoom: the wrapper reported `clientWidth 3752` inside a parent of `1198`. With `min-w-0` the scroller is capped at the card width and scrolls.
+- **Scrollbar placement** — the scroller no longer takes `flex-1`. Stretched, it parked the horizontal scrollbar at the bottom of the card, ~200px below the last row; content-sized, the bar sits directly under the rows (measured gap 14px including the bar).
+- **Dead space at Month zoom** — the timeline column is now `minmax(widthPx, 1fr)`, so row and header borders reach the card's right edge when a zoom level is narrower than the viewport instead of stopping mid-card.
+
+Measured after the fix (12-batch fixture including one 140-day bar, viewport 1280×900):
+
+| zoom | scroller clientW | content scrollW | h-scrollbar | grid fills width | page overflows X |
+|---|---|---|---|---|---|
+| Day | 1196 | 3750 | 10px | yes | no |
+| Week | 1196 | 1580 | 10px | yes | no |
+| Month | 1196 | 1196 | none needed | yes | no |
+
+Paint order re-checked after the reorder (`scrollTop 60`, `scrollLeft 900`): corner wins the top-left region, the date header wins the header strip, name cells win over bars, and a card reaching the frozen column loses to the name cell. Hover cards for rows 0, 10 and 11 are topmost across their whole area, open down / up / up respectively, and none is clipped by the scroller. `npm run lint` clean, `npm run build` OK.
+
+Three measurement traps hit while verifying these passes, noted so the next one does not repeat them:
+
+- `elementFromPoint` is **hit testing, not paint order** — the hover card is `pointer-events-none`, so it is skipped and the probe reports whatever sits beneath it. Set `pointerEvents: 'auto'` for the duration of the measurement.
+- the Browser pane viewport was 961×415, so rows below the fold returned `outside-viewport` and looked like failures; resize before measuring. `scrollWidth` still exceeds `clientWidth` after `overflow-hidden` (it reports content size, not painted size — assert computed `overflow` instead), and measuring straight after `button.click()` returns the **pre-render** DOM, so all three zooms looked identical until an `await` was added between the click and the measurement.

@@ -24,6 +24,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-30] Claude Code — PLAN-171 QA fix: tooltip ถูกทับ + ชาร์ตไม่พอดีจอ
+- ทำอะไร: (1) hover card เคยเป็น z-auto จึงถูก**แท่งของแถวล่าง** (sibling ทีหลัง z-auto เท่ากัน) ทับจนเห็นเป็นเสี่ยง → ให้ card เป็น `z-10` และสลับ grid ให้ emit bar rows ก่อน name cells เพื่อให้คอลัมน์ชื่อ (z-10 เหมือนกัน) ยังทับ card ได้ (2) เพิ่ม `min-w-0` ที่ flex wrapper ในหน้าเพจ — flex item ที่ overflow visible มี automatic min size = min-content ซึ่งคอลัมน์ px ของ timeline ทำให้บวมเป็นความกว้างชาร์ตทั้งอัน เลย์เอาต์จึงยืดเลยการ์ดแทนที่จะให้ scroller คลิป (วัดได้ wrapper clientWidth 3752 ใน parent 1198) (3) scroller เลิกใช้ `flex-1` เพื่อให้ scrollbar แนวนอนมาอยู่ใต้แถวสุดท้าย (เดิมไปอยู่ก้นการ์ดห่างเกือบ 200px) (4) timeline column เป็น `minmax(widthPx, 1fr)` กัน dead space ตอน zoom รายเดือน
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/gantt/GanttBar.tsx`, `.../gantt/GanttChart.tsx`, `.../AssignmentGanttPage.tsx`, `DOC/PLANS/PLAN-171-assignment-gantt-refactor.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ✓, `npm run build` ✓, วัด 3 zoom บน fixture 12 แถว (มีแท่ง 140 วัน) — scroller ถูกจำกัดที่ 1196, scrollW 3750 ที่ day zoom, scrollbar 10px, ไม่มี page overflow-x, freeze-pane + hover card ทับถูกลำดับครบ ✓ | เกร็ด: `elementFromPoint` เป็น hit-test ไม่ใช่ paint order — ต้องเปิด `pointerEvents:'auto'` ตอนวัด card ที่เป็น `pointer-events-none`
+
 ## [2026-07-30] Claude Code — PLAN-171 header label overflow
 - ทำอะไร: ใส่ `overflow-hidden` ให้เซลล์ header ทั้งสองแถวใน `GanttChart.tsx` (แถวเดือน + แถว tick) — เซลล์ที่แคบกว่าป้ายตัวเองเคยมีตัวอักษรล้นข้ามเส้นขอบ แถว tick ก็เป็นเหมือนกันที่สัปดาห์แรก/สุดท้ายซึ่งไม่เต็มสัปดาห์ (`27 Jun` ในช่อง 15px) ผลข้างเคียงที่ยอมรับ: เซลล์ริมแคบ ๆ จะโชว์ป้ายแบบตัดสั้น (`Sept 26` → `S`) แทนการล้น
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/gantt/GanttChart.tsx`, `DOC/PLANS/PLAN-171-assignment-gantt-refactor.md`, `DOC/AGENT_LOG.md`
