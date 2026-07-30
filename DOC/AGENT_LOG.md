@@ -24,6 +24,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-30] GitHub Copilot — PLAN-167 assignment report admin workbook export
+- ทำอะไร: ยกเลิกปุ่ม `Export CSV (All)`, `Export Excel (Filtered)`, `Export CSV (Filtered)` และเปลี่ยน export ของหน้า assignment report ให้เหลือ `Export Excel Workbook` ปุ่มเดียวที่สร้าง workbook หลาย sheet (Overview, Learner Detail, Course Summary, Group Summary, Status Summary, Exceptions, Incomplete Only)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/lib/tableExport.ts`, `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `iLearn.Admin.React/src/lib/labels.ts`, `DOC/PLANS/PLAN-167-assignment-report-admin-workbook-export.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (ใช้ข้อมูล `AssignmentDashboard` ที่โหลดอยู่แล้ว, frontend export behavior only)
+- Verified: `get_errors` ✓, `npm run lint` ✓, `npm run build` ✓
+
 ## [2026-07-30] GitHub Copilot — PLAN-166 follow-up: remove Recharts pie sector focus frame
 - ทำอะไร: แก้กรอบดำที่ยังเหลือหลังคลิก donut โดยตั้ง `Pie rootTabIndex={-1}` (Recharts default = 0) และขยาย scoped focus suppression ให้ครอบ focused SVG child ทั้งหมดใน chart wrapper
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentReportCharts.tsx`, `DOC/PLANS/PLAN-166-assignment-report-static-charts.md`, `DOC/AGENT_LOG.md`

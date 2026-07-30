@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ChevronDown, Download, FileSpreadsheet, Printer, Users } from 'lucide-react'
+import { ChevronDown, FileSpreadsheet, Printer, Users } from 'lucide-react'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { DetailCard, DetailLayout, DetailSubSection } from '../../components/ui/detail'
@@ -14,9 +14,9 @@ import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { toast } from '../../lib/toast'
-import { formatDate, formatPercent } from '../../lib/format'
+import { formatDate, formatDateTime, formatPercent } from '../../lib/format'
 import { ASSIGNMENT_LABELS, COMMON_LABELS, LEARNER_STATUS_KEYS, REPORT_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
-import { exportRows, type ExportFormat } from '../../lib/tableExport'
+import { exportWorkbook } from '../../lib/tableExport'
 import { DETAIL_TABLE_CHUNK_SIZE, shouldLoadMoreOnScroll } from '../../lib/tableStandards'
 import { StatusDonut, CourseCompletionBars, buildStatusData, buildCourseBarData } from './AssignmentReportCharts'
 
@@ -72,7 +72,7 @@ type GroupSummary = {
   completionRate: number
 }
 
-type AssignmentReportExportKey = 'all-xlsx' | 'all-csv' | 'filtered-xlsx' | 'filtered-csv'
+type AssignmentReportExportKey = 'admin-workbook'
 
 const STATUS_FILTERS = ['All', ...LEARNER_STATUS_KEYS] as const
 
@@ -215,49 +215,151 @@ export function AssignmentReportPage() {
       })
   }, [data])
 
-  const exportReport = async (
-    format: ExportFormat,
-    rows: LearnerRow[],
-    scope: 'all' | 'filtered',
-    key: AssignmentReportExportKey,
-  ) => {
-    if (!data || rows.length === 0) {
+  const exportAdminWorkbook = async () => {
+    if (!data || data.learners.length === 0) {
       toast.info(t(ASSIGNMENT_LABELS.noRowsToExport))
       return
     }
 
-    setExportingKey(key)
+    setExportingKey('admin-workbook')
     try {
-      const header = [
-        'Learner Code',
-        'Name',
-        'Division',
-        'Department',
-        'Learner Groups',
-        'Course Code',
-        'Course Title',
-        'Status',
-        'Progress %',
-        'Start Date',
-        'Due Date',
-        'Completed Date',
-      ]
-      const body = rows.map((l) => [
-        l.learnerCode,
-        l.learnerName ?? l.learnerCode,
-        l.division ?? '',
-        l.department ?? '',
-        l.learnerGroups ? l.learnerGroups.join('; ') : '',
-        l.courseCode ?? '',
-        l.courseTitle ?? '',
-        learnerStatusLabel(l.status),
-        formatPercent(l.progress).replace('%', ''),
-        l.startDate ? formatDate(l.startDate) : '',
-        l.dueDate ? formatDate(l.dueDate) : '',
-        l.completedDate ? formatDate(l.completedDate) : '',
-      ])
       const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-      await exportRows(format, `assignment-${data.assignmentNo || id}-report-${scope}-${stamp}`, header, body)
+      const incompleteRows = data.learners.filter((row) => !row.isCompleted)
+      const exceptionRows = data.learners.filter((row) => row.status === 'Overdue' || !row.isCompleted)
+
+      await exportWorkbook(`assignment-${data.assignmentNo || id}-admin-workbook-${stamp}`, [
+        {
+          sheet: 'Overview',
+          header: ['Metric', 'Value'],
+          rows: [
+            ['Assignment No', data.assignmentNo || `Assignment ${id}`],
+            ['Description', data.description || ''],
+            ['Start Date', data.startDate ? formatDate(data.startDate) : ''],
+            ['Due Date', data.dueDate ? formatDate(data.dueDate) : ''],
+            ['Exported At', formatDateTime(new Date())],
+            ['Learners', data.totalEmployees],
+            ['Courses', data.totalCourses],
+            ['Completed', data.chartData.completed],
+            ['In Progress', data.chartData.inProgress],
+            ['Not Started', data.chartData.notStarted],
+            ['Overdue Learners', overdueLearnerCount],
+            ['Completion Rate', formatPercent(data.completionRate)],
+          ],
+          columns: [24, 40],
+        },
+        {
+          sheet: 'Learner Detail',
+          header: [
+            'Learner Code',
+            'Name',
+            'Division',
+            'Department',
+            'Learner Groups',
+            'Course Code',
+            'Course Title',
+            'Status',
+            'Progress %',
+            'Start Date',
+            'Due Date',
+            'Completed Date',
+          ],
+          rows: data.learners.map((row) => [
+            row.learnerCode,
+            row.learnerName ?? row.learnerCode,
+            row.division ?? '',
+            row.department ?? '',
+            row.learnerGroups ? row.learnerGroups.join('; ') : '',
+            row.courseCode ?? '',
+            row.courseTitle ?? '',
+            learnerStatusLabel(row.status),
+            row.progress,
+            row.startDate ? formatDate(row.startDate) : '',
+            row.dueDate ? formatDate(row.dueDate) : '',
+            row.completedDate ? formatDate(row.completedDate) : '',
+          ]),
+          columns: [16, 28, 18, 22, 28, 16, 40, 16, 12, 14, 14, 16],
+        },
+        {
+          sheet: 'Course Summary',
+          header: ['Course Code', 'Course Title', 'Completed Learners', 'Total Learners', 'Completion %', 'Deleted'],
+          rows: data.courses.map((row) => [
+            row.courseCode,
+            row.courseTitle,
+            row.completedLearners,
+            row.totalLearners,
+            row.totalLearners === 0 ? 0 : (row.completedLearners / row.totalLearners) * 100,
+            row.isCourseDeleted ? 'Yes' : 'No',
+          ]),
+          columns: [18, 42, 18, 16, 14, 12],
+        },
+        {
+          sheet: 'Group Summary',
+          header: ['Learner Group', 'Learners', 'Enrollments', 'Completed', 'Overdue', 'Completion %'],
+          rows: groupSummaries.map((row) => [
+            row.groupName,
+            row.learnerCount,
+            row.enrollments,
+            row.completed,
+            row.overdue,
+            row.completionRate,
+          ]),
+          columns: [32, 12, 14, 12, 12, 14],
+        },
+        {
+          sheet: 'Status Summary',
+          header: ['Status', 'Enrollments', 'Share %'],
+          rows: statusChartData.map((row) => [
+            row.label,
+            row.count,
+            data.learners.length === 0 ? 0 : (row.count / data.learners.length) * 100,
+          ]),
+          columns: [18, 14, 12],
+        },
+        {
+          sheet: 'Exceptions',
+          header: [
+            'Exception Type',
+            'Learner Code',
+            'Name',
+            'Division',
+            'Department',
+            'Learner Groups',
+            'Course Code',
+            'Course Title',
+            'Status',
+            'Progress %',
+            'Due Date',
+          ],
+          rows: exceptionRows.map((row) => [
+            row.status === 'Overdue' ? 'Overdue' : 'Incomplete',
+            row.learnerCode,
+            row.learnerName ?? row.learnerCode,
+            row.division ?? '',
+            row.department ?? '',
+            row.learnerGroups ? row.learnerGroups.join('; ') : '',
+            row.courseCode ?? '',
+            row.courseTitle ?? '',
+            learnerStatusLabel(row.status),
+            row.progress,
+            row.dueDate ? formatDate(row.dueDate) : '',
+          ]),
+          columns: [16, 16, 28, 18, 22, 28, 16, 40, 16, 12, 14],
+        },
+        {
+          sheet: 'Incomplete Only',
+          header: ['Learner Code', 'Name', 'Course Code', 'Course Title', 'Status', 'Progress %', 'Due Date'],
+          rows: incompleteRows.map((row) => [
+            row.learnerCode,
+            row.learnerName ?? row.learnerCode,
+            row.courseCode ?? '',
+            row.courseTitle ?? '',
+            learnerStatusLabel(row.status),
+            row.progress,
+            row.dueDate ? formatDate(row.dueDate) : '',
+          ]),
+          columns: [16, 28, 16, 40, 16, 12, 14],
+        },
+      ])
     } catch (error) {
       console.error(error)
       toast.error(t(REPORT_LABELS.exportExcelFailed))
@@ -288,7 +390,6 @@ export function AssignmentReportPage() {
   }
 
   const visible = filtered.slice(0, visibleRows)
-  const isFiltered = statusFilter !== 'All' || courseFilter !== 'All' || groupFilter !== 'All' || search.trim() !== ''
   const handleRowsScroll = (event: React.UIEvent<HTMLDivElement>) => {
     if (visibleRows < filtered.length && shouldLoadMoreOnScroll(event.currentTarget)) {
       setVisibleRows((prev) => prev + DETAIL_TABLE_CHUNK_SIZE)
@@ -308,37 +409,11 @@ export function AssignmentReportPage() {
             </div>
             <ControlAction
               icon={FileSpreadsheet}
-              onClick={() => void exportReport('xlsx', data.learners, 'all', 'all-xlsx')}
+              onClick={() => void exportAdminWorkbook()}
               disabled={data.learners.length === 0 || exportingKey !== null}
-              loading={exportingKey === 'all-xlsx'}
+              loading={exportingKey === 'admin-workbook'}
             >
-              {t(ASSIGNMENT_LABELS.exportAllExcel)}
-            </ControlAction>
-            <ControlAction
-              icon={Download}
-              onClick={() => void exportReport('csv', data.learners, 'all', 'all-csv')}
-              disabled={data.learners.length === 0 || exportingKey !== null}
-              loading={exportingKey === 'all-csv'}
-            >
-              {t(ASSIGNMENT_LABELS.exportAllCsv)}
-            </ControlAction>
-            <ControlAction
-              icon={FileSpreadsheet}
-              onClick={() => void exportReport('xlsx', filtered, 'filtered', 'filtered-xlsx')}
-              disabled={!isFiltered || filtered.length === 0 || exportingKey !== null}
-              loading={exportingKey === 'filtered-xlsx'}
-              title={isFiltered ? undefined : t(ASSIGNMENT_LABELS.filterBeforeExport)}
-            >
-              {t(ASSIGNMENT_LABELS.exportFilteredExcel)}
-            </ControlAction>
-            <ControlAction
-              icon={Download}
-              onClick={() => void exportReport('csv', filtered, 'filtered', 'filtered-csv')}
-              disabled={!isFiltered || filtered.length === 0 || exportingKey !== null}
-              loading={exportingKey === 'filtered-csv'}
-              title={isFiltered ? undefined : t(ASSIGNMENT_LABELS.filterBeforeExport)}
-            >
-              {t(ASSIGNMENT_LABELS.exportFilteredCsv)}
+              {t(ASSIGNMENT_LABELS.exportExcelWorkbook)}
             </ControlAction>
           </ControlsSidebar>
         }

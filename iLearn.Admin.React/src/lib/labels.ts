@@ -734,6 +734,7 @@ export const ASSIGNMENT_LABELS = {
   backToAssignments: { th: 'กลับไปยังงานมอบหมาย', en: 'Back to Assignments' },
   printReport: { th: 'พิมพ์รายงาน', en: 'Print Report' },
   exportData: { th: 'ส่งออกข้อมูล', en: 'Data Export' },
+  exportExcelWorkbook: { th: 'ส่งออก Excel หลายชีต', en: 'Export Excel Workbook' },
   exportAllCsv: { th: 'ส่งออก CSV ทั้งหมด', en: 'Export CSV (All)' },
   exportAllExcel: { th: 'ส่งออก Excel ทั้งหมด', en: 'Export Excel (All)' },
   exportFilteredCsv: { th: 'ส่งออก CSV ที่กรองแล้ว', en: 'Export CSV (Filtered)' },

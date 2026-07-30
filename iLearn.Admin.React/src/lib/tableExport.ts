@@ -1,9 +1,16 @@
-import type { Cell, SheetData } from 'write-excel-file/browser'
+import type { Cell, Sheet, SheetData } from 'write-excel-file/browser'
 import { exportRowsAsCsv } from './csvExport'
 import { downloadBlob } from './downloadBlob'
 
 export type ExportFormat = 'csv' | 'xlsx'
 export type ExportCell = string | number | null | undefined
+
+export type ExportWorkbookSheet = {
+  sheet: string
+  header: string[]
+  rows: ExportCell[][]
+  columns?: number[] | undefined
+}
 
 function normalizeBaseFilename(filename: string) {
   return filename.replace(/\.(csv|xlsx)$/i, '')
@@ -45,5 +52,16 @@ export async function exportRows(
 
   const { default: writeXlsxFile } = await import('write-excel-file/browser')
   const blob = await writeXlsxFile(toSheetData(header, rows)).toBlob()
+  downloadBlob(blob, withExtension(filename, 'xlsx'))
+}
+
+export async function exportWorkbook(filename: string, sheets: ExportWorkbookSheet[]): Promise<void> {
+  const { default: writeXlsxFile } = await import('write-excel-file/browser')
+  const workbookSheets: Array<Sheet<Blob>> = sheets.map((sheet) => ({
+    sheet: sheet.sheet,
+    data: toSheetData(sheet.header, sheet.rows),
+    ...(sheet.columns ? { columns: sheet.columns.map((width) => ({ width })) } : {}),
+  }))
+  const blob = await writeXlsxFile(workbookSheets).toBlob()
   downloadBlob(blob, withExtension(filename, 'xlsx'))
 }
