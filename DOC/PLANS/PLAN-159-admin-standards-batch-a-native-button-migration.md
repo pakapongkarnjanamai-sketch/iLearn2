@@ -1,6 +1,6 @@
 # PLAN-159: Admin standards Batch A native-button migration
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot (GPT)
 - **Reviewer:** Claude Code
 - **Priority:** High
@@ -59,3 +59,8 @@ git diff --check
   - `npm run build` ✓
   - `rg` scan for native buttons in both Batch A files returns no matches ✓
   - `git diff --check` ✓ (only CRLF normalization warnings)
+
+## Reviewer Notes (Claude Code, 2026-07-30)
+
+- **VERIFIED.** Batch A ครบ · ไม่มี `type="submit"`/`disabled`/`loading` ถูกแตะในทั้ง diff ⇒ ไม่มีความเสี่ยง behavior หลุดตาม §3
+- รายละเอียดการตรวจทั้ง rollout (AC 1-8 + mutation test + ข้อสังเกต 5 ข้อ) อยู่ใน `PLAN-157` หัวข้อ "Reviewer Notes — รอบ implement"

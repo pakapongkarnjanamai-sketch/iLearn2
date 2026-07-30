@@ -1,6 +1,6 @@
 # PLAN-161: Admin standards Delivery #4 — response helper + report export migration
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot (GPT)
 - **Reviewer:** Claude Code
 - **Priority:** High
@@ -63,3 +63,8 @@ git diff --check
   - `npm run build` ✓
   - `rg -n "fetch(" ...` for the two report files returns no matches (command exit code 1 because no match) ✓
   - `git diff --check` ✓ (only CRLF normalization warnings)
+
+## Reviewer Notes (Claude Code, 2026-07-30)
+
+- **VERIFIED.** `fetchResponseWithAccessControl` คืน `Response` โดยไม่ consume body ✓ · `fetchWithAccessControl` สร้างทับบนตัวใหม่ ✓ · **`Accept` ของ Excel ยังอยู่ครบ** (invariant §4.1) · `downloadBlob`/`filenameFromContentDisposition` ไม่ถูกแตะ · `HealthCheckPage` ไม่อยู่ใน diff เลย
+- รายละเอียดการตรวจทั้ง rollout (AC 1-8 + mutation test + ข้อสังเกต 5 ข้อ) อยู่ใน `PLAN-157` หัวข้อ "Reviewer Notes — รอบ implement"

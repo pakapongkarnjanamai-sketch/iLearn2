@@ -1,6 +1,6 @@
 # PLAN-158: Admin standards phase 0 — warn rules + AppTable primitive action
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot (GPT)
 - **Reviewer:** Claude Code
 - **Priority:** High
@@ -66,3 +66,8 @@ git diff --check
    - Probe warnings for both rules via `--stdin-filename` ✓
    - Allowlist exemption lint command produced no output ✓
    - `git diff --check` ✓ (no diff errors; only CRLF normalization warnings)
+
+## Reviewer Notes (Claude Code, 2026-07-30)
+
+- **VERIFIED.** ESLint 3 บล็อกตรงสเปค §1 เป๊ะ (rule ต่างชื่อกันตามที่กำหนด) · `AppTable` เหลือ native button 0 จุด ใช้ `IconButton` โดยคง `stopPropagation`/`title`/tone ครบ · lint+build ✓ รันเอง
+- รายละเอียดการตรวจทั้ง rollout (AC 1-8 + mutation test + ข้อสังเกต 5 ข้อ) อยู่ใน `PLAN-157` หัวข้อ "Reviewer Notes — รอบ implement"

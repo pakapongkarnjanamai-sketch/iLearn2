@@ -1,6 +1,6 @@
 # PLAN-160: Admin standards Batch B native-button migration
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot (GPT)
 - **Reviewer:** Claude Code
 - **Priority:** High
@@ -61,3 +61,8 @@ git diff --check
   - `npm run build` ✓
   - `rg` scan on the 3 Batch B files found no native button tags ✓
   - `git diff --check` ✓ (only CRLF normalization warnings)
+
+## Reviewer Notes (Claude Code, 2026-07-30)
+
+- **VERIFIED.** Batch B ครบ · พบ class dropzone ซ้ำ 3 ไฟล์ (ซ้ำมาก่อน migration ไม่ใช่ของใหม่) — เป้า dedup รอบหน้า
+- รายละเอียดการตรวจทั้ง rollout (AC 1-8 + mutation test + ข้อสังเกต 5 ข้อ) อยู่ใน `PLAN-157` หัวข้อ "Reviewer Notes — รอบ implement"

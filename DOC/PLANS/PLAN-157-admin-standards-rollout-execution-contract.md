@@ -1,6 +1,6 @@
 # PLAN-157: Admin standards rollout execution contract
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot (GPT)
 - **Reviewer:** Claude Code
 - **Priority:** High
@@ -248,3 +248,30 @@ Work order, **not reserved plan numbers.** Claim the number with `pwsh tools/pla
 **ไม่ได้แค่เสนอกลไกใหม่แล้วโยนให้ implementer เดา — รัน config ที่เขียนใน §1 กับ working tree จริงแล้ว** ผ่านไฟล์ `eslint.probe.config.js` ชั่วคราว (ลบทิ้งแล้ว, `eslint.config.js` ตัวจริงไม่ถูกแตะ): กฎทั้งสองยิงถูกผ่าน `--stdin-filename` ✓ · override บล็อก 2 ปิด fetch rule ให้ 4 ไฟล์ allowlist ได้จริง ✓ · button rule ไม่รั่วไป `components/ui` ✓ · และรันทั้ง `src/pages/**` ได้ **19 + 2 เป๊ะ ตรงกับตาราง baseline ทุกไฟล์ทุกจำนวน** ⇒ ทั้ง baseline และกลไกวัดยืนยันกันเอง. ผลและ caveat เรื่อง react-hooks plugin บันทึกไว้ใน §1 แล้ว.
 
 **§3, §5, §6 และ AC#5-8 ผ่านตามที่เขียนเดิม ไม่ได้แตะ.** Status → `READY` — ของที่ยังไม่ได้ทำคือตัว implement เอง ไม่มี finding ค้าง.
+
+## Reviewer Notes — รอบ implement (Claude Code, 2026-07-30) → VERIFIED
+
+รีวิว PLAN-158..163 (commit `68593ca`, `c7fe2e5`, `49d57da`, `3284bf1`) เทียบ AC ทั้ง 8 ข้อ — **ผ่านทั้งหมด ไม่มี finding ที่ต้องตีกลับ**
+
+ยืนยันด้วยการรันเอง ไม่ใช่อ่านโค้ดเฉย ๆ:
+
+- `npm run lint` ✓ exit 0 · `npm run build` ✓ exit 0 (`tsc -b && vite build`)
+- `dotnet test --filter ~CourseVersionLearnerPolicyTests` ✓ **8/8 ผ่าน**
+- **mutation test พิสูจน์ว่า test ใหม่กันของจริง** — revert `_dateTime.Now` → `DateTime.UtcNow` ทีละบรรทัด: บรรทัด 200 (`CourseVersion`) ทำ assertion บรรทัด 78 แดง, บรรทัด 581 (`CourseContentItem`) ทำ assertion บรรทัด 79 แดง (`Expected 2026-04-28T10:30 / Actual 2026-07-30T05:37`) ⇒ **assertion มีชีวิตทั้งสองตัว** ไม่ใช่ test ที่ผ่านลอย ๆ. ตรวจ `InMemoryGenericRepository.AddEntity` แล้วด้วยว่า**ไม่ได้ stamp `CreatedAt` เอง** (แตะแค่ `Id`) จึงไม่มี false positive. คืนไฟล์ด้วย `git checkout` แล้ว ยืนยันบรรทัด 200/581 กลับเป็น `_dateTime.Now`
+- AC#2 ✓ native `<button>` ใน `src/pages/**` = **0** · AC#3 ✓ `AppTable.tsx` = **0** และใช้ `IconButton` โดยคง `stopPropagation`/`title`/tone ครบ
+- **ไม่มี `eslint-disable` bypass แม้แต่จุดเดียว** — แข็งกว่าที่ §7.4 เรียกร้อง (เผื่อไว้ว่าจะมี exception แต่ไม่ต้องใช้เลย)
+- AC#4 ✓ export สองหน้าใช้ `fetchResponseWithAccessControl` และ **`Accept: application/vnd.openxmlformats-…` ยังอยู่ครบ** (invariant ที่ §4.1 เตือน) · `downloadBlob`/`filenameFromContentDisposition` ไม่ถูกแตะ ⇒ filename fallback เดิม · error path อัปเกรดเป็น `ApiError` ส่ง server message เข้า toast ตามที่ §4.3 คาดไว้
+- AC#5 ✓ `HealthCheckPage.tsx` **ไม่อยู่ใน diff เลย** ⇒ พฤติกรรม 503 เดิมปลอดภัยโดยโครงสร้าง
+- AC#6 ✓ `ReportKpiTile` map tone ได้ class **ตรงกับของเดิมทุกค่า** (`neutral→text-slate-900`, `info→text-indigo-700`, `success→text-emerald-700`, `danger→text-rose-600`) และ markup wrapper/label/value เหมือนเดิมทุกตัวอักษร ⇒ visible output ไม่เปลี่ยนจริง
+- AC#7 ✓ ตามข้อ mutation test ข้างบน · AC#8 ✓ `git diff --check` ✓
+- **§3 กฎที่เสี่ยงสุดไม่ได้ถูกใช้เลย** — grep diff ของ `src/pages` (617 บรรทัด) ไม่มี `type="submit"`/`disabled`/`loading` ถูกเพิ่มหรือลบแม้แต่บรรทัดเดียว ⇒ ปุ่มทั้ง 19 จุดเป็น plain click handler ทั้งหมด ความเสี่ยงเรื่อง submit/loading หลุดจึงเป็นศูนย์ (ยืนยันด้วยหลักฐาน ไม่ใช่สันนิษฐาน)
+
+ข้อสังเกต (ไม่ใช่ finding — ไม่ต้องแก้ในรอบนี้):
+
+1. **`apiClient.ts` มี CRLF→LF ทั้งไฟล์** ทำให้ diff บวมเป็น 366 บรรทัดทั้งที่ของจริง 16+/10- (`git diff -w` ยืนยัน). `.gitattributes` บรรทัด 4 คือ `* text=auto` ⇒ blob เดิมที่เป็น CRLF เป็นตัวผิดปกติ การ normalize ครั้งนี้**ถูกตามนโยบาย** เสียแค่ blame ของไฟล์นั้นเลอะ. PLAN-158 Implementer Notes disclose เรื่องนี้ไว้แล้ว = ไม่ได้ปิด
+2. **การ์ดสี hover เปลี่ยนเล็กน้อยในคอลัมน์ action ทุกตาราง** — `IconButton` ให้สี resting **ตรงกับของเดิมทั้ง 4 tone** แต่ hover ต่าง (`hover:bg-rose-50`→`red-50`, ghost `hover:text-slate-700`→`slate-600`) และเพิ่ม `active:`/`focus-visible:` ring + `aria-label` (ได้ a11y ดีขึ้น). อีกจุด: `size="sm"` ใส่กรอบ `h-7 w-7` และ `[&_svg]:h-4` ซึ่ง specificity ชนะ `h-3.5` ของไอคอน `Info` ⇒ ไอคอนโตขึ้น ~2px. ควรเหลือบตาดูจริงครั้งหนึ่ง แต่ AC ไม่ได้เรียกร้อง pixel parity สำหรับปุ่ม (ต่างจาก KPI tile ที่ AC#6 บังคับ)
+3. **class ซ้ำ 3 ไฟล์** — dropzone "เลือก content" (`w-full min-h-[104px] … border-dashed …` ยาว ~130 ตัวอักษร) ถูก copy เหมือนกันใน `VersionDetailPage`/`VersionFormPage`/`CourseEditorPage`. เป็นของที่ซ้ำอยู่**ก่อนแล้ว** (migration แค่ย้ายมาไว้บน `AppButton`) ไม่ใช่ของใหม่ แต่เป็นเป้า dedup ตามเจตนา §5 — เอาไปแผนต่อไปได้
+4. **`variant="ghost"` + `className="px-2 text-amber-600 hover:text-amber-800"`** (1 จุดใน `AssignmentDetailPage`) เป็นสีนอก vocabulary 4 variant. สีเดิมก็ amber จึงไม่ใช่ regression แต่ถ้าจะให้ครบมาตรฐานควรมี tone `warning` ใน `AppButton` แทนการ override
+5. **README ใช้คำที่อาจถูกอ้างผิดในอนาคต** — เขียนว่า approved exceptions เป็น "file-scoped in `eslint.config.js` (not inline)" ซึ่งตรงกับ allowlist 4 ไฟล์ที่ §1 ออกแบบไว้ แต่ §7.4 เจตนาให้ exception **ใหม่** เป็น inline `eslint-disable … -- reason` เท่านั้น. ควรกำกับใน README ว่า allowlist 4 ไฟล์นี้ **ปิดรายการแล้ว** ของใหม่ให้ใช้ inline
+
+**สรุป: PLAN-157 + PLAN-158..163 → `VERIFIED`** หนี้ที่ยังเปิดอยู่คือ §1b (`LearnerDirectorySelector` 11 ปุ่ม + `NotificationRow`/`Header`/`Sidebar`) และข้อสังเกต 3-5 ข้างบน — ทั้งหมดอยู่นอก contract นี้โดยเจตนา ให้เปิดแผนใหม่ถ้าจะทำ

@@ -1,6 +1,6 @@
 # PLAN-162: Admin standards Delivery #5 — shared KPI tile + CourseVersion clock consistency
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot (GPT)
 - **Reviewer:** Claude Code
 - **Priority:** High
@@ -69,3 +69,8 @@ git diff --check
   - `dotnet test ...CourseVersionLearnerPolicyTests` ✓ (Passed 8/8)
   - Removed temporary `artifacts\verify-plan162` folder ✓
   - `git diff --check` ✓ (only CRLF normalization warnings)
+
+## Reviewer Notes (Claude Code, 2026-07-30)
+
+- **VERIFIED.** `ReportKpiTile` map tone ได้ class ตรงของเดิมทุกค่า + markup เหมือนเดิมทุกตัวอักษร ⇒ visible output ไม่เปลี่ยนจริง · **mutation test: revert `_dateTime.Now` ทีละบรรทัด ทำ assertion แดงทั้งบรรทัด 78 และ 79** ⇒ test กันของจริงทั้งสอง entity (ตรวจแล้วว่า `AddEntity` ไม่ stamp `CreatedAt` เอง)
+- รายละเอียดการตรวจทั้ง rollout (AC 1-8 + mutation test + ข้อสังเกต 5 ข้อ) อยู่ใน `PLAN-157` หัวข้อ "Reviewer Notes — รอบ implement"

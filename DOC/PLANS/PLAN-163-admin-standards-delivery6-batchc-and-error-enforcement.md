@@ -1,6 +1,6 @@
 # PLAN-163: Admin standards Delivery #6 — Batch C completion + error enforcement
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot (GPT)
 - **Reviewer:** Claude Code
 - **Priority:** High
@@ -69,3 +69,8 @@ git diff --check
   - allowlist file lint command produces no output ✓
   - stdin probes for native button/fetch fail with ESLint errors as expected ✓
   - `git diff --check` (run before and after batch) reports only CRLF normalization warnings ✓
+
+## Reviewer Notes (Claude Code, 2026-07-30)
+
+- **VERIFIED.** Batch C ครบ · native button ใน `src/pages/**` = 0 · ทั้งสอง rule เป็น `error` · **ไม่มี `eslint-disable` bypass แม้จุดเดียว** (แข็งกว่าที่ §7.4 เผื่อไว้) · ข้อเดียวที่ควรเก็บ: README ควรกำกับว่า allowlist 4 ไฟล์ปิดรายการแล้ว ของใหม่ให้ inline
+- รายละเอียดการตรวจทั้ง rollout (AC 1-8 + mutation test + ข้อสังเกต 5 ข้อ) อยู่ใน `PLAN-157` หัวข้อ "Reviewer Notes — รอบ implement"
