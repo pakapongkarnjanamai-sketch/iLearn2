@@ -24,6 +24,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-30] GitHub Copilot — PLAN-165 assignment report export actions
+- ทำอะไร: ปรับหน้า `assignments/{id}/report` ให้ export ข้อมูลได้ชัดเจนขึ้น โดยแทน `ExportMenu` ใน controls sidebar ด้วย `ControlAction` สำหรับ Excel/CSV ทั้ง All และ Filtered พร้อม loading/disabled state และ label `Data Export`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `iLearn.Admin.React/src/lib/labels.ts`, `DOC/PLANS/PLAN-165-assignment-report-export-actions.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (ใช้ข้อมูล `AssignmentDashboard` ที่โหลดอยู่แล้ว, frontend presentation only)
+- Verified: `get_errors` ✓, `npm run lint` ✓, `npm run build` ✓
+
 ## [2026-07-30] GitHub Copilot — PLAN-164 durable Bulk Assign selection panel radius fix
 - ทำอะไร: ตรวจ root cause ของปัญหา radius ใน `Selected Courses` แล้วแก้แบบยั่งยืนด้วย shared `WizardSelectionPanel` ที่ encode `rounded-lg + overflow-hidden + header + scroll body`; refactor ทั้ง `Syllabus Catalog` และ `Selected Courses` ใน Bulk Assign มาใช้ component เดียวกันเพื่อลด drift
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/WizardSelectionPanel.tsx`, `iLearn.Admin.React/src/pages/assignments/BulkAssignPage.tsx`, `DOC/PLANS/PLAN-164-bulk-assign-wizard-selection-panel-radius.md`, `DOC/AGENT_LOG.md`

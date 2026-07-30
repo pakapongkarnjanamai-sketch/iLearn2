@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ChevronDown, Printer, Users } from 'lucide-react'
+import { ChevronDown, Download, FileSpreadsheet, Printer, Users } from 'lucide-react'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { DetailCard, DetailLayout, DetailSubSection } from '../../components/ui/detail'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
-import { ExportMenu } from '../../components/ui/ExportMenu'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { SectionHeader } from '../../components/ui/SectionHeader'
 import { Card } from '../../components/ui/Card'
@@ -73,6 +72,8 @@ type GroupSummary = {
   completionRate: number
 }
 
+type AssignmentReportExportKey = 'all-xlsx' | 'all-csv' | 'filtered-xlsx' | 'filtered-csv'
+
 const STATUS_FILTERS = ['All', ...LEARNER_STATUS_KEYS] as const
 
 export function AssignmentReportPage() {
@@ -85,6 +86,7 @@ export function AssignmentReportPage() {
   const [groupFilter, setGroupFilter] = useState<string>('All')
   const [search, setSearch] = useState('')
   const [visibleRows, setVisibleRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
+  const [exportingKey, setExportingKey] = useState<AssignmentReportExportKey | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -213,41 +215,55 @@ export function AssignmentReportPage() {
       })
   }, [data])
 
-  const exportReport = async (format: ExportFormat, rows: LearnerRow[], scope: 'all' | 'filtered') => {
+  const exportReport = async (
+    format: ExportFormat,
+    rows: LearnerRow[],
+    scope: 'all' | 'filtered',
+    key: AssignmentReportExportKey,
+  ) => {
     if (!data || rows.length === 0) {
       toast.info(t(ASSIGNMENT_LABELS.noRowsToExport))
       return
     }
-    const header = [
-      'Learner Code',
-      'Name',
-      'Division',
-      'Department',
-      'Learner Groups',
-      'Course Code',
-      'Course Title',
-      'Status',
-      'Progress %',
-      'Start Date',
-      'Due Date',
-      'Completed Date',
-    ]
-    const body = rows.map((l) => [
-      l.learnerCode,
-      l.learnerName ?? l.learnerCode,
-      l.division ?? '',
-      l.department ?? '',
-      l.learnerGroups ? l.learnerGroups.join('; ') : '',
-      l.courseCode ?? '',
-      l.courseTitle ?? '',
-      learnerStatusLabel(l.status),
-      formatPercent(l.progress).replace('%', ''),
-      l.startDate ? formatDate(l.startDate) : '',
-      l.dueDate ? formatDate(l.dueDate) : '',
-      l.completedDate ? formatDate(l.completedDate) : '',
-    ])
-    const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-    await exportRows(format, `assignment-${data.assignmentNo || id}-report-${scope}-${stamp}`, header, body)
+
+    setExportingKey(key)
+    try {
+      const header = [
+        'Learner Code',
+        'Name',
+        'Division',
+        'Department',
+        'Learner Groups',
+        'Course Code',
+        'Course Title',
+        'Status',
+        'Progress %',
+        'Start Date',
+        'Due Date',
+        'Completed Date',
+      ]
+      const body = rows.map((l) => [
+        l.learnerCode,
+        l.learnerName ?? l.learnerCode,
+        l.division ?? '',
+        l.department ?? '',
+        l.learnerGroups ? l.learnerGroups.join('; ') : '',
+        l.courseCode ?? '',
+        l.courseTitle ?? '',
+        learnerStatusLabel(l.status),
+        formatPercent(l.progress).replace('%', ''),
+        l.startDate ? formatDate(l.startDate) : '',
+        l.dueDate ? formatDate(l.dueDate) : '',
+        l.completedDate ? formatDate(l.completedDate) : '',
+      ])
+      const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+      await exportRows(format, `assignment-${data.assignmentNo || id}-report-${scope}-${stamp}`, header, body)
+    } catch (error) {
+      console.error(error)
+      toast.error(t(REPORT_LABELS.exportExcelFailed))
+    } finally {
+      setExportingKey(null)
+    }
   }
 
   const handlePrint = () => {
@@ -287,28 +303,43 @@ export function AssignmentReportPage() {
             <ControlAction icon={Printer} onClick={handlePrint}>
               {t(ASSIGNMENT_LABELS.printReport)}
             </ControlAction>
-            <ExportMenu
-              hasRows={data.learners.length > 0}
-              onExport={(format) => exportReport(format, data.learners, 'all')}
-              csv={{ label: t(ASSIGNMENT_LABELS.exportAllCsv) }}
-              xlsx={{ label: t(ASSIGNMENT_LABELS.exportAllExcel) }}
-              className="flex-col items-stretch [&>button]:w-full"
-            />
-            <ExportMenu
-              hasRows
-              onExport={(format) => exportReport(format, filtered, 'filtered')}
-              csv={{
-                label: t(ASSIGNMENT_LABELS.exportFilteredCsv),
-                disabled: !isFiltered,
-                title: isFiltered ? undefined : t(ASSIGNMENT_LABELS.filterBeforeExport),
-              }}
-              xlsx={{
-                label: t(ASSIGNMENT_LABELS.exportFilteredExcel),
-                disabled: !isFiltered,
-                title: isFiltered ? undefined : t(ASSIGNMENT_LABELS.filterBeforeExport),
-              }}
-              className="flex-col items-stretch [&>button]:w-full"
-            />
+            <div className="pt-2 text-xxs font-extrabold uppercase tracking-wider text-slate-400">
+              {t(ASSIGNMENT_LABELS.exportData)}
+            </div>
+            <ControlAction
+              icon={FileSpreadsheet}
+              onClick={() => void exportReport('xlsx', data.learners, 'all', 'all-xlsx')}
+              disabled={data.learners.length === 0 || exportingKey !== null}
+              loading={exportingKey === 'all-xlsx'}
+            >
+              {t(ASSIGNMENT_LABELS.exportAllExcel)}
+            </ControlAction>
+            <ControlAction
+              icon={Download}
+              onClick={() => void exportReport('csv', data.learners, 'all', 'all-csv')}
+              disabled={data.learners.length === 0 || exportingKey !== null}
+              loading={exportingKey === 'all-csv'}
+            >
+              {t(ASSIGNMENT_LABELS.exportAllCsv)}
+            </ControlAction>
+            <ControlAction
+              icon={FileSpreadsheet}
+              onClick={() => void exportReport('xlsx', filtered, 'filtered', 'filtered-xlsx')}
+              disabled={!isFiltered || filtered.length === 0 || exportingKey !== null}
+              loading={exportingKey === 'filtered-xlsx'}
+              title={isFiltered ? undefined : t(ASSIGNMENT_LABELS.filterBeforeExport)}
+            >
+              {t(ASSIGNMENT_LABELS.exportFilteredExcel)}
+            </ControlAction>
+            <ControlAction
+              icon={Download}
+              onClick={() => void exportReport('csv', filtered, 'filtered', 'filtered-csv')}
+              disabled={!isFiltered || filtered.length === 0 || exportingKey !== null}
+              loading={exportingKey === 'filtered-csv'}
+              title={isFiltered ? undefined : t(ASSIGNMENT_LABELS.filterBeforeExport)}
+            >
+              {t(ASSIGNMENT_LABELS.exportFilteredCsv)}
+            </ControlAction>
           </ControlsSidebar>
         }
       >
