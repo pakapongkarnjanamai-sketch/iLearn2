@@ -24,6 +24,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-30] GitHub Copilot — PLAN-166 follow-up: readable tooltips without chart focus frame
+- ทำอะไร: ปรับ follow-up ตาม feedback หลัง QA: เอา tooltip กลับมาเป็นสีอ่อนอ่านง่าย แต่ปิด Recharts focus frame หลังคลิกด้วย `accessibilityLayer={false}` + scoped outline suppression และยังคง `isAnimationActive={false}`/ไม่มี cursor overlay
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentReportCharts.tsx`, `DOC/PLANS/PLAN-166-assignment-report-static-charts.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (frontend chart presentation only)
+- Verified: `get_errors` ✓, `npm run lint` ✓, `npm run build` ✓
+
 ## [2026-07-30] GitHub Copilot — PLAN-166 assignment report static charts
 - ทำอะไร: ปิด animation/hover feedback ของ `Status Overview` และ `Completion by Course` บนหน้า assignment report โดยลบ Recharts `Tooltip` และตั้ง `isAnimationActive={false}` บน `Pie`/`Bar`
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentReportCharts.tsx`, `DOC/PLANS/PLAN-166-assignment-report-static-charts.md`, `DOC/AGENT_LOG.md`

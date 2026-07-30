@@ -5,14 +5,35 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
 import { STATUS_COLORS, BRAND, axisStyle } from '../../lib/chartTheme'
 import { formatPercent } from '../../lib/format'
-import { ASSIGNMENT_LABELS, LEARNER_STATUS_KEYS, learnerStatusLabel, t } from '../../lib/labels'
+import { ASSIGNMENT_LABELS, LEARNER_STATUS_KEYS, learnerStatusLabel, t, tf } from '../../lib/labels'
 
 type StatusEntry = { status: string; label: string; count: number }
+
+const assignmentReportTooltipStyle = {
+  background: '#ffffff',
+  border: '1px solid #cbd5e1',
+  borderRadius: 6,
+  boxShadow: '0 10px 20px rgba(15, 23, 42, 0.12)',
+  color: '#0f172a',
+  fontSize: 12,
+  padding: '8px 10px',
+}
+
+const assignmentReportTooltipLabelStyle = {
+  color: '#334155',
+  fontWeight: 700,
+}
+
+const assignmentReportTooltipItemStyle = {
+  color: '#475569',
+  fontWeight: 600,
+}
 
 type StatusDonutProps = {
   data: StatusEntry[]
@@ -29,10 +50,18 @@ export function StatusDonut({ data, completionRate, activeStatus }: StatusDonutP
   const hasActive = activeStatus && activeStatus !== 'All'
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-3 [&_.recharts-surface:focus]:outline-none [&_.recharts-wrapper:focus]:outline-none">
       <div className="relative w-full">
         <ResponsiveContainer width="100%" height={200}>
-          <PieChart>
+          <PieChart accessibilityLayer={false}>
+            <Tooltip
+              contentStyle={assignmentReportTooltipStyle}
+              cursor={false}
+              isAnimationActive={false}
+              itemStyle={assignmentReportTooltipItemStyle}
+              labelStyle={assignmentReportTooltipLabelStyle}
+              formatter={(value, name) => [`${value} (${formatPercent(total > 0 ? (Number(value) / total) * 100 : 0)})`, name]}
+            />
             <Pie
               data={filtered}
               dataKey="count"
@@ -107,9 +136,9 @@ export function CourseCompletionBars({ data, activeCourse }: CourseCompletionBar
   const hasActive = activeCourse !== undefined && activeCourse !== 'All'
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 [&_.recharts-surface:focus]:outline-none [&_.recharts-wrapper:focus]:outline-none">
       <ResponsiveContainer width="100%" height={Math.max(160, sorted.length * 32 + 24)}>
-        <BarChart data={sorted} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
+        <BarChart accessibilityLayer={false} data={sorted} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
           <XAxis type="number" domain={[0, 100]} tickLine={false} axisLine={false} tick={axisStyle} unit="%" />
           <YAxis
             type="category"
@@ -133,6 +162,19 @@ export function CourseCompletionBars({ data, activeCourse }: CourseCompletionBar
               />
             ))}
           </Bar>
+          <Tooltip
+            contentStyle={assignmentReportTooltipStyle}
+            cursor={false}
+            isAnimationActive={false}
+            itemStyle={assignmentReportTooltipItemStyle}
+            labelFormatter={() => ''}
+            labelStyle={assignmentReportTooltipLabelStyle}
+            formatter={(_value, _name, props) => {
+              const entry = (props as { payload?: CourseBarEntry })?.payload
+              if (!entry) return ['', '']
+              return [tf(ASSIGNMENT_LABELS.completedOf, entry.completedLearners, entry.totalLearners), entry.courseTitle]
+            }}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

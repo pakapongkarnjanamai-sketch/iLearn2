@@ -6,22 +6,27 @@
 
 ## Context
 
-The QA assignment batch report page at `/admin-react/assignments/{id}/report` showed interactive chart behavior on the `Status Overview` donut and `Completion by Course` bar chart. The requested behavior is static charts with no animation and no hover/click feedback.
+The QA assignment batch report page at `/admin-react/assignments/{id}/report` showed interactive chart behavior on the `Status Overview` donut and `Completion by Course` bar chart. The requested behavior is no render animation and no black focus frame after click. A tooltip is acceptable as long as it is readable and does not add a heavy hover overlay.
 
 ## Scope
 
 - Disable chart render animation for the two assignment report charts.
-- Remove hover tooltip/cursor behavior from the same charts.
+- Remove the black focus outline after clicking the same charts.
+- Keep a readable tooltip with no animated tooltip transition and no hover cursor overlay.
 - Do not change report data, filters, table behavior, exports, API contracts, or backend code.
 
 ## Implementation
 
 - Updated `AssignmentReportCharts.tsx`:
-  - removed Recharts `Tooltip` from `StatusDonut`
-  - removed Recharts `Tooltip` from `CourseCompletionBars`
+  - restored Recharts `Tooltip` with local light/readable styles for `StatusDonut`
+  - restored Recharts `Tooltip` with local light/readable styles for `CourseCompletionBars`
+  - set `cursor={false}` on both tooltips to avoid hover overlays
+  - set `isAnimationActive={false}` on both tooltips
+  - set `accessibilityLayer={false}` on both Recharts chart roots to prevent click focus frames
+  - scoped focus outline suppression to the chart wrappers for defensive coverage
   - set `isAnimationActive={false}` on `Pie`
   - set `isAnimationActive={false}` on `Bar`
-  - removed now-unused `tooltipStyle` and `tf` imports
+  - removed the shared dark `tooltipStyle` usage for these report charts
 - Cleaned the touched file's Tailwind diagnostic by replacing `h-[200px]` with equivalent `h-50`.
 
 ## Verification
@@ -32,4 +37,4 @@ The QA assignment batch report page at `/admin-react/assignments/{id}/report` sh
 
 ## Notes
 
-This is frontend presentation only. Active filter dimming remains data-driven by the selected filter; hover/click tooltip feedback is removed.
+This is frontend presentation only. Active filter dimming remains data-driven by the selected filter. Tooltips are intentionally retained, but chart animation and click focus frames are disabled.
