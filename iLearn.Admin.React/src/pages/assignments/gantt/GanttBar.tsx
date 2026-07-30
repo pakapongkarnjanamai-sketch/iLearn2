@@ -6,11 +6,11 @@ import { ganttStatusBarClass } from './ganttStatus'
 
 type GanttBarProps = {
   task: GanttTask
-  leftPx: number
-  widthPx: number
+  /** Percentages of the timeline column — the month view stretches, so px would not travel. */
+  leftPct: number
+  widthPct: number
   durationDays: number
   rowHeight: number
-  timelineWidth: number
   startDate: Date
   dueDate: Date
   /** Bottom rows open the hover card upward — the timeline scroller clips it otherwise. */
@@ -19,16 +19,15 @@ type GanttBarProps = {
 
 export function GanttBar({
   task,
-  leftPx,
-  widthPx,
+  leftPct,
+  widthPct,
   durationDays,
   rowHeight,
-  timelineWidth,
   startDate,
   dueDate,
   flipHoverCardUp,
 }: GanttBarProps) {
-  const hoverAlignRight = leftPx + 200 > timelineWidth
+  const hoverAlignRight = leftPct > 70
   const dateRange = `${formatDate(startDate)} - ${formatDate(dueDate)}`
   const statusText = learnerStatusLabel(task.status)
   const durationText = tf(ASSIGNMENT_LABELS.durationDays, formatNumber(durationDays))
@@ -46,8 +45,9 @@ export function GanttBar({
     <div
       className="absolute top-1"
       style={{
-        left: `${leftPx}px`,
-        width: `${widthPx}px`,
+        left: `${leftPct}%`,
+        width: `${widthPct}%`,
+        minWidth: '3px',
         height: `${rowHeight - 8}px`,
       }}
     >
