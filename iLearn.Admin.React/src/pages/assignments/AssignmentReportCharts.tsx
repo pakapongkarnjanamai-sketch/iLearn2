@@ -50,7 +50,7 @@ export function StatusDonut({ data, completionRate, activeStatus }: StatusDonutP
   const hasActive = activeStatus && activeStatus !== 'All'
 
   return (
-    <div className="flex flex-col items-center gap-3 [&_.recharts-surface:focus]:outline-none [&_.recharts-wrapper:focus]:outline-none">
+    <div className="flex flex-col items-center gap-3 [&_.recharts-surface_*:focus]:outline-none [&_.recharts-surface:focus]:outline-none [&_.recharts-wrapper:focus]:outline-none">
       <div className="relative w-full">
         <ResponsiveContainer width="100%" height={200}>
           <PieChart accessibilityLayer={false}>
@@ -74,6 +74,7 @@ export function StatusDonut({ data, completionRate, activeStatus }: StatusDonutP
               stroke="#fff"
               strokeWidth={2}
               isAnimationActive={false}
+              rootTabIndex={-1}
             >
               {filtered.map((entry) => (
                 <Cell
@@ -136,7 +137,7 @@ export function CourseCompletionBars({ data, activeCourse }: CourseCompletionBar
   const hasActive = activeCourse !== undefined && activeCourse !== 'All'
 
   return (
-    <div className="flex flex-col gap-2 [&_.recharts-surface:focus]:outline-none [&_.recharts-wrapper:focus]:outline-none">
+    <div className="flex flex-col gap-2 [&_.recharts-surface_*:focus]:outline-none [&_.recharts-surface:focus]:outline-none [&_.recharts-wrapper:focus]:outline-none">
       <ResponsiveContainer width="100%" height={Math.max(160, sorted.length * 32 + 24)}>
         <BarChart accessibilityLayer={false} data={sorted} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
           <XAxis type="number" domain={[0, 100]} tickLine={false} axisLine={false} tick={axisStyle} unit="%" />

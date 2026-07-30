@@ -23,6 +23,7 @@ The QA assignment batch report page at `/admin-react/assignments/{id}/report` sh
   - set `cursor={false}` on both tooltips to avoid hover overlays
   - set `isAnimationActive={false}` on both tooltips
   - set `accessibilityLayer={false}` on both Recharts chart roots to prevent click focus frames
+  - set `rootTabIndex={-1}` on `Pie` because Recharts defaults the pie-sector wrapper to `tabIndex=0`
   - scoped focus outline suppression to the chart wrappers for defensive coverage
   - set `isAnimationActive={false}` on `Pie`
   - set `isAnimationActive={false}` on `Bar`
@@ -38,3 +39,7 @@ The QA assignment batch report page at `/admin-react/assignments/{id}/report` sh
 ## Notes
 
 This is frontend presentation only. Active filter dimming remains data-driven by the selected filter. Tooltips are intentionally retained, but chart animation and click focus frames are disabled.
+
+## Follow-Up Fix
+
+QA still showed a black focus rectangle after the initial tooltip follow-up. Recharts `Pie` owns a separate `rootTabIndex` prop that defaults to `0`, so the sector wrapper could still receive focus even with chart-level accessibility disabled. The final fix sets `rootTabIndex={-1}` and extends scoped outline suppression to all focused SVG descendants inside the chart wrapper.
