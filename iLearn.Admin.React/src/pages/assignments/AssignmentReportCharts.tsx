@@ -5,13 +5,12 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
-import { STATUS_COLORS, BRAND, tooltipStyle, axisStyle } from '../../lib/chartTheme'
+import { STATUS_COLORS, BRAND, axisStyle } from '../../lib/chartTheme'
 import { formatPercent } from '../../lib/format'
-import { ASSIGNMENT_LABELS, LEARNER_STATUS_KEYS, learnerStatusLabel, t, tf } from '../../lib/labels'
+import { ASSIGNMENT_LABELS, LEARNER_STATUS_KEYS, learnerStatusLabel, t } from '../../lib/labels'
 
 type StatusEntry = { status: string; label: string; count: number }
 
@@ -34,10 +33,6 @@ export function StatusDonut({ data, completionRate, activeStatus }: StatusDonutP
       <div className="relative w-full">
         <ResponsiveContainer width="100%" height={200}>
           <PieChart>
-            <Tooltip
-              contentStyle={tooltipStyle}
-              formatter={(value, name) => [`${value} (${formatPercent(total > 0 ? (Number(value) / total) * 100 : 0)})`, name]}
-            />
             <Pie
               data={filtered}
               dataKey="count"
@@ -49,6 +44,7 @@ export function StatusDonut({ data, completionRate, activeStatus }: StatusDonutP
               paddingAngle={2}
               stroke="#fff"
               strokeWidth={2}
+              isAnimationActive={false}
             >
               {filtered.map((entry) => (
                 <Cell
@@ -123,20 +119,11 @@ export function CourseCompletionBars({ data, activeCourse }: CourseCompletionBar
             tick={axisStyle}
             width={110}
           />
-          <Tooltip
-            cursor={{ fill: 'rgba(79,70,229,0.08)' }}
-            contentStyle={tooltipStyle}
-            formatter={(_value, _name, props) => {
-              const entry = (props as { payload?: CourseBarEntry })?.payload
-              if (!entry) return ['', '']
-              return [tf(ASSIGNMENT_LABELS.completedOf, entry.completedLearners, entry.totalLearners), entry.courseTitle]
-            }}
-            labelFormatter={() => ''}
-          />
           <Bar
             dataKey="pct"
             radius={[0, 4, 4, 0]}
             maxBarSize={20}
+            isAnimationActive={false}
           >
             {sorted.map((entry) => (
               <Cell
@@ -187,7 +174,7 @@ export function buildCourseBarData(courses: Array<{
 
 function EmptyChart({ label }: { label: string }) {
   return (
-    <div className="flex items-center justify-center h-[200px] text-xs text-slate-400">
+    <div className="flex h-50 items-center justify-center text-xs text-slate-400">
       {label}
     </div>
   )

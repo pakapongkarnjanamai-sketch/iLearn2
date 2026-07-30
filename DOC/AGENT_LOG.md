@@ -24,6 +24,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-30] GitHub Copilot — PLAN-166 assignment report static charts
+- ทำอะไร: ปิด animation/hover feedback ของ `Status Overview` และ `Completion by Course` บนหน้า assignment report โดยลบ Recharts `Tooltip` และตั้ง `isAnimationActive={false}` บน `Pie`/`Bar`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentReportCharts.tsx`, `DOC/PLANS/PLAN-166-assignment-report-static-charts.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (frontend chart presentation only)
+- Verified: `get_errors` ✓, `npm run lint` ✓, `npm run build` ✓
+
 ## [2026-07-30] GitHub Copilot — PLAN-165 assignment report export actions
 - ทำอะไร: ปรับหน้า `assignments/{id}/report` ให้ export ข้อมูลได้ชัดเจนขึ้น โดยแทน `ExportMenu` ใน controls sidebar ด้วย `ControlAction` สำหรับ Excel/CSV ทั้ง All และ Filtered พร้อม loading/disabled state และ label `Data Export`
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `iLearn.Admin.React/src/lib/labels.ts`, `DOC/PLANS/PLAN-165-assignment-report-export-actions.md`, `DOC/AGENT_LOG.md`
