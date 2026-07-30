@@ -705,15 +705,16 @@ export function VersionDetailPage() {
                   />
                 </label>
 
-                <button
+                <AppButton
                   type="button"
+                  variant="secondary"
+                  icon={BookOpen}
                   onClick={openContentLibraryPopup}
-                  className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500 transition duration-150"
+                  className="w-full min-h-[104px] flex-col gap-1.5 border-dashed border-slate-300 bg-slate-50/30 px-3 py-6 rounded text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-indigo-500"
                 >
-                  <BookOpen className="h-5 w-5 text-indigo-600" />
                   <span>Select Existing Content</span>
                   <span className="text-xs font-semibold text-slate-400">Reuse packages from the Content Library</span>
-                </button>
+                </AppButton>
               </div>
 
               <div className="max-h-[58vh] overflow-auto border border-slate-200 rounded custom-scrollbar">
@@ -874,14 +875,15 @@ export function VersionDetailPage() {
                         <ReadinessBadge size="xxs" label={readiness.label} tone={readiness.tone} ready={readiness.ready} />
                       </div>
                     </div>
-                    <button
+                    <IconButton
                       type="button"
                       onClick={() => addContentToDraft(item)}
-                      className="rounded-md border border-indigo-100 p-1.5 text-indigo-600 hover:bg-indigo-50 transition cursor-pointer shrink-0"
-                      aria-label="Add content"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                    </button>
+                      icon={Plus}
+                      tone="primary"
+                      size="sm"
+                      className="shrink-0 border border-indigo-100"
+                      title="Add content"
+                    />
                   </div>
                 )
               })}

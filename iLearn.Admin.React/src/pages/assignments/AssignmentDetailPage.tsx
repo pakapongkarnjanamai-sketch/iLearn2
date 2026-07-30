@@ -947,13 +947,14 @@ export function AssignmentDetailPage() {
                     >
                       {t(ASSIGNMENT_LABELS.removeSelected)}
                     </AppButton>
-                    <button
-                      type="button"
+                    <AppButton
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setSelectedCodes(new Set())}
-                      className="text-xs font-bold text-slate-500 hover:text-slate-700 px-2 py-1 rounded hover:bg-white/70 transition cursor-pointer"
+                      className="px-2"
                     >
                       {t(ASSIGNMENT_LABELS.clear)}
-                    </button>
+                    </AppButton>
                   </div>
                 </div>
               )}
@@ -1353,25 +1354,27 @@ export function AssignmentDetailPage() {
                       <span>{tf(ASSIGNMENT_LABELS.queuedForAssignmentAdditions, pendingAddLearners.length)}</span>
                       <div className="flex items-center gap-3">
                         {pendingAddLearners.some(l => unverifiedCodes.has(l.code)) && (
-                          <button
-                            type="button"
+                          <AppButton
+                            variant="ghost"
+                            size="sm"
                             onClick={() => {
                               setPendingAddLearners(prev => prev.filter(l => !unverifiedCodes.has(l.code)))
                               setUnverifiedCodes(new Set())
                             }}
-                            className="text-amber-600 hover:text-amber-800 font-bold cursor-pointer"
+                            className="px-2 text-amber-600 hover:text-amber-800"
                           >
                             {t(ASSIGNMENT_LABELS.removeNotFound)}
-                          </button>
+                          </AppButton>
                         )}
                         {pendingAddLearners.length > 0 && (
-                          <button
-                            type="button"
+                          <AppButton
+                            variant="danger"
+                            size="sm"
                             onClick={() => { setPendingAddLearners([]); setUnverifiedCodes(new Set()) }}
-                            className="text-red-500 hover:text-red-700 font-bold cursor-pointer"
+                            className="px-2"
                           >
                             {t(ASSIGNMENT_LABELS.clearQueue)}
-                          </button>
+                          </AppButton>
                         )}
                       </div>
                     </div>
@@ -1389,13 +1392,14 @@ export function AssignmentDetailPage() {
                                 <StatusBadge size="xxs" tone="warning">{t(COMMON_LABELS.notFoundInDirectory)}</StatusBadge>
                               )}
                             </div>
-                            <button
-                              type="button"
+                            <AppButton
+                              variant="danger"
+                              size="sm"
                               onClick={() => setPendingAddLearners(prev => prev.filter(x => x.code !== l.code))}
-                              className="text-red-500 hover:text-red-700 font-bold text-xxs cursor-pointer"
+                              className="px-2"
                             >
                               {t(ASSIGNMENT_LABELS.remove)}
-                            </button>
+                            </AppButton>
                           </div>
                         ))
                       )}

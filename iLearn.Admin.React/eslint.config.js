@@ -26,5 +26,34 @@ export default defineConfig([
       'react-refresh/only-export-components': 'off',
     },
   },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-globals': ['error', {
+        name: 'fetch',
+        message: 'Use fetchWithAccessControl / fetchResponseWithAccessControl from src/lib/apiClient.ts',
+      }],
+    },
+  },
+  {
+    files: [
+      'src/lib/apiClient.ts',
+      'src/lib/createDataSource.ts',
+      'src/lib/createRestDataSource.ts',
+      'src/pages/system-config/HealthCheckPage.tsx',
+    ],
+    rules: {
+      'no-restricted-globals': 'off',
+    },
+  },
+  {
+    files: ['src/pages/**/*.tsx'],
+    rules: {
+      'no-restricted-syntax': ['error', {
+        selector: "JSXOpeningElement[name.name='button']",
+        message: 'Use AppButton / IconButton / SegmentedToggle from src/components/ui',
+      }],
+    },
+  },
 ])
 

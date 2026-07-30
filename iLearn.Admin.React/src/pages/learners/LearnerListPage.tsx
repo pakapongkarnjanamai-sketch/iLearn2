@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Filter, X } from 'lucide-react'
+import { AppButton } from '../../components/ui/AppButton'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { AppTable } from '../../components/ui/AppTable'
 import { createAdminDataSource } from '../../lib/createDataSource'
@@ -157,15 +158,16 @@ export function LearnerListPage() {
       </select>
 
       {hasActiveFilter && (
-        <button
+        <AppButton
           type="button"
+          variant="ghost"
+          size="sm"
+          icon={X}
           onClick={handleClearFilters}
-          className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
-          title={t(LEARNER_LABELS.clearAllFilters)}
+          className="px-2"
         >
-          <X className="h-3 w-3" />
           {t(LEARNER_LABELS.clear)}
-        </button>
+        </AppButton>
       )}
     </div>
   )

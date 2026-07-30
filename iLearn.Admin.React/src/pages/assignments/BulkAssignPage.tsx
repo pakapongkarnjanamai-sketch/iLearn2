@@ -483,13 +483,14 @@ export function BulkAssignPage() {
             <div className="flex items-center gap-2">
               <Badge tone="info">{selectedCourseIds.length}</Badge>
               {selectedCourseIds.length > 0 && (
-                <button
-                  type="button"
+                <AppButton
+                  variant="danger"
+                  size="sm"
                   onClick={() => setSelectedCourseIds([])}
-                  className="text-xs font-bold text-red-600 hover:text-red-700 cursor-pointer"
+                  className="px-2.5"
                 >
                   {t(ASSIGNMENT_LABELS.clear)}
-                </button>
+                </AppButton>
               )}
             </div>
           </div>

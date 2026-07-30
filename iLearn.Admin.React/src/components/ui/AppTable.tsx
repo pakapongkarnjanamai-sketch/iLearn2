@@ -10,6 +10,7 @@ import { type AppClientStore } from '../../lib/createDataSource'
 import { formatDate } from '../../lib/format'
 import { COMMON_LABELS, t, type LabelPair, UI_LABELS } from '../../lib/labels'
 import { Badge } from './Badge'
+import { IconButton } from './IconButton'
 import { AppTableSearch } from './table/AppTableSearch'
 
 type TableRecord = Record<string, unknown>
@@ -351,28 +352,27 @@ export function AppTable<T extends TableRecord>({
                             const isDanger = btn.variant === 'danger' || hintLower.includes('delete') || hintLower.includes('remove')
                             const isSuccess = btn.variant === 'success' || hintLower.includes('active')
                             const isGhost = btn.variant === 'ghost' || hintLower.includes('details') || hintLower.includes('open')
-                            
-                            let colorClass = 'text-indigo-500 hover:bg-indigo-50'
-                            if (isDanger) {
-                              colorClass = 'text-red-500 hover:bg-rose-50'
-                            } else if (isSuccess) {
-                              colorClass = 'text-emerald-600 hover:bg-emerald-50'
-                            } else if (isGhost) {
-                              colorClass = 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
-                            }
+
+                            const tone: 'primary' | 'danger' | 'success' | 'neutral' = isDanger
+                              ? 'danger'
+                              : isSuccess
+                                ? 'success'
+                                : isGhost
+                                  ? 'neutral'
+                                  : 'primary'
 
                             return (
-                              <button
+                              <IconButton
                                 key={idx}
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   btn.onClick({ row: { data: row } })
                                 }}
-                                className={`p-1 rounded-md transition cursor-pointer ${colorClass}`}
                                 title={btn.hint}
-                              >
-                                {btn.icon === 'info' ? <Info className="h-3.5 w-3.5" /> : btn.icon}
-                              </button>
+                                tone={tone}
+                                size="sm"
+                                icon={btn.icon === 'info' ? <Info className="h-3.5 w-3.5" /> : btn.icon}
+                              />
                             )
                           })}
                         </div>

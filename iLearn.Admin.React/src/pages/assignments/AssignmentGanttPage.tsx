@@ -126,18 +126,16 @@ export function AssignmentGanttPage() {
       <div className="flex min-h-0 flex-1 flex-col gap-2 pt-2">
         <div className="flex flex-wrap items-center gap-2">
           {STATUS_FILTERS.map((s) => (
-            <button
+            <AppButton
               key={s}
               type="button"
+              size="sm"
+              variant={statusFilter === s ? 'primary' : 'secondary'}
               onClick={() => setStatusFilter(s)}
-              className={`rounded border px-2.5 py-1 text-xs font-semibold transition-colors ${
-                statusFilter === s
-                  ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-              }`}
+              className="px-2.5"
             >
               {s === 'All' ? t(COMMON_LABELS.all) : learnerStatusLabel(s)} <span className="ml-1 text-slate-400">{counts[s] ?? 0}</span>
-            </button>
+            </AppButton>
           ))}
         </div>
 

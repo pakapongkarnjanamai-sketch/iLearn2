@@ -457,13 +457,15 @@ export function LearnerGroupEditorPage() {
                           <span className="text-slate-400 truncate font-semibold">({learner.name})</span>
                         )}
                       </div>
-                      <button
+                      <AppButton
                         type="button"
+                        variant="danger"
+                        size="sm"
                         onClick={() => removeMemberCode(learner.code)}
-                        className="text-red-500 hover:text-red-700 font-bold transition cursor-pointer"
+                        className="px-2"
                       >
-                        Remove
-                      </button>
+                        {t(LEARNER_LABELS.remove)}
+                      </AppButton>
                     </div>
                   ))
                 )}

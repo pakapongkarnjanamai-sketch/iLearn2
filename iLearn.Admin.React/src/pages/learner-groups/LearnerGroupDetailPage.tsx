@@ -839,13 +839,15 @@ export function LearnerGroupDetailPage() {
                       <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex justify-between items-center text-xxs font-extrabold text-slate-500 uppercase tracking-wider select-none shrink-0">
                         <span>{tf(LEARNER_LABELS.queuedAdditions, pendingAddLearners.length)}</span>
                         {pendingAddLearners.length > 0 && (
-                          <button
+                          <AppButton
                             type="button"
+                            variant="danger"
+                            size="sm"
                             onClick={() => setPendingAddLearners([])}
-                            className="text-red-500 hover:text-red-700 font-bold cursor-pointer"
+                            className="px-2"
                           >
                             {t(LEARNER_LABELS.clearQueue)}
-                          </button>
+                          </AppButton>
                         )}
                       </div>
                       <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-100 bg-white min-h-0">
@@ -859,13 +861,15 @@ export function LearnerGroupDetailPage() {
                                 <span className="font-mono text-slate-850 font-semibold">{l.code}</span>
                                 {l.name !== l.code && <span className="text-slate-500 text-xxs">({l.name})</span>}
                               </div>
-                              <button
+                              <AppButton
                                 type="button"
+                                variant="danger"
+                                size="sm"
                                 onClick={() => setPendingAddLearners(prev => prev.filter(x => x.code !== l.code))}
-                                className="text-red-500 hover:text-red-700 font-bold text-xxs cursor-pointer"
+                                className="px-2"
                               >
                                 {t(LEARNER_LABELS.remove)}
-                              </button>
+                              </AppButton>
                             </div>
                           ))
                         )}
@@ -977,14 +981,15 @@ export function LearnerGroupDetailPage() {
       {isEditingProperties && (
         <div className="modal-overlay" onClick={() => setIsEditingProperties(false)}>
           <div className="modal-window p-5 relative animate-scale-in" onClick={e => e.stopPropagation()}>
-            <button
+            <IconButton
               type="button"
               onClick={() => setIsEditingProperties(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded transition cursor-pointer"
-              aria-label={t(LEARNER_LABELS.closeModal)}
-            >
-              <X className="h-4 w-4" />
-            </button>
+              icon={X}
+              tone="neutral"
+              size="sm"
+              className="absolute top-4 right-4"
+              title={t(LEARNER_LABELS.closeModal)}
+            />
 
             <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3 pr-8 select-none">
               <Settings className="h-5 w-5 text-indigo-600" />

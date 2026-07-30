@@ -15,6 +15,7 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { AppButton } from '../../components/ui/AppButton'
 import { Badge } from '../../components/ui/Badge'
+import { IconButton } from '../../components/ui/IconButton'
 import { ListToolbar } from '../../components/ui/ListToolbar'
 import { fetchWithAccessControl } from '../../lib/apiClient'
 import { formatDate, formatPercent, formatDuration, formatNumber } from '../../lib/format'
@@ -143,14 +144,15 @@ export function TranscriptReportPage() {
                 className="appearance-none rounded-lg border border-slate-200 bg-white pl-3 pr-8 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 focus:outline-none focus:border-indigo-500 w-56 shadow-xs"
               />
               {inputCode && (
-                <button
+                <IconButton
                   type="button"
                   onClick={handleClearSearch}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  icon={X}
+                  tone="neutral"
+                  size="sm"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2"
                   title={t(REPORT_LABELS.trClear)}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+                />
               )}
             </div>
             <AppButton type="submit" size="sm" icon={Search}>

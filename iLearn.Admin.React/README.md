@@ -76,4 +76,20 @@ npm run lint
 npm run build
 ```
 
+## Lint Guardrails And Exceptions
+
+The standards guardrails are enforced as errors:
+
+- `no-restricted-syntax` blocks native `<button>` in `src/pages/**/*.tsx`.
+- `no-restricted-globals` blocks direct `fetch` in `src/**/*.{ts,tsx}`.
+
+Approved exceptions are file-scoped in `eslint.config.js` (not inline) and are limited to fetch infrastructure boundaries:
+
+- `src/lib/apiClient.ts`: central HTTP helper implementation that directly wraps `fetch`.
+- `src/lib/createDataSource.ts`: low-level data source transport wiring.
+- `src/lib/createRestDataSource.ts`: low-level REST data source transport wiring.
+- `src/pages/system-config/HealthCheckPage.tsx`: explicit raw response probing path that intentionally inspects non-2xx health payloads.
+
+No page-level native `<button>` exceptions are approved.
+
 The current shell reads from existing Admin API endpoints but does not modify MVC views, .NET projects, or the solution file.
