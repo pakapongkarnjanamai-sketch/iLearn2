@@ -24,6 +24,30 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-30] Claude Code — PLAN-171 header label overflow
+- ทำอะไร: ใส่ `overflow-hidden` ให้เซลล์ header ทั้งสองแถวใน `GanttChart.tsx` (แถวเดือน + แถว tick) — เซลล์ที่แคบกว่าป้ายตัวเองเคยมีตัวอักษรล้นข้ามเส้นขอบ แถว tick ก็เป็นเหมือนกันที่สัปดาห์แรก/สุดท้ายซึ่งไม่เต็มสัปดาห์ (`27 Jun` ในช่อง 15px) ผลข้างเคียงที่ยอมรับ: เซลล์ริมแคบ ๆ จะโชว์ป้ายแบบตัดสั้น (`Sept 26` → `S`) แทนการล้น
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/gantt/GanttChart.tsx`, `DOC/PLANS/PLAN-171-assignment-gantt-refactor.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (class เดียวต่อแถว)
+- Verified: `npm run lint` ✓, `npm run build` ✓, วัดทั้ง 3 zoom บนหน้าจริงผ่าน harness ชั่วคราว (ลบแล้ว) — เซลล์ที่เนื้อหาเกินความกว้างรายงาน `overflowX: hidden` ครบทุกเคส ✓
+
+## [2026-07-30] Claude Code — PLAN-171 fix G5-G8 (minors)
+- ทำอะไร: G5 ย้าย `zoomOptions` เข้า component body (module-scope const ไม่ถูกประเมินใหม่ตอน `AppLayout` remount ด้วย `key={lang}` → ป้าย zoom ค้างภาษาเดิม), G7 เพิ่ม legend ในแถบ "แสดง X จาก Y" โดยโชว์เฉพาะสถานะที่มีในข้อมูล (ใช้ `counts` memo เดิม), G8 ย้ายสีแท่งไป `gantt/ganttStatus.ts` เป็น Tailwind class map ให้ bar + legend ใช้ตัวเดียวกัน (ไม่เหลือ hex), G6 hover card ของ 2 แถวท้ายเปิดขึ้นบนกัน scroller ตัด
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentGanttPage.tsx`, `.../gantt/GanttBar.tsx`, `.../gantt/GanttChart.tsx`, `.../gantt/ganttStatus.ts` (ใหม่), `DOC/PLANS/PLAN-171-assignment-gantt-refactor.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): `GanttBar` เพิ่ม prop `flipHoverCardUp` (required) — internal ของโฟลเดอร์ gantt ไม่แตะ backend/DTO
+- Verified: `npm run lint` ✓, `npm run build` ✓, วัดสี/legend/สลับภาษา/ทิศ hover card บนหน้าจริงผ่าน vite harness ชั่วคราว (ลบแล้ว) ✓ — PLAN-171 ปิดครบ G1-G8
+
+## [2026-07-30] Claude Code — PLAN-171 review + fix G1-G4
+- ทำอะไร: รีวิว PLAN-171 เจอ 4 ข้อแล้วแก้เอง — G1 grid auto-placement ดันชื่อทุกแถวลง 1 row (pin `gridRow` ทุก cell + เรียง DOM ตามลำดับทับ name→bar→header→corner, เลิกใช้ `.contents`, คุมสูง header ทั้งสองฝั่งเท่ากับ `HEADER_TOTAL_H`), G2 description ว่างทำเลข AS ซ้ำ (ซ่อน separator+title เมื่อ `title === assignmentNo`), G3 `todayOffsetDays` ถูก clamp ทำเส้นวันนี้โผล่ตลอด (คืนค่า raw + `isTodayInRange`), G4 เส้นวันนี้ทับคอลัมน์ freeze (ตัด `z-10`)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/gantt/GanttChart.tsx`, `.../gantt/ganttScale.ts`, `DOC/PLANS/PLAN-171-assignment-gantt-refactor.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): `TimelineModel` เพิ่ม `isTodayInRange` และ `todayOffsetDays` เป็นค่า raw (ไม่ clamp) — internal ของโฟลเดอร์ gantt เท่านั้น ไม่แตะ backend/DTO
+- Verified: `npm run lint` ✓, `npm run build` ✓, วัด layout/paint order บน component จริงผ่าน vite harness ชั่วคราว (ลบทิ้งแล้ว) ✓ — Status แผน = VERIFIED, เหลือ minor G5-G8 (i18n zoom label, hover card โดนตัด, legend, hex สี) ยังไม่แก้
+
+## [2026-07-30] GitHub Copilot — PLAN-171 assignment gantt refactor
+- ทำอะไร: แก้ backend `MapGanttTask` ตาม B1/B2 (title = description-only fallback assignmentNo, span date = Min/Max ทั้งกลุ่ม) และรีไรต์หน้า Gantt เป็นโครง 4 ไฟล์ (`AssignmentGanttPage` + `ganttScale` + `GanttChart` + `GanttBar`) พร้อม zoom Day/Week/Month, sticky header/left column, stable scale, ref-based Today centering, bar link+focus+hover card, filtered-empty state, และตัด progress overlay/% ออก
+- ไฟล์หลักที่แตะ: `iLearn.Application/Services/AssignmentService.cs`, `iLearn.Admin.React/src/pages/assignments/AssignmentGanttPage.tsx`, `iLearn.Admin.React/src/pages/assignments/gantt/ganttScale.ts`, `iLearn.Admin.React/src/pages/assignments/gantt/GanttChart.tsx`, `iLearn.Admin.React/src/pages/assignments/gantt/GanttBar.tsx`, `iLearn.Admin.React/src/lib/labels.ts`, `DOC/PLANS/PLAN-171-assignment-gantt-refactor.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มีการเพิ่ม/ลบ field; เปลี่ยน semantics ของ `AssignmentGanttTaskDto.Title` ให้เป็น description-only และ `StartDate`/`DueDate` ให้เป็น span ระดับ AssignmentNo group
+- Verified: `npm run lint` ✓, `npm run build` ✓, `dotnet build iLearn.Tests -o artifacts\\verify-test` ✓ (ผ่านพร้อม warning เดิม), `dotnet test artifacts\\verify-test\\iLearn.Tests.dll` ✓ (Passed 280), cleanup artifacts ✓
+
 ## [2026-07-30] GitHub Copilot — PLAN-170 remove completion-focused UI from assignment report
 - ทำอะไร: ตัด Completion ออกจาก UI หน้า assignment report โดยลบ completion KPI tile, ลบ print-only completion text, ลบ section `Completion by Course`, ลบคอลัมน์ `Completed`/`Completion` ในตาราง group summary, และเปลี่ยนคอลัมน์ท้าย learner table จาก `Completed Date` เป็น `Due Date`
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `iLearn.Admin.React/src/pages/assignments/AssignmentReportCharts.tsx`, `DOC/PLANS/PLAN-170-assignment-report-remove-completion-ui.md`, `DOC/AGENT_LOG.md`

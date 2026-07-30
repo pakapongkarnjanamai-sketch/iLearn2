@@ -1,56 +1,53 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CalendarClock } from 'lucide-react'
 import { AppButton } from '../../components/ui/AppButton'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
 import { LoadingState } from '../../components/ui/LoadingState'
+import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { fetchWithAccessControl } from '../../lib/apiClient'
+import { formatNumber } from '../../lib/format'
 import { toast } from '../../lib/toast'
 import { ASSIGNMENT_LABELS, COMMON_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
-
-type GanttTask = {
-  id: number
-  parentId: number
-  assignmentNo: string
-  title: string
-  startDate: string
-  dueDate: string
-  progress: number
-  color: string
-  status: string
-}
+import { GanttChart } from './gantt/GanttChart'
+import { buildTimeline, getDefaultZoom, type GanttTask, type GanttZoom } from './gantt/ganttScale'
+import { ganttStatusBarClass } from './gantt/ganttStatus'
 
 const STATUS_FILTERS = ['All', 'InProgress', 'Upcoming', 'Completed', 'Expired'] as const
+type StatusFilter = (typeof STATUS_FILTERS)[number]
+type LegendStatus = Exclude<StatusFilter, 'All'>
 
+const buildCounts = (items: GanttTask[]) => items.reduce<Record<StatusFilter, number>>(
+  (acc, task) => {
+    acc.All += 1
+    if (task.status === 'InProgress') acc.InProgress += 1
+    if (task.status === 'Upcoming') acc.Upcoming += 1
+    if (task.status === 'Completed') acc.Completed += 1
+    if (task.status === 'Expired') acc.Expired += 1
+    return acc
+  },
+  { All: 0, InProgress: 0, Upcoming: 0, Completed: 0, Expired: 0 },
+)
 
-const DAY_PX = 18
-const ROW_PX = 32
-
-const parseDate = (s: string) => {
-  const d = new Date(s)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-const diffDays = (a: Date, b: Date) =>
-  Math.round((b.getTime() - a.getTime()) / 86_400_000)
-
-const monthFmt = new Intl.DateTimeFormat('en-GB', { month: 'short', year: '2-digit' })
-const dayFmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric' })
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
 export function AssignmentGanttPage() {
   const [loading, setLoading] = useState(true)
   const [tasks, setTasks] = useState<GanttTask[]>([])
-  const [statusFilter, setStatusFilter] =
-    useState<(typeof STATUS_FILTERS)[number]>('All')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('All')
+  const [zoom, setZoom] = useState<GanttZoom>('week')
+  const scrollerRef = useRef<HTMLDivElement | null>(null)
+  const hasCenteredTodayRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    // gantt endpoint returns flat array, not wrapped envelope
     fetchWithAccessControl<GanttTask[]>('Assignments/gantt')
       .then((data) => {
         if (cancelled) return
-        setTasks(Array.isArray(data) ? data : [])
+        const nextTasks = Array.isArray(data) ? data : []
+        setTasks(nextTasks)
+        setZoom(getDefaultZoom(nextTasks))
+        hasCenteredTodayRef.current = false
       })
       .catch(() => toast.error(t(ASSIGNMENT_LABELS.failedToLoadGantt)))
       .finally(() => !cancelled && setLoading(false))
@@ -59,201 +56,115 @@ export function AssignmentGanttPage() {
     }
   }, [])
 
-  const filtered = useMemo(
-    () => (statusFilter === 'All' ? tasks : tasks.filter((t) => t.status === statusFilter)),
-    [tasks, statusFilter],
+  const timeline = useMemo(() => buildTimeline(tasks, zoom), [tasks, zoom])
+
+  const centerToday = useCallback((smooth: boolean) => {
+    const scroller = scrollerRef.current
+    if (!scroller) return
+
+    const markerX = timeline.todayOffsetDays * timeline.pxPerDay + timeline.pxPerDay / 2
+    const targetLeft = markerX - scroller.clientWidth / 2
+    const maxScrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth)
+    const nextLeft = clamp(targetLeft, 0, maxScrollLeft)
+
+    scroller.scrollTo({
+      left: nextLeft,
+      behavior: smooth ? 'smooth' : 'auto',
+    })
+  }, [timeline.pxPerDay, timeline.todayOffsetDays])
+
+  useEffect(() => {
+    if (loading || tasks.length === 0 || hasCenteredTodayRef.current) return
+    centerToday(false)
+    hasCenteredTodayRef.current = true
+  }, [centerToday, loading, tasks])
+
+  const counts = useMemo(() => buildCounts(tasks), [tasks])
+
+  // Resolved per render, not at module scope: AppLayout remounts the tree on a
+  // language switch, which re-runs component bodies but never module initialisers.
+  const zoomOptions: Array<{ value: GanttZoom; label: string }> = [
+    { value: 'day', label: t(ASSIGNMENT_LABELS.zoomDay) },
+    { value: 'week', label: t(ASSIGNMENT_LABELS.zoomWeek) },
+    { value: 'month', label: t(ASSIGNMENT_LABELS.zoomMonth) },
+  ]
+
+  const legendStatuses = useMemo(
+    () => STATUS_FILTERS.filter((status): status is LegendStatus => status !== 'All' && counts[status] > 0),
+    [counts],
   )
 
-  const { rangeStart, totalDays, today } = useMemo(() => {
-    if (filtered.length === 0) {
-      const now = new Date()
-      now.setHours(0, 0, 0, 0)
-      return { rangeStart: now, totalDays: 30, today: now }
-    }
-    let min = parseDate(filtered[0]!.startDate)
-    let max = parseDate(filtered[0]!.dueDate)
-    filtered.forEach((t) => {
-      const s = parseDate(t.startDate)
-      const d = parseDate(t.dueDate)
-      if (s < min) min = s
-      if (d > max) max = d
-    })
-    // pad
-    min.setDate(min.getDate() - 3)
-    max.setDate(max.getDate() + 3)
-    const t = new Date()
-    t.setHours(0, 0, 0, 0)
-    return { rangeStart: min, totalDays: Math.max(diffDays(min, max) + 1, 14), today: t }
-  }, [filtered])
+  const filterOptions = useMemo(
+    () => STATUS_FILTERS.map((status) => ({
+      value: status,
+      label: status === 'All'
+        ? `${t(COMMON_LABELS.all)} (${formatNumber(counts.All)})`
+        : `${learnerStatusLabel(status)} (${formatNumber(counts[status])})`,
+    })),
+    [counts],
+  )
 
-  const monthHeaders = useMemo(() => {
-    const result: { label: string; days: number }[] = []
-    const cur = new Date(rangeStart)
-    let remaining = totalDays
-    while (remaining > 0) {
-      const monthEnd = new Date(cur.getFullYear(), cur.getMonth() + 1, 0)
-      const daysInThisMonth = Math.min(remaining, diffDays(cur, monthEnd) + 1)
-      result.push({ label: monthFmt.format(cur), days: daysInThisMonth })
-      cur.setDate(cur.getDate() + daysInThisMonth)
-      remaining -= daysInThisMonth
-    }
-    return result
-  }, [rangeStart, totalDays])
-
-  const scrollToToday = () => {
-    const el = document.getElementById('gantt-today-marker')
-    el?.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' })
-  }
-
-  const counts = useMemo(() => {
-    const map: Record<string, number> = { All: tasks.length }
-    STATUS_FILTERS.slice(1).forEach((s) => {
-      map[s] = tasks.filter((t) => t.status === s).length
-    })
-    return map
-  }, [tasks])
+  const filtered = useMemo(
+    () => (statusFilter === 'All' ? tasks : tasks.filter((task) => task.status === statusFilter)),
+    [tasks, statusFilter],
+  )
 
   return (
     <DataGridSurface
       title={t(ASSIGNMENT_LABELS.assignmentSchedule)}
       note={t(ASSIGNMENT_LABELS.ganttNote)}
       actions={
-        <AppButton variant="secondary" icon={CalendarClock} onClick={scrollToToday}>
-          {t(ASSIGNMENT_LABELS.today)}
-        </AppButton>
+        <div className="flex items-center gap-2">
+          <SegmentedToggle
+            variant="segment"
+            value={zoom}
+            onChange={setZoom}
+            options={zoomOptions}
+          />
+          <AppButton variant="secondary" icon={CalendarClock} onClick={() => centerToday(true)}>
+            {t(ASSIGNMENT_LABELS.today)}
+          </AppButton>
+        </div>
       }
     >
       <div className="flex min-h-0 flex-1 flex-col gap-2 pt-2">
-        <div className="flex flex-wrap items-center gap-2">
-          {STATUS_FILTERS.map((s) => (
-            <AppButton
-              key={s}
-              type="button"
-              size="sm"
-              variant={statusFilter === s ? 'primary' : 'secondary'}
-              onClick={() => setStatusFilter(s)}
-              className="px-2.5"
-            >
-              {s === 'All' ? t(COMMON_LABELS.all) : learnerStatusLabel(s)} <span className="ml-1 text-slate-400">{counts[s] ?? 0}</span>
-            </AppButton>
-          ))}
-        </div>
+        <SegmentedToggle
+          variant="filter"
+          value={statusFilter}
+          onChange={(value) => setStatusFilter(value as StatusFilter)}
+          options={filterOptions}
+          className="flex-wrap"
+        />
 
         {loading ? (
           <LoadingState size="section" />
-        ) : filtered.length === 0 ? (
+        ) : tasks.length === 0 ? (
           <div className="flex flex-1 items-center justify-center rounded-lg border border-slate-200 bg-slate-50/40 p-8 text-[13px] font-medium text-slate-400">
             {t(ASSIGNMENT_LABELS.noAssignments)}
           </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-slate-200 bg-slate-50/40 p-8 text-center">
+            <p className="text-[13px] font-semibold text-slate-600">{t(ASSIGNMENT_LABELS.noAssignmentsMatchFilter)}</p>
+            <p className="mt-1 text-xs text-slate-500">{t(ASSIGNMENT_LABELS.tryAnotherStatusFilter)}</p>
+          </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-200/80 bg-white">
-            <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 py-1.5">
               <span className="text-xs font-semibold text-slate-500">
                 {tf(ASSIGNMENT_LABELS.showingBatches, filtered.length, tasks.length)}
               </span>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-auto custom-scrollbar">
-              <div className="flex min-w-full">
-                <div className="w-72 shrink-0 border-r border-slate-200/70 bg-white">
-                  <div className="h-14 border-b border-slate-200/70 px-3 py-1.5 text-xxs font-extrabold uppercase text-slate-500">
-                    <div className="leading-tight">{t(ASSIGNMENT_LABELS.assignment)}</div>
-                    <div className="text-slate-400">{t(ASSIGNMENT_LABELS.batch)}</div>
-                  </div>
-                  {filtered.map((t) => (
-                    <div
-                      key={t.id}
-                      className="flex items-center border-b border-slate-100/70 px-3"
-                      style={{ height: ROW_PX }}
-                    >
-                      <div className="truncate">
-                        <span className="font-mono text-xs text-slate-500">{t.assignmentNo}</span>
-                        <span className="ml-2 text-xs font-semibold text-slate-700">{t.title}</span>
-                      </div>
-                    </div>
+              {legendStatuses.length > 0 && (
+                <div className="flex flex-wrap items-center gap-3">
+                  {legendStatuses.map((status) => (
+                    <span key={status} className="flex items-center gap-1.5 text-xxs font-semibold text-slate-500">
+                      <span className={`size-2 rounded-xs ${ganttStatusBarClass(status)}`} />
+                      {learnerStatusLabel(status)}
+                    </span>
                   ))}
                 </div>
-
-                <div className="flex-1 overflow-x-auto overflow-y-hidden">
-                  <div style={{ width: totalDays * DAY_PX, minWidth: '100%' }}>
-                    <div className="flex border-b border-slate-200/70">
-                      {monthHeaders.map((m, i) => (
-                        <div
-                          key={i}
-                          className="border-r border-slate-200/70 px-2 py-1 text-xxs font-bold uppercase text-slate-500"
-                          style={{ width: m.days * DAY_PX }}
-                        >
-                          {m.label}
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex border-b border-slate-200/70" style={{ height: 28 }}>
-                      {Array.from({ length: totalDays }).map((_, i) => {
-                        const d = new Date(rangeStart)
-                        d.setDate(d.getDate() + i)
-                        const isWeekend = d.getDay() === 0 || d.getDay() === 6
-                        const isToday = d.getTime() === today.getTime()
-                        return (
-                          <div
-                            key={i}
-                            className={`text-center text-xxs leading-7 ${
-                              isWeekend ? 'bg-slate-50 text-slate-400' : 'text-slate-500'
-                            } ${isToday ? 'bg-indigo-50 font-bold text-indigo-700' : ''}`}
-                            style={{ width: DAY_PX }}
-                          >
-                            {dayFmt.format(d)}
-                          </div>
-                        )
-                      })}
-                    </div>
-
-                    <div className="relative">
-                      {diffDays(rangeStart, today) >= 0 && diffDays(rangeStart, today) < totalDays && (
-                        <div
-                          id="gantt-today-marker"
-                          className="pointer-events-none absolute top-0 z-10 h-full border-l-2 border-indigo-500/60"
-                          style={{ left: diffDays(rangeStart, today) * DAY_PX + DAY_PX / 2 }}
-                        />
-                      )}
-
-                      {filtered.map((t) => {
-                        const start = parseDate(t.startDate)
-                        const end = parseDate(t.dueDate)
-                        const left = Math.max(0, diffDays(rangeStart, start)) * DAY_PX
-                        const width = Math.max(DAY_PX, (diffDays(start, end) + 1) * DAY_PX)
-                        return (
-                          <div
-                            key={t.id}
-                            className="relative border-b border-slate-100/70"
-                            style={{ height: ROW_PX }}
-                          >
-                            <div
-                              className="absolute top-1.5 flex items-center overflow-hidden rounded text-xxs font-bold text-white shadow-sm"
-                              style={{
-                                left,
-                                width,
-                                height: ROW_PX - 12,
-                                background: t.color,
-                              }}
-                              title={`${t.title} — ${t.status} (${t.progress}%)`}
-                            >
-                              <div
-                                className="h-full bg-white/25"
-                                style={{ width: `${Math.min(100, Math.max(0, t.progress))}%` }}
-                              />
-                              <span className="absolute inset-0 flex items-center justify-center px-1.5">
-                                {t.progress}%
-                              </span>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
+            <GanttChart tasks={filtered} timeline={timeline} zoom={zoom} scrollerRef={scrollerRef} />
           </div>
         )}
       </div>

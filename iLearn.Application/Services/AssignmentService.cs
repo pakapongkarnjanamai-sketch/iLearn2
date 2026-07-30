@@ -1316,8 +1316,12 @@ namespace iLearn.Application.Services
                 ? (int)Math.Round((double)completedEnrollments / totalEnrollments * 100)
                 : 0;
 
-            var startDate = first.StartDate ?? first.CreatedAt;
-            var dueDate = first.DueDate ?? startDate.AddDays(7);
+            var startDate = group.Min(item => item.StartDate ?? item.CreatedAt);
+            var maxDueDate = group
+                .Where(item => item.DueDate.HasValue)
+                .Select(item => item.DueDate)
+                .Max();
+            var dueDate = maxDueDate ?? startDate.AddDays(7);
             if (dueDate <= startDate)
             {
                 dueDate = startDate.AddDays(1);
@@ -1326,13 +1330,16 @@ namespace iLearn.Application.Services
             var assignmentNo = string.IsNullOrWhiteSpace(first.AssignmentNo)
                 ? $"Assignment {first.Id}"
                 : first.AssignmentNo!;
+            var title = string.IsNullOrWhiteSpace(first.Description)
+                ? assignmentNo
+                : first.Description.Trim();
 
             return new AssignmentGanttTaskDto
             {
                 Id = first.Id,
                 ParentId = 0,
                 AssignmentNo = assignmentNo,
-                Title = $"{assignmentNo} - {first.Description ?? "No Description"}",
+                Title = title,
                 StartDate = startDate,
                 DueDate = dueDate,
                 Progress = progress,
