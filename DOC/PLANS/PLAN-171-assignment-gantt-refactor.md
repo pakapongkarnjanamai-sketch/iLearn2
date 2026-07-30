@@ -240,7 +240,34 @@ Measured after the fix (12-batch fixture including one 140-day bar, viewport 128
 
 Paint order re-checked after the reorder (`scrollTop 60`, `scrollLeft 900`): corner wins the top-left region, the date header wins the header strip, name cells win over bars, and a card reaching the frozen column loses to the name cell. Hover cards for rows 0, 10 and 11 are topmost across their whole area, open down / up / up respectively, and none is clipped by the scroller. `npm run lint` clean, `npm run build` OK.
 
-Three measurement traps hit while verifying these passes, noted so the next one does not repeat them:
+### Fifth pass — QA feedback: month zoom renders badly (Claude Code, 2026-07-30)
+
+At Month zoom a fixed 3px per day left the chart ~560px wide inside ~1500px of card: the month header stopped mid-card while body guides ran on, the tick row was an empty band, per-day guides at 3px read as a hatch, and bars were too short to label.
+
+**Month zoom now scales to the card instead of scrolling.** Every horizontal position became a percentage of the timeline column, which resolves to identical pixels in the px-width zooms and stretches to fit in this one:
+
+- `getTaskLayout` returns `leftPct`/`widthPct` (width clamped to the remaining range so a bar can never overrun the right edge); `GanttBar` takes percentages and a 3px `minWidth`.
+- grid column is `${widthPx}px` for Day/Week and `minmax(0, 1fr)` for Month; the `1fr`-with-px-bars stretch hack from the fourth pass is gone.
+- header height is per zoom (`headerHeight()` in `ganttScale.ts`): Month drops the tick row entirely, so no empty band, and the corner cell drops its second line to match.
+- body guides: per-day + weekend bands at Day, one phase-shifted line per week at Week (was a line every 8px), and real month boundaries at Month drawn as one percentage-positioned overlay — a px gradient cannot track a stretching column, and unequal month lengths cannot be expressed as a repeating gradient.
+- the today line and the month guides moved into overlays spanning `left: NAME_COL_W → right: 0`, which is exactly the timeline column in both modes.
+
+**Header cells could not honour their own percentages.** The narrow edge month declared `1.29%` (11px) but rendered 17px, because a border-box element can never be narrower than its own padding + border — `min-w-0` does not help, this is box sizing, not the flex minimum. The 6px excess overflowed the row, and `flex-shrink` then shaved ~1.2px off every other cell, drifting the labels off the body guides by 1–6px. Fixed by moving the padding onto an inner `<span>`, leaving the cell free to take its exact share (`min-w-0 shrink-0` as belt and braces). Applied to the tick cells too — a one-day partial week hits the same floor.
+
+Measured after the fix (12-batch fixture, one 140-day bar, viewport 1280×900):
+
+| zoom | timeline col | month cells Σ | last month right vs header right | guides vs month borders | h-scroll |
+|---|---|---|---|---|---|
+| Day | 3410 | 3410 | 0 | n/a | yes (3750 / 1196) |
+| Week | 1240 | 1240 | 0 | n/a | yes (1580 / 1196) |
+| Month | 856 | 856 | 0 | 0, 0, 0, 0, 0 | **no — fits** |
+
+Paint order re-checked at all three zooms after the restructure: corner, header strip and name column all still win their regions, and hover cards are topmost across their whole area (rows 2 and 6 at Week, row 2 at Month). A card belonging to a bar scrolled off to the left correctly loses to the frozen name column. `npm run lint` clean, `npm run build` OK.
+
+Four measurement traps hit while verifying these passes, noted so the next one does not repeat them:
 
 - `elementFromPoint` is **hit testing, not paint order** — the hover card is `pointer-events-none`, so it is skipped and the probe reports whatever sits beneath it. Set `pointerEvents: 'auto'` for the duration of the measurement.
-- the Browser pane viewport was 961×415, so rows below the fold returned `outside-viewport` and looked like failures; resize before measuring. `scrollWidth` still exceeds `clientWidth` after `overflow-hidden` (it reports content size, not painted size — assert computed `overflow` instead), and measuring straight after `button.click()` returns the **pre-render** DOM, so all three zooms looked identical until an `await` was added between the click and the measurement.
+- the Browser pane viewport was 961×415, so rows below the fold returned `outside-viewport` and looked like failures; resize before measuring.
+- `scrollWidth` keeps reporting the content size after `overflow-hidden`, so it cannot confirm clipping — assert computed `overflow` instead — and a measurement taken straight after `button.click()` reads the pre-render DOM, which made three different zooms look identical until an `await` was added.
+
+**Housekeeping:** commits `12396d1` and `fc413ea` were made from outside this session while the fifth pass was in flight, and `fc413ea` tracked the two temporary harness files (`iLearn.Admin.React/__gantt-probe.html`, `src/__ganttProbe.tsx`). They are deleted in the working tree but still in HEAD and must not ship — the deletion needs a commit. `scrollWidth` still exceeds `clientWidth` after `overflow-hidden` (it reports content size, not painted size — assert computed `overflow` instead), and measuring straight after `button.click()` returns the **pre-render** DOM, so all three zooms looked identical until an `await` was added between the click and the measurement.

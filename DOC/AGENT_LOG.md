@@ -24,6 +24,13 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-30] Claude Code — PLAN-171 QA fix: month zoom แสดงผลไม่ดี
+- ทำอะไร: เปลี่ยน month zoom ให้ **สเกลพอดีความกว้างการ์ด** แทน 3px/วันคงที่ (เดิมชาร์ตกว้าง ~560px ในพื้นที่ ~1500px, header เดือนหยุดกลางการ์ด, มีแถบ tick ว่าง, เส้นตารางถี่ทุก 3px เป็นลายพร้อย) โดยย้ายตำแหน่งแนวนอนทั้งหมดเป็น % ของคอลัมน์ timeline (`getTaskLayout` คืน leftPct/widthPct + clamp ไม่ให้ล้นขอบขวา), grid column = `minmax(0,1fr)` เฉพาะ month, header สูงตาม zoom (`headerHeight()` — month ตัดแถว tick ออก), เส้นตาราง: day = ต่อวัน+weekend / week = ต่อสัปดาห์ (phase ตรงกับ tick) / month = เส้นขอบเดือนจริงเป็น overlay %, และย้ายเส้น today + guide ไป overlay ที่ครอบ `left:NAME_COL_W → right:0`
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/gantt/ganttScale.ts`, `.../gantt/GanttChart.tsx`, `.../gantt/GanttBar.tsx`, `DOC/PLANS/PLAN-171-assignment-gantt-refactor.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): `GanttBar` props เปลี่ยนจาก `leftPx/widthPx/timelineWidth` → `leftPct/widthPct`; `TimelineModel` เพิ่ม `fitsWidth/headerH/monthBoundaryPcts/todayLeftPct` และ months/ticks ใช้ `widthPct` — internal ของโฟลเดอร์ gantt ไม่แตะ backend/DTO
+- Verified: `npm run lint` ✓, `npm run build` ✓, วัด 3 zoom: month cells รวม = ความกว้างคอลัมน์เป๊ะทุก zoom, เส้น guide ตรงขอบเซลล์เดือน 0px, month ไม่มี h-scroll (พอดีการ์ด), paint order + hover card ยังถูกครบ ✓
+- หมายเหตุ: เจอ commit `12396d1`/`fc413ea` จากภายนอก session ระหว่างทำงาน และ `fc413ea` เผลอ track ไฟล์ harness ชั่วคราว (`__gantt-probe.html`, `src/__ganttProbe.tsx`) — ลบใน working tree แล้ว แต่ยังอยู่ใน HEAD ต้อง commit การลบ
+
 ## [2026-07-30] Claude Code — PLAN-171 QA fix: tooltip ถูกทับ + ชาร์ตไม่พอดีจอ
 - ทำอะไร: (1) hover card เคยเป็น z-auto จึงถูก**แท่งของแถวล่าง** (sibling ทีหลัง z-auto เท่ากัน) ทับจนเห็นเป็นเสี่ยง → ให้ card เป็น `z-10` และสลับ grid ให้ emit bar rows ก่อน name cells เพื่อให้คอลัมน์ชื่อ (z-10 เหมือนกัน) ยังทับ card ได้ (2) เพิ่ม `min-w-0` ที่ flex wrapper ในหน้าเพจ — flex item ที่ overflow visible มี automatic min size = min-content ซึ่งคอลัมน์ px ของ timeline ทำให้บวมเป็นความกว้างชาร์ตทั้งอัน เลย์เอาต์จึงยืดเลยการ์ดแทนที่จะให้ scroller คลิป (วัดได้ wrapper clientWidth 3752 ใน parent 1198) (3) scroller เลิกใช้ `flex-1` เพื่อให้ scrollbar แนวนอนมาอยู่ใต้แถวสุดท้าย (เดิมไปอยู่ก้นการ์ดห่างเกือบ 200px) (4) timeline column เป็น `minmax(widthPx, 1fr)` กัน dead space ตอน zoom รายเดือน
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/gantt/GanttBar.tsx`, `.../gantt/GanttChart.tsx`, `.../AssignmentGanttPage.tsx`, `DOC/PLANS/PLAN-171-assignment-gantt-refactor.md`, `DOC/AGENT_LOG.md`

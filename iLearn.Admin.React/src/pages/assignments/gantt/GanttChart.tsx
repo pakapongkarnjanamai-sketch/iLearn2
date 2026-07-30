@@ -140,14 +140,14 @@ export function GanttChart({ tasks, timeline, zoom, scrollerRef }: GanttChartPro
               {timeline.months.map((month) => (
                 <div
                   key={month.key}
-                  // min-w-0 + shrink-0 keep the declared percentage exact: a flex item's
-                  // automatic minimum is its padding + border, so a short edge month is
-                  // clamped wider than its share and the shrink pass then shaves every
-                  // other cell, drifting the labels off the body guides.
-                  className="min-w-0 shrink-0 overflow-hidden border-r border-slate-200 px-2 text-xxs font-bold uppercase leading-6.5 text-slate-500"
+                  // The padding lives on the label, not the cell: a border-box cell can
+                  // never be narrower than its own padding + border, so a short edge
+                  // month would be clamped wider than its share and the shrink pass
+                  // would shave every other cell, drifting labels off the body guides.
+                  className="min-w-0 shrink-0 overflow-hidden border-r border-slate-200 text-xxs font-bold uppercase leading-6.5 text-slate-500"
                   style={{ width: `${month.widthPct}%` }}
                 >
-                  {month.label}
+                  <span className="block truncate px-2">{month.label}</span>
                 </div>
               ))}
             </div>
@@ -156,10 +156,10 @@ export function GanttChart({ tasks, timeline, zoom, scrollerRef }: GanttChartPro
                 {timeline.ticks.map((tick) => (
                   <div
                     key={tick.key}
-                    className={`min-w-0 shrink-0 overflow-hidden border-r border-slate-200 px-1 text-center text-xxs leading-7 ${tick.isToday ? 'bg-indigo-50 font-bold text-indigo-700' : tick.isWeekend ? 'bg-slate-50 text-slate-400' : 'text-slate-500'}`}
+                    className={`min-w-0 shrink-0 overflow-hidden border-r border-slate-200 text-center text-xxs leading-7 ${tick.isToday ? 'bg-indigo-50 font-bold text-indigo-700' : tick.isWeekend ? 'bg-slate-50 text-slate-400' : 'text-slate-500'}`}
                     style={{ width: `${tick.widthPct}%` }}
                   >
-                    {tick.label}
+                    <span className="block truncate px-1">{tick.label}</span>
                   </div>
                 ))}
               </div>
