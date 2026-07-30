@@ -24,6 +24,12 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-30] GitHub Copilot — PLAN-164 durable Bulk Assign selection panel radius fix
+- ทำอะไร: ตรวจ root cause ของปัญหา radius ใน `Selected Courses` แล้วแก้แบบยั่งยืนด้วย shared `WizardSelectionPanel` ที่ encode `rounded-lg + overflow-hidden + header + scroll body`; refactor ทั้ง `Syllabus Catalog` และ `Selected Courses` ใน Bulk Assign มาใช้ component เดียวกันเพื่อลด drift
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/components/ui/WizardSelectionPanel.tsx`, `iLearn.Admin.React/src/pages/assignments/BulkAssignPage.tsx`, `DOC/PLANS/PLAN-164-bulk-assign-wizard-selection-panel-radius.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (frontend presentation/component primitive only)
+- Verified: `get_errors` ✓, `npm run lint` ✓, `npm run build` ✓
+
 ## [2026-07-30] GitHub Copilot — implement PLAN-163 Delivery #6 (Batch C complete + lint error enforcement)
 - ทำอะไร: ปิด Batch C โดยย้าย native `<button>` ที่เหลือใน `AssignmentGanttPage`, `VersionFormPage`, `LearnerGroupEditorPage`, `LearnerListPage`, `TranscriptReportPage` ไปใช้ `AppButton`/`IconButton`; flip `no-restricted-globals(fetch)` และ `no-restricted-syntax(JSX button)` ใน `eslint.config.js` จาก `warn` เป็น `error`; เพิ่ม section `Lint Guardrails And Exceptions` ใน React README พร้อมเหตุผล allowlist และอัปเดตแผนแม่ `PLAN-157` เป็น `DONE` พร้อมสรุปลำดับ child plans 158-163
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/AssignmentGanttPage.tsx`, `iLearn.Admin.React/src/pages/courses/VersionFormPage.tsx`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupEditorPage.tsx`, `iLearn.Admin.React/src/pages/learners/LearnerListPage.tsx`, `iLearn.Admin.React/src/pages/reports/TranscriptReportPage.tsx`, `iLearn.Admin.React/eslint.config.js`, `iLearn.Admin.React/README.md`, `DOC/PLANS/PLAN-163-admin-standards-delivery6-batchc-and-error-enforcement.md`, `DOC/PLANS/PLAN-157-admin-standards-rollout-execution-contract.md`, `DOC/AGENT_LOG.md`

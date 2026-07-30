@@ -16,6 +16,7 @@ import { IconButton } from '../../components/ui/IconButton'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
+import { WizardSelectionPanel } from '../../components/ui/WizardSelectionPanel'
 import { LearnerDirectorySelector, type LearnerSelection } from '../../components/shared/LearnerDirectorySelector'
 import { ASSIGNMENT_LABELS, t, tf } from '../../lib/labels'
 
@@ -404,125 +405,117 @@ export function BulkAssignPage() {
       
       <div className="flex-1 flex flex-col sm:flex-row gap-3 min-h-0">
         {/* Left Column: Available Catalog */}
-        <div className="flex-1 flex flex-col border border-slate-200 rounded bg-white min-h-0">
-          <div className="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
-            <span className="font-bold text-xs text-slate-400 uppercase tracking-wider">{t(ASSIGNMENT_LABELS.syllabusCatalog)}</span>
-            <Badge tone="neutral">{availableCourses.length}</Badge>
-          </div>
-          
-          <div className="p-1.5 border-b border-slate-100 shrink-0 select-none flex flex-col sm:flex-row gap-1.5">
-            <select
-              value={selectedCategoryFilter}
-              onChange={e => setSelectedCategoryFilter(e.target.value)}
-              className="px-2 py-1.5 text-xs border border-slate-200 rounded bg-white focus:outline-none focus:border-indigo-500 font-medium text-slate-700 max-w-full sm:max-w-[180px] truncate cursor-pointer"
-            >
-              <option value="all">{tf(ASSIGNMENT_LABELS.allCategories, availableCourses.length)}</option>
-              {hasUncategorizedCourses && (
-                <option value="uncategorized">
-                  {tf(ASSIGNMENT_LABELS.uncategorizedCount, availableCourses.filter(c => c.categoryId == null).length)}
-                </option>
-              )}
-              {categories.map(cat => {
-                const count = availableCourses.filter(c => c.categoryId === cat.id).length
-                const labelName = cat.sortOrder > 0 ? `${cat.sortOrder}. ${cat.name}` : cat.name
-                return (
-                  <option key={cat.id} value={cat.id}>
-                    {labelName} ({count})
+        <WizardSelectionPanel
+          title={t(ASSIGNMENT_LABELS.syllabusCatalog)}
+          count={availableCourses.length}
+          toolbar={(
+            <div className="p-1.5 border-b border-slate-100 shrink-0 select-none flex flex-col sm:flex-row gap-1.5">
+              <select
+                value={selectedCategoryFilter}
+                onChange={e => setSelectedCategoryFilter(e.target.value)}
+                className="px-2 py-1.5 text-xs border border-slate-200 rounded bg-white focus:outline-none focus:border-indigo-500 font-medium text-slate-700 max-w-full sm:max-w-45 truncate cursor-pointer"
+              >
+                <option value="all">{tf(ASSIGNMENT_LABELS.allCategories, availableCourses.length)}</option>
+                {hasUncategorizedCourses && (
+                  <option value="uncategorized">
+                    {tf(ASSIGNMENT_LABELS.uncategorizedCount, availableCourses.filter(c => c.categoryId == null).length)}
                   </option>
-                )
-              })}
-            </select>
+                )}
+                {categories.map(cat => {
+                  const count = availableCourses.filter(c => c.categoryId === cat.id).length
+                  const labelName = cat.sortOrder > 0 ? `${cat.sortOrder}. ${cat.name}` : cat.name
+                  return (
+                    <option key={cat.id} value={cat.id}>
+                      {labelName} ({count})
+                    </option>
+                  )
+                })}
+              </select>
 
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder={t(ASSIGNMENT_LABELS.searchCatalog)}
-                value={courseSearch}
-                onChange={e => setCourseSearch(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded bg-white focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-1.5 space-y-1.5 min-h-0">
-            {visibleAvailableCourses.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400 py-12 text-center select-none">
-                {courseSearch || selectedCategoryFilter !== 'all' ? t(ASSIGNMENT_LABELS.noMatchingCourses) : t(ASSIGNMENT_LABELS.allCoursesSelected)}
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder={t(ASSIGNMENT_LABELS.searchCatalog)}
+                  value={courseSearch}
+                  onChange={e => setCourseSearch(e.target.value)}
+                  className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded bg-white focus:outline-none focus:border-indigo-500"
+                />
               </div>
-            ) : (
-              visibleAvailableCourses.map(c => (
-                <div
-                  key={c.id}
-                  onClick={() => handleToggleCourse(c.id)}
-                  className="p-2.5 text-left rounded border border-slate-200 hover:border-blue-500 hover:bg-indigo-50/5 cursor-pointer transition flex items-center justify-between group"
-                >
-                  <div className="flex flex-col min-w-0 pr-2">
-                    <span className="text-slate-855 font-bold text-sm leading-tight truncate">{c.title}</span>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-slate-400 font-mono text-xs font-bold">{c.code}</span>
-                      {selectedCategoryFilter === 'all' && c.categoryId != null && categoryMap.has(c.categoryId) && (
-                        <span className="text-xxs text-slate-400 font-medium truncate">
-                          • {categoryMap.get(c.categoryId)?.name}
-                        </span>
-                      )}
-                    </div>
+            </div>
+          )}
+        >
+          {visibleAvailableCourses.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400 py-12 text-center select-none">
+              {courseSearch || selectedCategoryFilter !== 'all' ? t(ASSIGNMENT_LABELS.noMatchingCourses) : t(ASSIGNMENT_LABELS.allCoursesSelected)}
+            </div>
+          ) : (
+            visibleAvailableCourses.map(c => (
+              <div
+                key={c.id}
+                onClick={() => handleToggleCourse(c.id)}
+                className="p-2.5 text-left rounded border border-slate-200 hover:border-blue-500 hover:bg-indigo-50/5 cursor-pointer transition flex items-center justify-between group"
+              >
+                <div className="flex flex-col min-w-0 pr-2">
+                  <span className="text-slate-855 font-bold text-sm leading-tight truncate">{c.title}</span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-slate-400 font-mono text-xs font-bold">{c.code}</span>
+                    {selectedCategoryFilter === 'all' && c.categoryId != null && categoryMap.has(c.categoryId) && (
+                      <span className="text-xxs text-slate-400 font-medium truncate">
+                        • {categoryMap.get(c.categoryId)?.name}
+                      </span>
+                    )}
                   </div>
-                  <span className="h-5 w-5 shrink-0 rounded border border-slate-300 flex items-center justify-center text-slate-400 group-hover:border-blue-500 group-hover:bg-indigo-50/5 transition">
-                    <Plus className="h-3 w-3" />
-                  </span>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
+                <span className="h-5 w-5 shrink-0 rounded border border-slate-300 flex items-center justify-center text-slate-400 group-hover:border-blue-500 group-hover:bg-indigo-50/5 transition">
+                  <Plus className="h-3 w-3" />
+                </span>
+              </div>
+            ))
+          )}
+        </WizardSelectionPanel>
 
         {/* Right Column: Selected Courses */}
-        <div className="flex-1 flex flex-col border border-slate-200 rounded-lg bg-white min-h-0">
-          <div className="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0 select-none">
-            <span className="font-bold text-xs text-slate-400 uppercase tracking-wider">{t(ASSIGNMENT_LABELS.selectedCourses)}</span>
-            <div className="flex items-center gap-2">
-              <Badge tone="info">{selectedCourseIds.length}</Badge>
-              {selectedCourseIds.length > 0 && (
-                <AppButton
-                  variant="danger"
-                  size="sm"
-                  onClick={() => setSelectedCourseIds([])}
-                  className="px-2.5"
-                >
-                  {t(ASSIGNMENT_LABELS.clear)}
-                </AppButton>
-              )}
+        <WizardSelectionPanel
+          title={t(ASSIGNMENT_LABELS.selectedCourses)}
+          count={selectedCourseIds.length}
+          countTone="info"
+          actions={selectedCourseIds.length > 0 && (
+            <AppButton
+              variant="danger"
+              size="sm"
+              onClick={() => setSelectedCourseIds([])}
+              className="px-2.5"
+            >
+              {t(ASSIGNMENT_LABELS.clear)}
+            </AppButton>
+          )}
+        >
+          {selectedCourses.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400 py-12 text-center select-none">
+              {t(ASSIGNMENT_LABELS.noCoursesSelected)}
             </div>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-1.5 space-y-1.5 min-h-0">
-            {selectedCourses.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400 py-12 text-center select-none">
-                {t(ASSIGNMENT_LABELS.noCoursesSelected)}
-              </div>
-            ) : (
-              selectedCourses.map(c => (
-                <div
-                  key={c.id}
-                  className="p-2.5 text-left rounded border border-indigo-100 bg-indigo-50/5 flex items-center justify-between"
-                >
-                  <div className="flex flex-col min-w-0 pr-2">
-                    <span className="text-slate-855 font-bold text-sm leading-tight truncate">{c.title}</span>
-                    <span className="text-slate-400 font-mono text-xs mt-0.5 font-bold">{c.code}</span>
-                  </div>
-                  <IconButton
-                    type="button"
-                    onClick={() => handleToggleCourse(c.id)}
-                    icon={X}
-                    tone="danger"
-                    size="sm"
-                    title={t(ASSIGNMENT_LABELS.removeCourse)}
-                  />
+          ) : (
+            selectedCourses.map(c => (
+              <div
+                key={c.id}
+                className="p-2.5 text-left rounded border border-indigo-100 bg-indigo-50/5 flex items-center justify-between"
+              >
+                <div className="flex flex-col min-w-0 pr-2">
+                  <span className="text-slate-855 font-bold text-sm leading-tight truncate">{c.title}</span>
+                  <span className="text-slate-400 font-mono text-xs mt-0.5 font-bold">{c.code}</span>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
+                <IconButton
+                  type="button"
+                  onClick={() => handleToggleCourse(c.id)}
+                  icon={X}
+                  tone="danger"
+                  size="sm"
+                  title={t(ASSIGNMENT_LABELS.removeCourse)}
+                />
+              </div>
+            ))
+          )}
+        </WizardSelectionPanel>
       </div>
     </div>
   )
