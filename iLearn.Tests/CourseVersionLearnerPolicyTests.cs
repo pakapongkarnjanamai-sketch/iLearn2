@@ -60,6 +60,26 @@ namespace iLearn.Tests
         }
 
         [Fact]
+        public async Task CreateVersionAsync_UsesInjectedClockForCreatedAtOnVersionAndContentLink()
+        {
+            var harness = CreatePolicyHarness();
+
+            var version = await harness.Service.CreateVersionAsync(10, new CreateCourseVersionDto
+            {
+                Note = "Version 2",
+                IsActive = false,
+                ContentItemIds = [500],
+                ContentTypeIds = [1]
+            }, []);
+
+            var createdVersion = harness.Versions.Items.Single(v => v.Id == version.Id);
+            var createdContentLink = harness.CourseContentItems.Items.Single(ci => ci.CourseVersionId == version.Id && ci.ContentItemId == 500);
+
+            Assert.Equal(Now, createdVersion.CreatedAt);
+            Assert.Equal(Now, createdContentLink.CreatedAt);
+        }
+
+        [Fact]
         public async Task SetActiveVersionAsync_ResetInProgress_MovesOpenLearnersAndKeepsCompleted()
         {
             var harness = CreatePolicyHarness(includeInactiveVersion: true);
@@ -277,7 +297,7 @@ namespace iLearn.Tests
                 new FakeDateTime(Now),
                 unitOfWork);
 
-            return new CourseVersionPolicyHarness(service, versionRepo, contentItemRepo, enrollmentRepo, scormService);
+            return new CourseVersionPolicyHarness(service, versionRepo, courseContentItemRepo, contentItemRepo, enrollmentRepo, scormService);
         }
 
         private static EnrollmentAssignment CreateLink(int enrollmentId, Enrollment enrollment, Assignment assignment)
@@ -297,6 +317,7 @@ namespace iLearn.Tests
         private sealed record CourseVersionPolicyHarness(
             CourseVersionService Service,
             InMemoryGenericRepository<CourseVersion> Versions,
+            InMemoryGenericRepository<CourseContentItem> CourseContentItems,
             InMemoryGenericRepository<ContentItem> ContentItems,
             InMemoryGenericRepository<Enrollment> Enrollments,
             FakeScormService ScormService);

@@ -197,7 +197,7 @@ namespace iLearn.Application.Services
                 VersionNumber = nextVersionNumber,
                 Note = model.Note,
                 IsActive = false,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = _dateTime.Now
             };
 
             await _versionRepository.AddAsync(newVersion);
@@ -578,7 +578,7 @@ namespace iLearn.Application.Services
                     CourseVersionId = versionId,
                     ContentItemId = contentItemId,
                     Order = orderIndex++,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = _dateTime.Now
                 };
                 await _courseContentItemRepository.AddAsync(courseContentItem);
             }
