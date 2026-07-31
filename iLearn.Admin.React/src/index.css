@@ -121,6 +121,142 @@ select.wiz-input {
   background-color: #94a3b8;
 }
 
+/* Keep the third-party Gantt theme contained to the assignment schedule route. */
+.svar-assignment-gantt {
+  --wx-gantt-border: 1px solid #e2e8f0;
+  --wx-gantt-bar-border-radius: 4px;
+  --wx-gantt-bar-shadow: none;
+  --wx-gantt-holiday-background: #f8fafc;
+  --wx-gantt-holiday-color: #64748b;
+  --wx-grid-header-font: 700 11px/1.25 "Inter", "Noto Sans Thai", sans-serif;
+  --wx-grid-header-font-color: #475569;
+  --wx-grid-header-text-transform: uppercase;
+  --wx-grid-body-font: 500 12px/1.3 "Inter", "Noto Sans Thai", sans-serif;
+  --wx-grid-body-font-color: #334155;
+  --wx-timescale-font: 600 11px/1.25 "Inter", "Noto Sans Thai", sans-serif;
+  --wx-timescale-font-color: #475569;
+  --wx-timescale-border: 1px solid #e2e8f0;
+}
+
+/* Willow wraps the chart in two plain `display:block` theme divs that do not pass a
+   height down. Closing that chain is all the card-fill this needs — SVAR's own
+   `.wx-layout`/`.wx-gantt` rules already handle the rest, and overriding them
+   (e.g. forcing flex-direction: column) collapses the chart pane to zero height. */
+.svar-assignment-gantt,
+.svar-assignment-gantt .wx-theme,
+.svar-assignment-gantt .wx-gantt {
+  height: 100%;
+  min-height: 0;
+}
+
+.svar-assignment-gantt .wx-progress-wrapper {
+  display: none;
+}
+
+/* SVAR sizes bar boxes inline from cellHeight, so height here would be ignored —
+   the inner .gantt-task-content fills the box instead. overflow:visible is what
+   lets a short bar print its label outside itself. */
+.svar-assignment-gantt .wx-bar.wx-task {
+  box-shadow: none;
+  cursor: pointer;
+  overflow: visible;
+}
+
+.svar-assignment-gantt .wx-row:hover {
+  background: #f1f5f9;
+}
+
+/* highlightTime classes land on two different elements: the timescale header cell
+   (normal flow) and a band in the chart body. Only the body band may be positioned —
+   absolutely positioning the header cell tears it out of the scale row. */
+.svar-assignment-gantt .gantt-weekend-cell {
+  background: #f8fafc;
+}
+
+.svar-assignment-gantt .gantt-today-cell {
+  border-left: 2px solid #dc2626;
+  background: rgba(220, 38, 38, 0.05);
+}
+
+.svar-assignment-gantt .wx-gantt-holidays .gantt-weekend-cell,
+.svar-assignment-gantt .wx-gantt-holidays .gantt-today-cell {
+  position: absolute;
+  height: 100%;
+}
+
+.svar-assignment-gantt .gantt-assignment-cell {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+}
+
+.svar-assignment-gantt .gantt-assignment-rail {
+  flex: 0 0 3px;
+}
+
+.svar-assignment-gantt .gantt-assignment-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  padding: 0 10px;
+}
+
+.svar-assignment-gantt .gantt-assignment-no,
+.svar-assignment-gantt .gantt-assignment-description {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.svar-assignment-gantt .gantt-assignment-no {
+  color: #334155;
+  font: 600 12px/1.2 "Inter", "Noto Sans Thai", sans-serif;
+}
+
+.svar-assignment-gantt .gantt-assignment-description {
+  color: #64748b;
+  font: 500 11px/1.2 "Inter", "Noto Sans Thai", sans-serif;
+}
+
+.svar-assignment-gantt .gantt-task-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  overflow: visible;
+  border-left: 3px solid transparent;
+  border-radius: 4px;
+  color: #fff;
+  font: 600 11px/1 "Inter", "Noto Sans Thai", sans-serif;
+}
+
+.svar-assignment-gantt .gantt-task-label {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 7px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.svar-assignment-gantt .gantt-task-short-label {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 6px);
+  z-index: 3;
+  transform: translateY(-50%);
+  color: #475569;
+  white-space: nowrap;
+  font: 600 11px/1 "Inter", "Noto Sans Thai", sans-serif;
+}
+
 @layer base {
   html {
     scrollbar-gutter: auto;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { CalendarClock } from 'lucide-react'
 import { AppButton } from '../../components/ui/AppButton'
 import { DataGridSurface } from '../../components/ui/DataGridSurface'
@@ -8,9 +8,13 @@ import { fetchWithAccessControl } from '../../lib/apiClient'
 import { formatNumber } from '../../lib/format'
 import { toast } from '../../lib/toast'
 import { ASSIGNMENT_LABELS, COMMON_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
-import { GanttChart } from './gantt/GanttChart'
-import { buildTimeline, getDefaultZoom, type GanttTask, type GanttZoom } from './gantt/ganttScale'
+import { getDefaultZoom, type GanttTask, type GanttZoom } from './gantt/svarGanttMapping'
 import { ganttStatusBarClass } from './gantt/ganttStatus'
+import type { AssignmentSvarGanttChartHandle } from './gantt/AssignmentSvarGanttChart'
+
+const AssignmentSvarGanttChart = lazy(() =>
+  import('./gantt/AssignmentSvarGanttChart').then((module) => ({ default: module.AssignmentSvarGanttChart })),
+)
 
 const STATUS_FILTERS = ['All', 'InProgress', 'Upcoming', 'Completed', 'Expired'] as const
 type StatusFilter = (typeof STATUS_FILTERS)[number]
@@ -28,14 +32,12 @@ const buildCounts = (items: GanttTask[]) => items.reduce<Record<StatusFilter, nu
   { All: 0, InProgress: 0, Upcoming: 0, Completed: 0, Expired: 0 },
 )
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
-
 export function AssignmentGanttPage() {
   const [loading, setLoading] = useState(true)
   const [tasks, setTasks] = useState<GanttTask[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('All')
   const [zoom, setZoom] = useState<GanttZoom>('week')
-  const scrollerRef = useRef<HTMLDivElement | null>(null)
+  const svarChartRef = useRef<AssignmentSvarGanttChartHandle | null>(null)
   const hasCenteredTodayRef = useRef(false)
 
   useEffect(() => {
@@ -56,28 +58,12 @@ export function AssignmentGanttPage() {
     }
   }, [])
 
-  const timeline = useMemo(() => buildTimeline(tasks, zoom), [tasks, zoom])
-
-  const centerToday = useCallback((smooth: boolean) => {
-    const scroller = scrollerRef.current
-    if (!scroller) return
-
-    const markerX = timeline.todayOffsetDays * timeline.pxPerDay + timeline.pxPerDay / 2
-    const targetLeft = markerX - scroller.clientWidth / 2
-    const maxScrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth)
-    const nextLeft = clamp(targetLeft, 0, maxScrollLeft)
-
-    scroller.scrollTo({
-      left: nextLeft,
-      behavior: smooth ? 'smooth' : 'auto',
-    })
-  }, [timeline.pxPerDay, timeline.todayOffsetDays])
-
-  useEffect(() => {
-    if (loading || tasks.length === 0 || hasCenteredTodayRef.current) return
-    centerToday(false)
-    hasCenteredTodayRef.current = true
-  }, [centerToday, loading, tasks])
+  const handleSvarReady = () => {
+    if (!hasCenteredTodayRef.current && tasks.length > 0) {
+      svarChartRef.current?.scrollToToday()
+      hasCenteredTodayRef.current = true
+    }
+  }
 
   const counts = useMemo(() => buildCounts(tasks), [tasks])
 
@@ -121,16 +107,12 @@ export function AssignmentGanttPage() {
             onChange={setZoom}
             options={zoomOptions}
           />
-          <AppButton variant="secondary" icon={CalendarClock} onClick={() => centerToday(true)}>
+          <AppButton variant="secondary" icon={CalendarClock} onClick={() => svarChartRef.current?.scrollToToday()}>
             {t(ASSIGNMENT_LABELS.today)}
           </AppButton>
         </div>
       }
     >
-      {/* min-w-0 is load-bearing: as a flex item with visible overflow its automatic
-          minimum size is min-content, which the timeline's fixed px columns blow up to
-          the full chart width — the layout then stretches past the card instead of
-          letting the scroller clip and scroll. */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 pt-2">
         <SegmentedToggle
           variant="filter"
@@ -168,7 +150,9 @@ export function AssignmentGanttPage() {
                 </div>
               )}
             </div>
-            <GanttChart tasks={filtered} timeline={timeline} zoom={zoom} scrollerRef={scrollerRef} />
+            <Suspense fallback={<LoadingState size="section" />}>
+              <AssignmentSvarGanttChart ref={svarChartRef} tasks={filtered} zoom={zoom} onReady={handleSvarReady} />
+            </Suspense>
           </div>
         )}
       </div>

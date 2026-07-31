@@ -1,16 +1,20 @@
-// Solid fills for Gantt bars and their legend swatches — one source of truth so the
-// two can never drift. Tones follow STATUS_TONES (lib/labels): info / warning /
-// success / danger / neutral. Badge's own classes are soft (bg-*-50 + text-*-700)
-// and unreadable as a bar fill, hence the separate solid map rather than reusing it.
-const STATUS_BAR_CLASS: Record<string, string> = {
-  InProgress: 'bg-indigo-600',
-  Upcoming: 'bg-amber-600',
-  Completed: 'bg-emerald-600',
-  Expired: 'bg-red-600',
-  NotStarted: 'bg-slate-400',
+// Solid fills for Gantt bars and their legend swatches. The hex values are also
+// consumed by SVAR's inline task template, so status color cannot drift by renderer.
+const STATUS_BAR_STYLE: Record<string, { className: string; hex: string; borderHex: string }> = {
+  InProgress: { className: 'bg-indigo-600', hex: '#4f46e5', borderHex: '#4338ca' },
+  Upcoming: { className: 'bg-amber-600', hex: '#d97706', borderHex: '#b45309' },
+  Completed: { className: 'bg-emerald-600', hex: '#059669', borderHex: '#047857' },
+  Expired: { className: 'bg-red-600', hex: '#dc2626', borderHex: '#b91c1c' },
+  NotStarted: { className: 'bg-slate-400', hex: '#94a3b8', borderHex: '#64748b' },
 }
 
-const FALLBACK_BAR_CLASS = 'bg-slate-500'
+const FALLBACK_BAR_STYLE = { className: 'bg-slate-500', hex: '#64748b', borderHex: '#475569' }
 
 export const ganttStatusBarClass = (status: string) =>
-  STATUS_BAR_CLASS[status] ?? FALLBACK_BAR_CLASS
+  (STATUS_BAR_STYLE[status] ?? FALLBACK_BAR_STYLE).className
+
+export const ganttStatusHex = (status: string) =>
+  (STATUS_BAR_STYLE[status] ?? FALLBACK_BAR_STYLE).hex
+
+export const ganttStatusBorderHex = (status: string) =>
+  (STATUS_BAR_STYLE[status] ?? FALLBACK_BAR_STYLE).borderHex

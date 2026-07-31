@@ -19,6 +19,11 @@ const fixedDigitsNumberFormatters = new Map<number, Intl.NumberFormat>()
 
 const byteUnits = ['B', 'KB', 'MB', 'GB'] as const
 
+const getUiDateLocale = () => (getLang() === 'th' ? 'th-TH-u-ca-gregory' : 'en-GB')
+
+const formatUiDatePart = (value: Date | string, options: Intl.DateTimeFormatOptions) =>
+  new Intl.DateTimeFormat(getUiDateLocale(), options).format(new Date(value))
+
 function normalizeFractionDigits(value: number) {
   if (!Number.isFinite(value)) return 0
   const floored = Math.trunc(value)
@@ -53,6 +58,18 @@ export const formatDateTime = (value: Date | string | null | undefined) => {
 
   return dateTimeFormatter.format(new Date(value))
 }
+
+export const formatMonthYear = (value: Date | string) =>
+  formatUiDatePart(value, { month: 'long', year: 'numeric' })
+
+export const formatMonthShort = (value: Date | string) =>
+  formatUiDatePart(value, { month: 'short' })
+
+export const formatYear = (value: Date | string) =>
+  formatUiDatePart(value, { year: 'numeric' })
+
+export const formatDayOfMonth = (value: Date | string) =>
+  formatUiDatePart(value, { day: 'numeric' })
 
 export const formatNumber = (value: number | null | undefined, fractionDigits?: number) => {
   if (value === null || value === undefined || !Number.isFinite(value)) {
