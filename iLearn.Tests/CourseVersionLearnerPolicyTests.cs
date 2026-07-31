@@ -106,6 +106,31 @@ namespace iLearn.Tests
         }
 
         [Fact]
+        public async Task ApplyLearnerPolicyToActiveVersionAsync_MoveNotStarted_MovesEligibleLearnersAfterVersionIsAlreadyActive()
+        {
+            var harness = CreatePolicyHarness(includeInactiveVersion: true);
+            harness.Versions.Items.Single(v => v.Id == 100).IsActive = false;
+            harness.Versions.Items.Single(v => v.Id == 101).IsActive = true;
+
+            await harness.Service.ApplyLearnerPolicyToActiveVersionAsync(10, 101, CourseVersionLearnerPolicy.MoveNotStarted);
+
+            var notStarted = harness.Enrollments.Items.Single(e => e.Id == 1);
+            var inProgressByProgress = harness.Enrollments.Items.Single(e => e.Id == 2);
+            var completed = harness.Enrollments.Items.Single(e => e.Id == 3);
+            var upcoming = harness.Enrollments.Items.Single(e => e.Id == 4);
+            var notAssigned = harness.Enrollments.Items.Single(e => e.Id == 5);
+            var inProgressByLog = harness.Enrollments.Items.Single(e => e.Id == 6);
+
+            Assert.Equal(101, notStarted.EnrolledCourseVersion);
+            Assert.NotNull(notStarted.ResetAt);
+            Assert.Equal(100, inProgressByProgress.EnrolledCourseVersion);
+            Assert.Equal(100, completed.EnrolledCourseVersion);
+            Assert.Equal(100, upcoming.EnrolledCourseVersion);
+            Assert.Equal(100, notAssigned.EnrolledCourseVersion);
+            Assert.Equal(100, inProgressByLog.EnrolledCourseVersion);
+        }
+
+        [Fact]
         public async Task CreateVersionAsync_ActiveVersionWithUnreadyContentItem_RejectsBeforeMovingLearners()
         {
             var harness = CreatePolicyHarness(contentItemReady: false);

@@ -23,6 +23,11 @@ namespace iLearn.Application.Common
                 return new ContentItemReadinessIssue(contentItemId, $"Content item {contentItemId}", "content item record is missing");
             }
 
+            if (contentItem.IsDeleted)
+            {
+                return new ContentItemReadinessIssue(contentItem.Id, contentItem.Name, "content item is deleted");
+            }
+
             if (!contentItem.IsActive)
             {
                 return new ContentItemReadinessIssue(contentItem.Id, contentItem.Name, "content item is not published");
@@ -48,7 +53,9 @@ namespace iLearn.Application.Common
                 return false;
             }
 
-            var contentItems = courseContentItems.ToList();
+            var contentItems = courseContentItems
+                .Where(cr => !cr.IsDeleted)
+                .ToList();
             return contentItems.Count > 0 && contentItems.All(cr => IsContentItemReady(cr.ContentItem));
         }
 

@@ -572,6 +572,42 @@ namespace iLearn.API.Controllers
             }
         }
 
+        [HttpPost("{courseId}/versions/{versionId}/apply-learner-policy")]
+        public async Task<IActionResult> ApplyLearnerPolicyToActiveVersion(
+            int courseId,
+            int versionId,
+            [FromBody] CourseVersionLearnerPolicyDto dto)
+        {
+            try
+            {
+                await _versionService.ApplyLearnerPolicyToActiveVersionAsync(
+                    courseId,
+                    versionId,
+                    dto.Policy);
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Learner version policy applied successfully."
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
+            }
+        }
+
         // ── Learners enrolled in a specific course ─────────────────────────
         [HttpGet("{courseId}/learners")]
         public async Task<IActionResult> GetCourseLearners(int courseId)

@@ -397,6 +397,22 @@ namespace iLearn.Application.Services
             }
         }
 
+        public async Task ApplyLearnerPolicyToActiveVersionAsync(
+            int courseId,
+            int versionId,
+            CourseVersionLearnerPolicy learnerPolicy)
+        {
+            var version = await _versionRepository.GetByIdAsync(versionId);
+            if (version == null || version.CourseId != courseId)
+                throw new KeyNotFoundException($"Version ID: {versionId} not found.");
+
+            if (!version.IsActive)
+                throw new InvalidOperationException("Learner policy can only be applied to the active course version.");
+
+            await EnsureVersionReadyForActivationAsync(versionId);
+            await ApplyLearnerVersionPolicyAsync(courseId, versionId, learnerPolicy);
+        }
+
         private async Task ApplyLearnerVersionPolicyAsync(
             int courseId,
             int versionId,

@@ -217,6 +217,7 @@ namespace iLearn.Tests
             public Task<CourseVersionDto> UpdateVersionAsync(int versionId, CreateCourseVersionDto model, List<Microsoft.AspNetCore.Http.IFormFile> files) => throw new NotSupportedException();
             public Task DeleteVersionAsync(int versionId) => throw new NotSupportedException();
             public Task SetActiveVersionAsync(int courseId, int versionId, CourseVersionLearnerPolicy learnerPolicy = CourseVersionLearnerPolicy.NewLearnersOnly) => throw new NotSupportedException();
+            public Task ApplyLearnerPolicyToActiveVersionAsync(int courseId, int versionId, CourseVersionLearnerPolicy learnerPolicy) => throw new NotSupportedException();
         }
 
         private sealed class FakeCourseAssignmentService : ICourseAssignmentService

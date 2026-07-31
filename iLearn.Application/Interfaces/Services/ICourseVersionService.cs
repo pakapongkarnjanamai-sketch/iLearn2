@@ -24,5 +24,6 @@ namespace iLearn.Application.Interfaces.Services
 
         // Version Management
         Task SetActiveVersionAsync(int courseId, int versionId, CourseVersionLearnerPolicy learnerPolicy = CourseVersionLearnerPolicy.NewLearnersOnly);
+        Task ApplyLearnerPolicyToActiveVersionAsync(int courseId, int versionId, CourseVersionLearnerPolicy learnerPolicy);
     }
 }

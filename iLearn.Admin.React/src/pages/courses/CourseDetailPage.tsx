@@ -13,6 +13,7 @@ import {
   Power,
   Lock,
   BookOpen,
+  RefreshCw,
   X
 } from 'lucide-react'
 import { fetchWithAccessControl } from '../../lib/apiClient'
@@ -150,6 +151,19 @@ type CourseEditFormData = {
   courseType: number
 }
 
+type LearnerVersionPolicy = 'MoveNotStarted' | 'ResetInProgress'
+type VersionPolicyAction = 'set-active' | 'apply-active'
+
+type VersionImpact = {
+  courseId: number
+  notStartedCount: number
+  inProgressCount: number
+  completedCount: number
+  otherOpenCount: number
+  eligibleOpenCount: number
+  hasEligibleOpenLearners: boolean
+}
+
 const unwrapList = <T,>(value: LookupResult<T> | undefined): T[] => {
   if (!value) return []
   return Array.isArray(value) ? value : value.data ?? []
@@ -226,6 +240,13 @@ export function CourseDetailPage() {
 
   const [showEditPropertiesModal, setShowEditPropertiesModal] = useState(false)
   const [savingProperties, setSavingProperties] = useState(false)
+  const [showApplyPolicyModal, setShowApplyPolicyModal] = useState(false)
+  const [loadingVersionImpact, setLoadingVersionImpact] = useState(false)
+  const [applyingVersionPolicy, setApplyingVersionPolicy] = useState(false)
+  const [versionImpact, setVersionImpact] = useState<VersionImpact | null>(null)
+  const [learnerVersionPolicy, setLearnerVersionPolicy] = useState<LearnerVersionPolicy>('MoveNotStarted')
+  const [versionPolicyAction, setVersionPolicyAction] = useState<VersionPolicyAction>('set-active')
+  const [selectedPolicyVersion, setSelectedPolicyVersion] = useState<CourseVersion | null>(null)
   const [editForm, setEditForm] = useState<CourseEditFormData>({
     courseCode: '',
     courseName: '',
@@ -428,6 +449,61 @@ export function CourseDetailPage() {
     }
   }
 
+  const openVersionPolicyModal = async (version: CourseVersion, action: VersionPolicyAction) => {
+    if (!data || !id) return
+
+    setSelectedPolicyVersion(version)
+    setVersionPolicyAction(action)
+    setLearnerVersionPolicy('MoveNotStarted')
+    setVersionImpact(null)
+    setShowApplyPolicyModal(true)
+    setLoadingVersionImpact(true)
+    try {
+      const resp = await fetchWithAccessControl<{ success: boolean; data: VersionImpact }>(`Courses/${id}/version-impact`)
+      if (resp.success) {
+        setVersionImpact(resp.data)
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error(t(COURSE_LABELS.failedToLoadVersionImpact))
+    } finally {
+      setLoadingVersionImpact(false)
+    }
+  }
+
+  const handleApplyActiveVersionPolicy = async () => {
+    if (!data || !id) return
+    if (!selectedPolicyVersion) return
+
+    const endpoint = versionPolicyAction === 'set-active'
+      ? `Courses/${id}/versions/${selectedPolicyVersion.id}/set-active`
+      : `Courses/${id}/versions/${selectedPolicyVersion.id}/apply-learner-policy`
+    const method = versionPolicyAction === 'set-active' ? 'PATCH' : 'POST'
+
+    setApplyingVersionPolicy(true)
+    try {
+      const resp = await fetchWithAccessControl<{ success: boolean; message?: string }>(
+        endpoint,
+        {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ policy: learnerVersionPolicy })
+        }
+      )
+      if (resp.success) {
+        toast.success(resp.message || t(versionPolicyAction === 'set-active' ? COURSE_LABELS.activeVersionChanged : COURSE_LABELS.activeVersionApplied))
+        setShowApplyPolicyModal(false)
+        await loadDashboardData()
+        if (hasLoadedLearners) await loadLearners()
+      }
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err?.message || t(COURSE_LABELS.failedToApplyActiveVersion))
+    } finally {
+      setApplyingVersionPolicy(false)
+    }
+  }
+
   // Handle Course Publish / Retire status transitions
   const handleStatusChange = async (targetStatus: number) => {
     setMutatingStatus(true)
@@ -446,24 +522,6 @@ export function CourseDetailPage() {
       toast.error(t(COURSE_LABELS.saveFailed))
     } finally {
       setMutatingStatus(false)
-    }
-  }
-
-  // Version Set Active operation
-  const handleSetActiveVersion = async (versionId: number) => {
-    try {
-      const resp = await fetchWithAccessControl<{ success: boolean; message: string }>(`Courses/${id}/versions/${versionId}/set-active`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ policy: 1 }) // New Learners Only default policy
-      })
-      if (resp.success) {
-        toast.success(resp.message)
-        loadDashboardData()
-      }
-    } catch (err) {
-      console.error(err)
-      toast.error(t(COURSE_LABELS.failedToSwitchActiveVersion))
     }
   }
 
@@ -643,10 +701,19 @@ export function CourseDetailPage() {
                             <div className="inline-flex items-center gap-2">
                               {!v.isActive && (
                                 <IconButton
-                                  onClick={() => handleSetActiveVersion(v.id)}
+                                  onClick={() => openVersionPolicyModal(v, 'set-active')}
                                   icon={Check}
-                                  title="Set active version"
+                                  title={t(COURSE_LABELS.setActiveVersion)}
                                   tone="success"
+                                  size="sm"
+                                />
+                              )}
+                              {v.isActive && (
+                                <IconButton
+                                  onClick={() => openVersionPolicyModal(v, 'apply-active')}
+                                  icon={RefreshCw}
+                                  title={t(COURSE_LABELS.applyActiveVersionToLearners)}
+                                  tone="primary"
                                   size="sm"
                                 />
                               )}
@@ -922,6 +989,87 @@ export function CourseDetailPage() {
             </div>
       </Modal>
 
+      <Modal
+        open={showApplyPolicyModal}
+        onClose={() => !applyingVersionPolicy && setShowApplyPolicyModal(false)}
+        title={t(versionPolicyAction === 'set-active' ? COURSE_LABELS.setActiveVersionTitle : COURSE_LABELS.applyActiveVersion)}
+        ariaLabel={t(versionPolicyAction === 'set-active' ? COURSE_LABELS.setActiveVersionTitle : COURSE_LABELS.applyActiveVersionToLearners)}
+      >
+        <div className="px-6 py-4 space-y-4">
+          <p className="text-xs leading-relaxed text-slate-600">
+            {t(versionPolicyAction === 'set-active' ? COURSE_LABELS.setActiveVersionDescription : COURSE_LABELS.applyActiveVersionDescription)}
+          </p>
+
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+              <div className="text-[10px] font-extrabold uppercase text-slate-400">{learnerStatusLabel('NotStarted')}</div>
+              <div className="mt-1 text-lg font-bold text-slate-900">{loadingVersionImpact ? '…' : (versionImpact?.notStartedCount ?? 0)}</div>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+              <div className="text-[10px] font-extrabold uppercase text-slate-400">{learnerStatusLabel('InProgress')}</div>
+              <div className="mt-1 text-lg font-bold text-slate-900">{loadingVersionImpact ? '…' : (versionImpact?.inProgressCount ?? 0)}</div>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+              <div className="text-[10px] font-extrabold uppercase text-slate-400">{learnerStatusLabel('Completed')}</div>
+              <div className="mt-1 text-lg font-bold text-slate-900">{loadingVersionImpact ? '…' : (versionImpact?.completedCount ?? 0)}</div>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+              <div className="text-[10px] font-extrabold uppercase text-slate-400">{t(COURSE_LABELS.otherOpen)}</div>
+              <div className="mt-1 text-lg font-bold text-slate-900">{loadingVersionImpact ? '…' : (versionImpact?.otherOpenCount ?? 0)}</div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="flex cursor-pointer gap-2.5 rounded-lg border border-slate-200 bg-white p-3 text-xs transition hover:border-slate-300">
+              <input
+                type="radio"
+                name="learnerVersionPolicy"
+                value="MoveNotStarted"
+                checked={learnerVersionPolicy === 'MoveNotStarted'}
+                onChange={() => setLearnerVersionPolicy('MoveNotStarted')}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="block font-bold text-slate-800">{t(COURSE_LABELS.moveNotStartedLearnersOnly)}</span>
+                <span className="block text-slate-500">{t(COURSE_LABELS.moveNotStartedLearnersOnlyNote)}</span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer gap-2.5 rounded-lg border border-red-200 bg-red-50/40 p-3 text-xs transition hover:border-red-300">
+              <input
+                type="radio"
+                name="learnerVersionPolicy"
+                value="ResetInProgress"
+                checked={learnerVersionPolicy === 'ResetInProgress'}
+                onChange={() => setLearnerVersionPolicy('ResetInProgress')}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="block font-bold text-red-700">{t(COURSE_LABELS.resetInProgressLearners)}</span>
+                <span className="block text-red-600">{t(COURSE_LABELS.resetInProgressLearnersNote)}</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/50 px-6 py-4">
+          <AppButton
+            variant="ghost"
+            onClick={() => setShowApplyPolicyModal(false)}
+            disabled={applyingVersionPolicy}
+          >
+            Cancel
+          </AppButton>
+          <AppButton
+            variant={learnerVersionPolicy === 'ResetInProgress' ? 'danger' : 'primary'}
+            loading={applyingVersionPolicy}
+            disabled={loadingVersionImpact || (versionPolicyAction === 'apply-active' && !versionImpact?.hasEligibleOpenLearners)}
+            onClick={handleApplyActiveVersionPolicy}
+          >
+            {t(versionPolicyAction === 'set-active' ? COURSE_LABELS.setActiveVersionTitle : COURSE_LABELS.applyActiveVersion)}
+          </AppButton>
+        </div>
+      </Modal>
+
       {confirmDialog}
     </>
   )
@@ -951,7 +1099,7 @@ function CourseControls({
   return (
     <ControlsSidebar>
       <ControlAction to={`/courses/${courseId}/version/new`} icon={Plus}>
-        Add Version Package
+        {t(COURSE_LABELS.addVersionPackage)}
       </ControlAction>
       <ControlAction
         to={`/assignments/bulk?courseId=${courseId}`}

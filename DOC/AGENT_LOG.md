@@ -24,6 +24,29 @@ Format ต่อ entry:
 
 ---
 
+- ทำอะไร: ย้าย `Apply Active Version` ออกจาก Controls sidebar ไปอยู่ใน action ของตาราง Versions; inactive version เปิด modal `Set Active Version`, active version เปิด modal `Apply Active Version`; เปลี่ยนชื่อปุ่ม `Add Version Package` เป็น `Add Version`; ย้ายข้อความใหม่ทั้งหมดเข้า `COURSE_LABELS` สองภาษา
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/lib/labels.ts`, `DOC/PLANS/PLAN-186-*.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (UI เท่านั้น ใช้ endpoint จาก PLAN-183)
+- Verified: React lint/build ✓; QA deploy `index-4zpVvMiX.js` ✓; PROD deploy `index-4zpVvMiX.js` ✓; PROD `/courses/893` = 200; Playwright เห็นไทย `เพิ่มเวอร์ชัน` + EN `Add Version` และไม่พบ label เก่า `Add Version Package`
+
+## [2026-07-31] GitHub Copilot — PLAN-185 technical debt plan for ignored query filters
+- ทำอะไร: สร้างแผน READY สำหรับ audit จุดใช้ `ignoreQueryFilters: true` / `.IgnoreQueryFilters()` ที่อาจเอา soft-deleted data ไปตัดสิน current state ต่อจาก incident PLAN-184
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-185-audit-ignore-query-filter-current-state.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผน technical debt เท่านั้น)
+- Verified: `pwsh tools/plan-status.ps1 -Next` ได้ `PLAN-185`; grep พบ 8 source areas สำหรับ audit; ยังไม่ได้แก้ runtime code
+
+## [2026-07-31] GitHub Copilot — PLAN-184 MyLearning KSN hidden by soft-deleted content link
+- ทำอะไร: แก้ `หลักสูตรของฉัน` ซ่อน KSN ทั้งที่ player-info เปิดได้ โดยปรับ `CourseContentReadiness` ให้ ignore soft-deleted `CourseContentItem` links และถือ soft-deleted `ContentItem` เป็น not ready; เพิ่ม regression tests
+- ไฟล์หลักที่แตะ: `iLearn.Application/Common/CourseContentReadiness.cs`, `iLearn.Tests/CourseContentReadinessTests.cs`, `DOC/PLANS/PLAN-184-*.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี; readiness semantics ignore soft-deleted course-content links when caller loads with ignored query filters
+- Verified: focused CourseContentReadiness tests 2/2 ✓; QA API `20260731130531` ✓; PROD API `20260731130652` ✓; production learner `430263` my-courses count 2→3 and `HasKSN=True`
+
+## [2026-07-31] GitHub Copilot — PLAN-183 Apply active version to learners action
+- ทำอะไร: เพิ่ม Admin action ชัดเจนบน Course detail สำหรับ apply active version ให้ eligible learners พร้อม modal แสดง impact + policy (`MoveNotStarted` / `ResetInProgress`); เพิ่ม backend endpoint สำหรับ active version ที่ active อยู่แล้ว
+- ไฟล์หลักที่แตะ: `iLearn.API/Controllers/CoursesController.cs`, `iLearn.Application/{Interfaces/Services/ICourseVersionService.cs,Services/CourseVersionService.cs}`, `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Tests/{CourseVersionLearnerPolicyTests.cs,CourseServiceVisibilityTests.cs}`, `DOC/PLANS/PLAN-183-*.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): เพิ่ม `POST /api/Courses/{courseId}/versions/{versionId}/apply-learner-policy`; ไม่เปลี่ยน DB/DTO เดิม; learner จะย้าย version เฉพาะเมื่อ Admin กด action และเลือก policy
+- Verified: focused CourseVersion learner policy tests 9/9 ✓; React lint/build ✓; QA API `20260731125309` + React `index-T-I3M-Xy.js` ✓; PROD API `20260731125509` + React `index-T-I3M-Xy.js` ✓; no-op smoke ไม่ย้าย learner 431420, Playwright เห็นปุ่ม `Apply Active Version`
+
 ## [2026-07-31] GitHub Copilot — PLAN-182 Content Library Admin rights parity
 - ทำอะไร: แก้สิทธิหน้า content detail/list/editor ให้ Admin ใช้งานเท่า SuperAdmin สำหรับ content item ปกติ: เปิด route upload/edit, แสดงปุ่ม edit metadata/publish/unpublish/delete และเปลี่ยน backend mutation endpoints จาก `SuperAdminOnly` เป็น `AdminOnly`
 - ไฟล์หลักที่แตะ: `iLearn.API/Controllers/{ContentItemsController.cs,Base/ContentItemsCRUDController.cs}`, `iLearn.Admin.React/src/{App.tsx,pages/EntityListPage.tsx,pages/content-library/ContentItemDetailPage.tsx}`, `iLearn.Tests/{ContentItemsControllerTests.cs,ContentItemsCrudControllerTests.cs}`, `DOC/PLANS/PLAN-182-*.md`, `DOC/AGENT_LOG.md`
