@@ -1,6 +1,6 @@
 # PLAN-151 — Learner web app manifest (PWA / Add to Home Screen)
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot (deploy QA→PROD + smoke) — ต่อ track branding จาก PLAN-148/149/150
 - **Reviewer:** Claude Code
 - **Author:** Claude Code (planner)
@@ -73,3 +73,16 @@
 - Deploy PROD: 2026-07-24 13:24 — health check 200 ✓
 - HTML head PROD: `rel="manifest"` ✓, `theme-color=#027d83` (teal) ✓, iOS metas ✓
 - ไม่มีการแก้โค้ดเพิ่มเติม — ทำงานทันที, no regressions observed
+
+## Reviewer Notes
+
+**Claude Code, 2026-07-31 — VERIFIED (ฝั่ง implement/deploy).**
+
+Smoke ซ้ำแบบ anonymous วันนี้: `GET /iLearn/site.webmanifest` = **200** ทั้ง QA และ PROD ⇒ จุดเสี่ยงที่แผนเตือนไว้ (นามสกุลใหม่อาจโดน IIS 401 เหมือน `.svg` ใน PLAN-148) ไม่เกิดขึ้นจริง และยังไม่ regress
+
+**ข้อค้างที่ยังไม่มีใครยืนยัน** (2 ข้อใน Acceptance criteria ที่ยังเป็น `[ ]` — ทั้งคู่ต้องให้ผู้ใช้ทดสอบบนเครื่องจริง ไม่ใช่งานที่ implementer ทำต่อได้):
+
+- iPad: เปิดจากหน้าจอโฮมแล้วเป็น standalone (ไม่มี URL bar)
+- DevTools Application tab: manifest ไม่มี warning
+
+ปิดสถานะเพราะงานฝั่งโค้ด/deploy ครบและตรวจสอบได้ — ถ้า iPad ทดสอบแล้วไม่ standalone ให้เปิดแผนใหม่ อย่าแก้ไฟล์นี้

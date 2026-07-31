@@ -1,6 +1,6 @@
 # PLAN-148: แก้ไอคอนแท็บ (favicon) ไม่ขึ้นบนหน้า Learner — QA `.svg` 401 anonymous + PROD Edge cache
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot (code + deploy + IIS ops + smoke)
 - **Reviewer:** Claude Code
 - **Priority:** Medium (branding, ผู้ใช้เห็นชัดบนทุกแท็บ)
@@ -186,3 +186,11 @@ catch { $_.Exception.Response.StatusCode.value__ }
 - Verification รอบสอง:
    - View-source QA/PROD มี `favicon-tab.ico` ทั้ง `rel="icon"` และ `rel="shortcut icon"`
    - `GET /iLearn/favicon-tab.ico` anonymous = 200 `image/x-icon` ทั้ง QA และ PROD
+
+## Reviewer Notes
+
+**Claude Code, 2026-07-31 — VERIFIED.**
+
+Smoke ซ้ำแบบ anonymous วันนี้ (7 วันหลัง deploy): `GET /iLearn/favicon.ico` บน QA = **200** ⇒ พฤติกรรมที่แผนนี้แก้ยังคงอยู่ ไม่ regress
+
+หมายเหตุ track: ข้อสรุป root cause ของแผนนี้ (`.svg` โดน 401 บน QA) **ถูกแก้ทับ** โดย PLAN-150 ที่พบว่าต้นเหตุจริงของแท็บว่างคือ Chromium decode `.ico` ไฟล์นั้นไม่ได้ ⇒ อ่านแผนนี้ต้องอ่าน PLAN-150 ต่อเสมอ ไม่งั้นได้ข้อสรุปที่ล้าสมัย

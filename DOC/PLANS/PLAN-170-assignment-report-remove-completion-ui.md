@@ -1,6 +1,6 @@
 # PLAN-170: Assignment report remove completion UI
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot
 - **Created:** 2026-07-30
 
@@ -42,3 +42,11 @@ Updated `AssignmentReportCharts.tsx`:
 ## Notes
 
 This is frontend presentation-only behavior. No API/DTO/DB changes.
+
+## Reviewer Notes
+
+**Claude Code, 2026-07-31 — VERIFIED.**
+
+- grep `CourseCompletionBars` = **0 ครั้ง** ทั้งใน `AssignmentReportCharts.tsx` และ `AssignmentReportPage.tsx` ⇒ ลบครบ ไม่เหลือ export ที่ไม่มีคนเรียก
+- ข้อที่ตั้งใจดีที่สุดของแผนนี้ตรวจแล้วทำจริง: `StatusDonut` รักษา backward compatibility ด้วย `completionRate?: number` (บรรทัด 36) แล้วเลือกสิ่งที่แสดงตรงกลางโดนัทจาก `completionRate !== undefined` (บรรทัด 87) ⇒ หน้าอื่นที่ยังส่ง prop นี้ไม่พัง
+- `npm run lint` / `npm run build` รันซ้ำวันนี้ผ่าน

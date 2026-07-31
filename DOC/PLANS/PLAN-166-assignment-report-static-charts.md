@@ -1,6 +1,6 @@
 # PLAN-166: Assignment report static charts
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot
 - **Created:** 2026-07-30
 
@@ -43,3 +43,15 @@ This is frontend presentation only. Active filter dimming remains data-driven by
 ## Follow-Up Fix
 
 QA still showed a black focus rectangle after the initial tooltip follow-up. Recharts `Pie` owns a separate `rootTabIndex` prop that defaults to `0`, so the sector wrapper could still receive focus even with chart-level accessibility disabled. The final fix sets `rootTabIndex={-1}` and extends scoped outline suppression to all focused SVG descendants inside the chart wrapper.
+
+## Reviewer Notes
+
+**Claude Code, 2026-07-31 — VERIFIED.**
+
+ตรวจ `AssignmentReportCharts.tsx` พบครบตามที่ Implementation ระบุ:
+
+- `accessibilityLayer={false}` บน chart root (บรรทัด 52)
+- `isAnimationActive={false}` สองจุด (บรรทัด 56, 72)
+- `rootTabIndex={-1}` บน `Pie` (บรรทัด 73) — จุดนี้คือ root cause จริงของกรอบโฟกัสสีดำที่ QA ยังเจอหลังรอบแรก และถูกบันทึกไว้ในหัวข้อ Follow-Up Fix ของแผนอย่างถูกต้อง
+
+`npm run lint` / `npm run build` รันซ้ำวันนี้ผ่าน. หมายเหตุ: `CourseCompletionBars` ที่แผนนี้แก้ ถูกลบทิ้งภายหลังโดย PLAN-170 ⇒ การแก้ที่ยังมีผลจริงตอนนี้เหลือเฉพาะฝั่ง `StatusDonut`

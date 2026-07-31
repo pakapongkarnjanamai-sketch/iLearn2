@@ -1,6 +1,6 @@
 # PLAN-164: Bulk Assign wizard selection panel radius hardening
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot
 - **Created:** 2026-07-30
 
@@ -45,3 +45,13 @@ The local root cause was not data or browser rendering. The panel hand-rolled a 
 ## Follow-Up
 
 - If another wizard needs a selectable left/right list panel, use `WizardSelectionPanel` instead of copying rounded-container/header markup.
+
+## Reviewer Notes
+
+**Claude Code, 2026-07-31 — VERIFIED.**
+
+- `src/components/ui/WizardSelectionPanel.tsx` มีอยู่จริง และบรรทัดที่ 30 ถือ visual contract ครบตามที่แผนระบุ: `rounded-lg` + `border border-slate-200` + `bg-white` + `overflow-hidden` + `min-h-0`
+- `BulkAssignPage.tsx` อ้าง `WizardSelectionPanel` 5 ครั้ง ⇒ ทั้งสอง panel ย้ายมาใช้ primitive เดียวกันจริง ไม่เหลือ container hand-rolled
+- `npm run lint` / `npm run build` รันซ้ำวันนี้ผ่าน
+
+ทิศทางถูกต้องตามกติกา repo: ปัญหา radius ถูกแก้ที่ระดับ primitive ไม่ใช่แปะ class เฉพาะหน้า ⇒ หน้าอื่นที่ทำ list panel แบบเดียวกันจะไม่ drift ซ้ำ

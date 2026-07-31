@@ -1,6 +1,6 @@
 # PLAN-169: Assignment report remove Timeline column
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot
 - **Created:** 2026-07-30
 
@@ -31,3 +31,11 @@ Updated `AssignmentReportPage.tsx`:
 ## Notes
 
 This is frontend presentation-only refinement. No API/DTO/DB changes.
+
+## Reviewer Notes
+
+**Claude Code, 2026-07-31 — VERIFIED.**
+
+grep `ASSIGNMENT_LABELS.timeline` ใน `AssignmentReportPage.tsx` = **0 ครั้ง** ⇒ คอลัมน์ Timeline ถูกถอดจริง (label ยังอยู่ใน `labels.ts` เพราะหน้าอื่นใช้ — ไม่ใช่ dead code)
+
+`npm run lint` / `npm run build` รันซ้ำวันนี้ผ่าน — ยืนยันว่าการปรับ `colSpan` 6→5 และการถอด import `tf` ไม่ทิ้ง TS error ค้าง

@@ -1,6 +1,6 @@
 # PLAN-167: Assignment report admin workbook export
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot
 - **Created:** 2026-07-30
 
@@ -45,3 +45,13 @@ The remaining Excel export should be more detailed and contain the sheets that a
 ## Notes
 
 This is frontend presentation/export behavior only. The workbook is generated from the current assignment dashboard payload and does not require a backend export endpoint.
+
+## Reviewer Notes
+
+**Claude Code, 2026-07-31 — VERIFIED.**
+
+- `exportWorkbook()` อยู่จริงที่ `src/lib/tableExport.ts:58` (multi-sheet ผ่าน `write-excel-file/browser`)
+- `exportAdminWorkbook()` อยู่ที่ `AssignmentReportPage.tsx:208` และผูกกับปุ่มเดียวที่บรรทัด 394 ⇒ เหลือ action เดียวตาม Scope จริง
+- `npm run lint` / `npm run build` รันซ้ำวันนี้ผ่าน
+
+หมายเหตุ: เนื้อ sheet ที่แผนนี้ระบุถูกตัดฟิลด์ completion ออกภายหลังโดย PLAN-168 ⇒ อ่านรายการคอลัมน์ในแผนนี้อย่างเดียวจะได้ shape ที่ล้าสมัย

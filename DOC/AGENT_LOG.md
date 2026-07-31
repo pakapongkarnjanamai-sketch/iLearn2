@@ -24,6 +24,99 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-31] Claude Code — รีวิว+แก้ PLAN-180 เอง (VERIFIED) + deploy QA
+- ทำอะไร: ผู้ใช้แจ้งหน้า gantt บน QA ยังพัง → ตรวจด้วย Playwright/Chromium จริง พบตารางซ้ายถูกวางทับบนแผนภูมิ (CSS `.wx-layout{flex-direction:column}` ทับ layout ของ SVAR) แก้ 6 จุด: layout chain, ป้ายซ้ำบนแท่งสั้น, วันที่เกินจริง 1 วัน (`data.end` เป็น exclusive), หัวคอลัมน์ day zoom ล้น, `.wx-bar` height dead rule, zebra ที่คลาสไม่มีจริง; ทำเส้น "วันนี้" สำเร็จผ่าน `highlightTime` (markers ถูก community build เคลียร์)
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/index.css`, `.../gantt/AssignmentSvarGanttChart.tsx`, `.../gantt/svarGanttMapping.ts`, `.../lib/format.ts`, `.../lib/labels.ts`, `DOC/PLANS/PLAN-180-*.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: lint ✓ build ✓ deploy QA `CopySucceeded=True`/`RobocopyExitCode=3`; Playwright QA 1440×900: chart อยู่ข้าง grid (`x=562`), ช่องว่างใต้ chart 1px, 12 แถว, cell/scale ไม่ล้น, ป้ายซ้ำ 0, Today ไม่ select แถว, วันที่ตรงกับ dueDate
+- หมายเหตุเครื่องมือ: **browser pane รีวิวหน้านี้ไม่ได้** (ไม่ composite frames ⇒ ResizeObserver ไม่ยิง ⇒ SVAR วัดขนาดได้ 0) ให้ใช้ Playwright แทน
+
+## [2026-07-31] Claude Code — ล้างหนี้รีวิว 18 แผน (144–178) + ส่ง PLAN-180 ให้ Copilot
+- ทำอะไร: ปิด loop 18 แผนเป็น `VERIFIED` พร้อม Reviewer Notes ทุกไฟล์ — gantt cluster 172–177 ปิดในฐานะ superseded (โค้ดถูก PLAN-178 ลบทิ้งแล้ว), 178 + report cluster 164–170 + 144/148/150/151 ตรวจ artifact จริงในโค้ด/บน env; normalize header ภาษาไทยของ PLAN-144 เป็น `- **Status:**`; PLAN-180 คงสถานะ READY assigned GitHub Copilot พร้อมให้เริ่ม
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-{144,148,150,151,164..170,172..178}-*.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (เอกสารเท่านั้น ไม่ได้แก้โค้ด)
+- Verified: `npm run lint`/`npm run build` ✓; smoke anon QA+PROD `favicon-32.png`/`site.webmanifest`/`favicon.ico` = 200; หนี้รีวิว 54 → **36 แผน**; `plan-status.ps1` ยังอ่าน header ครบทุกไฟล์ที่แก้
+- พบระหว่างรีวิว: `npm audit` 7 รายการ (react-router 5 high, vite NTLMv2 UNC disclosure, ws DoS) — **ไม่ได้มาจาก SVAR** มีอยู่ก่อน PLAN-178 ยังไม่มีแผนรองรับ
+
+## [2026-07-31] GitHub Copilot — PLAN-180 Assignment Gantt visual redesign
+- ทำอะไร: รื้อ presentation SVAR: ตาราง 1 คอลัมน์ 2 บรรทัด truncate, localized time scales, bar/status mapping, scoped full-height wrappers และ Today ใช้ `scroll-chart`; deploy QA แล้ว
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/{index.css,lib/format.ts,lib/labels.ts,pages/assignments/gantt/*}`, `DOC/PLANS/PLAN-180-*`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- หมายเหตุ: SVAR 2.7.1 community ล้าง `markers` ใน store จึงไม่ render Today marker แม้ typings รับ prop; บันทึกเป็น blocker ใน PLAN-180
+- Verified: `npm run lint` ✓; `npx tsc --noEmit` ✓; `npm run build` ✓ (Vite chunk warning เดิม); QA deploy ✓ (`CopySucceeded=True`, RobocopyExitCode=3)
+
+## [2026-07-31] Claude Code — รีวิวปิด loop PLAN-179 (VERIFIED)
+- ทำอะไร: รีวิว PLAN-179 แบบตรวจซ้ำเอง ไม่เชื่อ log → Status `DONE` → `VERIFIED` + Reviewer Notes; บันทึกประเด็นค้าง 5 ข้อ (dead CSS var, week `%j`, cell ไม่ truncate, สีสถานะซ้ำ 2 ที่, หัวคอลัมน์ hardcode อังกฤษ) โดยส่งต่อให้ PLAN-180 รับช่วงแทนการตีกลับ
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-179-svar-gantt-ui-polish.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (เอกสารเท่านั้น ไม่ได้แก้โค้ด)
+- Verified: `npm run lint` ✓; `npm run build` ✓ reproduce hash `index-CHu7nUEk.js` ตรงกับที่ deploy บน QA; smoke QA root/gantt/asset = 200 ทั้งสาม
+
+## [2026-07-31] Claude Code — PLAN-180 แผน redesign หน้า Assignment Gantt ทั้งหน้า
+- ทำอะไร: ตรวจหน้า Gantt บน QA หลัง PLAN-178/179 ตามคำสั่ง "ปรับการออกแบบทั้งหมดใหม่" แล้วเขียนแผน READY ครอบคลุม layout เต็มการ์ด, ตารางซ้ายเหลือคอลัมน์เดียว 2 บรรทัด (truncate), timeline header สองภาษา, weekend/today marker ผ่าน SVAR API, bar/tooltip, ปุ่ม Today ใช้ `scroll-chart` — คง SVAR เป็น renderer เดิม
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-180-assignment-gantt-visual-redesign.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผนเท่านั้น ไม่ได้แก้โค้ด)
+- Verified: `pwsh tools/plan-status.ps1 -Next` = `PLAN-180`; ยืนยัน prop/typing ของ SVAR (`markers`, `highlightTime`, `IColumnConfig.cell`, `exec('scroll-chart', {date})`) จาก `node_modules/@svar-ui/*/types` ก่อนเขียนสเปก
+
+## [2026-07-31] GitHub Copilot — PLAN-179 SVAR Gantt UI polish + QA smoke
+- ทำอะไร: แก้ UI หลัง SVAR migration: Week scale ใช้ label สั้น+84px cells, Day/Month 24/140px; แยก bar label จาก Description, ตัด progress mapping/overlay, ปิด column resize, เพิ่ม scoped SVAR theme typography/border/bar CSS
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/index.css`, `.../gantt/svarGanttMapping.ts`, `.../gantt/AssignmentSvarGanttChart.tsx`, `DOC/PLANS/PLAN-179-svar-gantt-ui-polish.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: lint/build ✓; QA deploy `CopySucceeded=True`/`RobocopyExitCode=3`; smoke root/Gantt = 200, asset `index-CHu7nUEk.js`; Playwright Day/Week/Month: blank labels=0, progress overlay=0, resize controls=0, h-scroll ยังใช้ได้
+
+## [2026-07-31] GitHub Copilot — PLAN-178 implement SVAR React Gantt + QA deploy
+- ทำอะไร: replace custom Gantt ด้วย `@svar-ui/react-gantt@2.7.1` (MIT) เพิ่ม SVAR adapter/mapping, readonly, Day/Week/Month scales, Today ผ่าน SVAR API, status template, click-through detail, lazy-load route; ลบ `GanttChart.tsx`/`GanttBar.tsx`/`ganttScale.ts` เหลือ `ganttStatus.ts` สำหรับ legend
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/package.json`, `.../package-lock.json`, `.../src/pages/assignments/AssignmentGanttPage.tsx`, `.../src/pages/assignments/gantt/AssignmentSvarGanttChart.tsx`, `.../src/pages/assignments/gantt/svarGanttMapping.ts`, `DOC/PLANS/PLAN-178-assignment-gantt-svar-replacement.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี API/DB; เพิ่ม frontend dependency `@svar-ui/react-gantt@2.7.1`
+- Verified: lint/build ผ่าน; main bundle ~608KB + SVAR lazy chunk ~252KB/32KB CSS; QA deploy `CopySucceeded=True`/`RobocopyExitCode=3`; smoke root/Gantt = 200; browser SVAR rows+readonly+zoom+click-through `/assignments/314` ผ่าน; npm install reports 7 audit vulnerabilities (ไม่ได้ auto-fix)
+
+## [2026-07-31] GitHub Copilot — PLAN-178 replace custom Gantt with SVAR
+- ทำอะไร: สร้างแผน READY สำหรับ refactor หน้า `/admin-react/assignments/gantt` จาก custom CSS-grid Gantt ไปใช้ `@svar-ui/react-gantt` (MIT, React >=18/19-compatible) หลัง PLAN-172..177 ยังเจอปัญหา alignment/rounding ซ้ำ
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-178-assignment-gantt-svar-replacement.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผนเท่านั้น; ระบุ dependency frontend ที่จะเพิ่มเมื่อ implement)
+- Verified: `pwsh tools/plan-status.ps1 -Next` ยืนยันเลข `PLAN-178`; ไม่ได้แก้โค้ด/ไม่ได้รัน build
+
+## [2026-07-30] GitHub Copilot — PLAN-177 Gantt header/body guide alignment + QA deploy
+- ทำอะไร: แก้ช่องวันใน body ไม่ตรงหัวตาราง Day/Week โดยเปลี่ยน guide lines จาก fixed px repeating-gradient (`22px`) เป็น percentage/calc stops จาก `timeline.ticks[].widthPct` ชุดเดียวกับ header cells; Day ยังมี weekend shading, Week ไม่มี weekend shading, Month ไม่เปลี่ยน
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/gantt/GanttChart.tsx`, `DOC/PLANS/PLAN-177-assignment-gantt-header-body-guide-alignment.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ✓, `npm run build` ✓, deploy QA `CopySucceeded=True`/`RobocopyExitCode=3`; smoke root + `/assignments/gantt` = 200; QA asset `assets/index-Bafo0cnS.js`; Playwright: Day/Week `usesFixedPxGuide=false`, `usesPercentCalcGuide=true`, Month row bg=0
+
+## [2026-07-30] GitHub Copilot — PLAN-176 weekend shading only on Day + QA deploy
+- ทำอะไร: ปรับ Gantt ให้สีพื้นหลังเสาร์/อาทิตย์แสดงเฉพาะ Day zoom; Week เหลือเฉพาะ weekly guide line และ Month ไม่มี row background แต่ยังคง month boundary guides/scrollbar/filler เดิม; deploy `iLearn.Admin.React` ขึ้น QA
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/gantt/GanttChart.tsx`, `DOC/PLANS/PLAN-176-assignment-gantt-weekend-day-only.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ✓, `npm run build` ✓, deploy QA `CopySucceeded=True`/`RobocopyExitCode=3`; smoke root + `/assignments/gantt` = 200; QA asset `assets/index-pgVtkzUg.js`; Playwright: Day weekend=true, Week=false, Month=false
+
+## [2026-07-30] GitHub Copilot — PLAN-175 Gantt spacing audit + QA deploy
+- ทำอะไร: สำรวจ Gantt spacing ด้วย Playwright หลัง PLAN-174 พบ blank ใต้ rows 70px (Day/Week) และ 98px (Month) + weekend background layer เสี่ยงเลื่อนใน Week; แก้โดยรวม weekend shading เป็น gradient layer เดียว และเพิ่ม filler grid row ที่ต่อ background/grid/weekend bands ลงถึง scrollbar พร้อมยืด month guides/today line ผ่าน filler
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/gantt/GanttChart.tsx`, `DOC/PLANS/PLAN-175-assignment-gantt-spacing-audit.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ✓, `npm run build` ✓, deploy QA `CopySucceeded=True`/`RobocopyExitCode=3`; smoke root + `/assignments/gantt` = 200; QA asset `assets/index-BcQrGzLp.js`; Playwright 1429×768: Day/Week filler 60px, Month filler 88px, gapLastRowToFiller=0, vertical scroll=no
+
+## [2026-07-30] GitHub Copilot — PLAN-174 Gantt weekend band alignment + QA deploy
+- ทำอะไร: แก้พื้นหลังเสาร์/อาทิตย์ใน Gantt ที่ไม่ตรงช่องวันที่ โดยเพิ่ม `weekendBands` ใน timeline model เป็น `leftPct/widthPct` จากวันจริง และเปลี่ยน body row shading จาก px repeating-gradient เป็น percentage background gradients; deploy `iLearn.Admin.React` ขึ้น QA ซ้ำ
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/gantt/ganttScale.ts`, `iLearn.Admin.React/src/pages/assignments/gantt/GanttChart.tsx`, `DOC/PLANS/PLAN-174-assignment-gantt-weekend-band-alignment.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ✓, `npm run build` ✓, deploy QA `CopySucceeded=True`/`RobocopyExitCode=3`; smoke root + `/assignments/gantt` = 200; QA asset `assets/index-BF5mUMMA.js`
+
+## [2026-07-30] GitHub Copilot — PLAN-173 Month Gantt scrollbar + QA deploy
+- ทำอะไร: แก้ Month zoom ที่ยังไม่มี scrollbar โดยเลิก fit-to-width (`fitsWidth`) ให้ month มี fixed/min timeline width (`max(totalDays*6px, months*220px, 1280px)`) และใช้ `overflow-x-scroll`; deploy `iLearn.Admin.React` ขึ้น QA ซ้ำ
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/gantt/ganttScale.ts`, `iLearn.Admin.React/src/pages/assignments/gantt/GanttChart.tsx`, `DOC/PLANS/PLAN-173-assignment-gantt-month-scrollbar.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ✓, `npm run build` ✓, deploy QA `CopySucceeded=True`/`RobocopyExitCode=3`; smoke root + `/assignments/gantt` = 200; QA asset `assets/index-CYKbRfZ1.js`
+
+## [2026-07-30] GitHub Copilot — deploy PLAN-172 Admin React to QA
+- ทำอะไร: รัน deploy `iLearn.Admin.React` ขึ้น QA ด้วย `tools/deploy-admin-react.ps1` (รวม lint + build + copy dist ไป `\\AP-NTC2138-QAWB\wwwroot\iLearn\admin-react`)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-172-assignment-gantt-scrollbar-bottom.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (deploy static frontend only)
+- Verified: deploy result `CopySucceeded=True`, `RobocopyExitCode=3`; smoke `https://ap-ntc2138-qawb.nikonoa.net/iLearn/admin-react/` = 200, `https://ap-ntc2138-qawb.nikonoa.net/iLearn/admin-react/assignments/gantt` = 200
+
+## [2026-07-30] GitHub Copilot — PLAN-172 Gantt scrollbar bottom alignment
+- ทำอะไร: ปรับ `GanttChart` ให้ timeline scroller เป็น `flex-1` เพื่อให้ horizontal scrollbar อยู่ก้นพื้นที่ timeline/card ทุก zoom แทนการอยู่ใต้แถวสุดท้ายเมื่อข้อมูลมีไม่กี่ row
+- ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/gantt/GanttChart.tsx`, `DOC/PLANS/PLAN-172-assignment-gantt-scrollbar-bottom.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี
+- Verified: `npm run lint` ✓, `npm run build` ✓ (มี Vite chunk-size warning เดิม)
+
 ## [2026-07-30] Claude Code — PLAN-171 QA fix: month zoom แสดงผลไม่ดี
 - ทำอะไร: เปลี่ยน month zoom ให้ **สเกลพอดีความกว้างการ์ด** แทน 3px/วันคงที่ (เดิมชาร์ตกว้าง ~560px ในพื้นที่ ~1500px, header เดือนหยุดกลางการ์ด, มีแถบ tick ว่าง, เส้นตารางถี่ทุก 3px เป็นลายพร้อย) โดยย้ายตำแหน่งแนวนอนทั้งหมดเป็น % ของคอลัมน์ timeline (`getTaskLayout` คืน leftPct/widthPct + clamp ไม่ให้ล้นขอบขวา), grid column = `minmax(0,1fr)` เฉพาะ month, header สูงตาม zoom (`headerHeight()` — month ตัดแถว tick ออก), เส้นตาราง: day = ต่อวัน+weekend / week = ต่อสัปดาห์ (phase ตรงกับ tick) / month = เส้นขอบเดือนจริงเป็น overlay %, และย้ายเส้น today + guide ไป overlay ที่ครอบ `left:NAME_COL_W → right:0`
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/assignments/gantt/ganttScale.ts`, `.../gantt/GanttChart.tsx`, `.../gantt/GanttBar.tsx`, `DOC/PLANS/PLAN-171-assignment-gantt-refactor.md`, `DOC/AGENT_LOG.md`

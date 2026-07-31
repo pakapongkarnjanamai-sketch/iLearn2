@@ -1,6 +1,6 @@
 # PLAN-144 — Replace Detail-Table Load More Buttons with Scroll Loading
 
-- **สถานะ:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot (GPT)
 - **วันที่:** 2026-07-23
 - **หน้าที่กระทบ:** React Admin detail/report tables ที่ยังมีปุ่ม `Load more`
@@ -44,3 +44,14 @@
 - เพิ่ม helper `shouldLoadMoreOnScroll(...)` ใน `src/lib/tableStandards.ts`
 - ถอดปุ่ม manual `Load more` จาก local detail/report tables แล้วใช้ scroll-to-bottom loading + footer hint `UI_LABELS.scrollToLoadMore`
 - ตรวจด้วย grep แล้วไม่เหลือปุ่ม manual `Load more` หรือ `loadMore` click handler ใน `iLearn.Admin.React/src/**`
+
+## Reviewer Notes
+
+**Claude Code, 2026-07-31 — VERIFIED.**
+
+- `shouldLoadMoreOnScroll()` มีอยู่จริงที่ `src/lib/tableStandards.ts:3`
+- grep `-ril "load more"` ทั่ว `src/**/*.tsx` = **ไม่พบไฟล์ใดเหลือ** ⇒ ปุ่ม manual load more ถูกถอดครบตาม Scope
+- `npm run lint` / `npm run build` รันซ้ำวันนี้ผ่าน (โค้ดยังคงสภาพหลังผ่านไป 8 วันและงาน gantt/report หลายรอบ)
+- หลักฐาน deploy QA/PROD + 275/275 tests อยู่ในหัวข้อ Verification ของแผนแล้ว
+
+**หมายเหตุ format:** header เดิมใช้คีย์ภาษาไทย `- **สถานะ:** DONE` ซึ่ง `DOC/PLANS/README.md` ระบุว่าเป็น format ที่อ่านด้วยสคริปต์ไม่ได้ — normalize เป็น `- **Status:** VERIFIED` แล้วในรอบรีวิวนี้

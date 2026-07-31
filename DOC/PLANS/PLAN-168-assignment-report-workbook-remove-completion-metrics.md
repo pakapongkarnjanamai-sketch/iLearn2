@@ -1,6 +1,6 @@
 # PLAN-168: Assignment report workbook remove completion metrics
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot
 - **Created:** 2026-07-30
 
@@ -41,3 +41,11 @@ Updated `AssignmentReportPage.tsx` workbook composition (`exportAdminWorkbook()`
 ## Notes
 
 This is frontend export-shape only. Existing UI-level completion widgets and charts remain unchanged in this task.
+
+## Reviewer Notes
+
+**Claude Code, 2026-07-31 — VERIFIED.**
+
+grep `"Completion Rate"` และ `"Completion %"` ใน `AssignmentReportPage.tsx` = **0 ครั้ง** ⇒ ฟิลด์ completion ถูกถอดออกจาก workbook ครบตาม Scope และยังไม่หลุดกลับมา
+
+`npm run lint` / `npm run build` รันซ้ำวันนี้ผ่าน

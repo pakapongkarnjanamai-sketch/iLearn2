@@ -1,6 +1,6 @@
 # PLAN-150 — favicon แท็บไม่ขึ้นบน Chromium: `.ico` decode ไม่ได้ → เปลี่ยนไปใช้ PNG
 
-- **Status:** DONE
+- **Status:** VERIFIED
 - **Assigned:** GitHub Copilot (code + deploy QA→PROD + smoke) — ต่อ track favicon จาก PLAN-148/130
 - **Reviewer:** Claude Code
 - **Author:** Claude Code (planner)
@@ -94,3 +94,11 @@
 - Notes:
 	- `favicon.ico` / `favicon-tab.ico` / `favicon.svg` were left on disk untouched as requested.
 	- No local DEV smoke was run in this round.
+
+## Reviewer Notes
+
+**Claude Code, 2026-07-31 — VERIFIED.**
+
+Smoke ซ้ำแบบ anonymous วันนี้: `GET /iLearn/favicon-32.png` = **200** ทั้ง QA (`ap-ntc2138-qawb`) และ PROD (`ap-ntc2137-prwb`) ⇒ ไฟล์ PNG ที่แผนนี้เพิ่มยังถูก serve อยู่จริงทั้งสอง env
+
+Acceptance criteria ในแผนติ๊กครบทั้ง 5 ข้อ รวมข้อที่ต้องให้ผู้ใช้ยืนยันด้วยตา (Chrome Incognito QA/PROD) — ไม่มีข้อค้าง
