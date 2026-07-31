@@ -4,6 +4,7 @@ using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -52,6 +53,20 @@ namespace iLearn.Tests
             var result = await controller.Get(999);
 
             Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Theory]
+        [InlineData(nameof(ContentItemsCRUDController.Post))]
+        [InlineData(nameof(ContentItemsCRUDController.Put))]
+        [InlineData(nameof(ContentItemsCRUDController.Delete))]
+        public void ContentItemCrudMutations_AreAvailableToAdmins(string actionName)
+        {
+            var method = typeof(ContentItemsCRUDController).GetMethods()
+                .Single(m => m.Name == actionName);
+            var attribute = Assert.Single(method.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: false)
+                .Cast<AuthorizeAttribute>());
+
+            Assert.Equal("AdminOnly", attribute.Policy);
         }
 
         private static ContentItemsCRUDController CreateController(IGenericRepository<ContentItem> contentRepository)

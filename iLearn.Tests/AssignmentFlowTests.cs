@@ -6,6 +6,7 @@ using iLearn.Application.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
 using iLearn.Domain.Enums;
+using Microsoft.EntityFrameworkCore.Query;
 using System.Linq.Expressions;
 
 namespace iLearn.Tests
@@ -259,6 +260,69 @@ namespace iLearn.Tests
             Assert.Equal("New Updated Description", rule2.Description);
         }
 
+        [Fact]
+        public async Task AssignmentService_GetDashboardAsync_LimitsLearnerGroupsToAssignmentTargetGroups()
+        {
+            var targetGroup = new LearnerGroup { Id = 10, Name = "Target Group", DivisionId = 5 };
+            var unrelatedGroup = new LearnerGroup { Id = 20, Name = "Unrelated Group", DivisionId = 5 };
+            var course = new Course { Id = 30, Code = "C-30", Title = "Course 30" };
+            var enrollment = new Enrollment { Id = 40, LearnerCode = "490222", CourseId = course.Id, Course = course };
+            var assignment = new Assignment
+            {
+                Id = 50,
+                AssignmentNo = "AS-GROUP-001",
+                CourseId = course.Id,
+                LearnerGroupId = targetGroup.Id,
+                LearnerGroup = targetGroup,
+                DivisionId = 5,
+            };
+
+            var service = CreateAssignmentService(
+                assignments: [assignment],
+                enrollmentAssignments: [new EnrollmentAssignment { Id = 60, AssignmentId = assignment.Id, EnrollmentId = enrollment.Id, Enrollment = enrollment }],
+                enrollments: [enrollment],
+                courses: [course],
+                learnerGroupMembers:
+                [
+                    new LearnerGroupMember { Id = 70, LearnerCode = enrollment.LearnerCode, LearnerGroupId = unrelatedGroup.Id, LearnerGroup = unrelatedGroup },
+                ]);
+
+            var dashboard = await service.GetDashboardAsync(assignment.Id, divisionId: 5);
+
+            var learner = Assert.Single(dashboard!.Learners);
+            Assert.Equal(["Target Group"], learner.LearnerGroups);
+        }
+
+        [Fact]
+        public async Task AssignmentService_GetDashboardAsync_DoesNotReportCurrentMembershipForDirectAssignments()
+        {
+            var currentMembership = new LearnerGroup { Id = 20, Name = "Current Membership", DivisionId = 5 };
+            var course = new Course { Id = 30, Code = "C-30", Title = "Course 30" };
+            var enrollment = new Enrollment { Id = 40, LearnerCode = "490222", CourseId = course.Id, Course = course };
+            var assignment = new Assignment
+            {
+                Id = 50,
+                AssignmentNo = "AS-DIRECT-001",
+                CourseId = course.Id,
+                DivisionId = 5,
+            };
+
+            var service = CreateAssignmentService(
+                assignments: [assignment],
+                enrollmentAssignments: [new EnrollmentAssignment { Id = 60, AssignmentId = assignment.Id, EnrollmentId = enrollment.Id, Enrollment = enrollment }],
+                enrollments: [enrollment],
+                courses: [course],
+                learnerGroupMembers:
+                [
+                    new LearnerGroupMember { Id = 70, LearnerCode = enrollment.LearnerCode, LearnerGroupId = currentMembership.Id, LearnerGroup = currentMembership },
+                ]);
+
+            var dashboard = await service.GetDashboardAsync(assignment.Id, divisionId: 5);
+
+            var learner = Assert.Single(dashboard!.Learners);
+            Assert.Empty(learner.LearnerGroups);
+        }
+
         private static CourseAssignmentServiceHarness CreateCourseAssignmentService(
             IEnumerable<Course> courses,
             IEnumerable<Enrollment> enrollments,
@@ -285,6 +349,30 @@ namespace iLearn.Tests
                 unitOfWork);
 
             return new CourseAssignmentServiceHarness(service, enrollmentRepo, enrollmentAssignmentRepo);
+        }
+
+        private static AssignmentService CreateAssignmentService(
+            IEnumerable<Assignment> assignments,
+            IEnumerable<EnrollmentAssignment> enrollmentAssignments,
+            IEnumerable<Enrollment> enrollments,
+            IEnumerable<Course> courses,
+            IEnumerable<LearnerGroupMember> learnerGroupMembers)
+        {
+            var assignmentRepo = new InMemoryGenericRepository<Assignment>(assignments, Now);
+            var batchService = new AssignmentBatchService(assignmentRepo, new FakeCurrentUserService { DivisionId = 5 });
+
+            return new AssignmentService(
+                assignmentRepo,
+                new InMemoryGenericRepository<EnrollmentAssignment>(enrollmentAssignments, Now),
+                new InMemoryGenericRepository<Enrollment>(enrollments, Now),
+                new InMemoryGenericRepository<Course>(courses, Now),
+                new FakeLearnerApiService(),
+                batchService,
+                null!,
+                new InMemoryGenericRepository<LearnerGroupMember>(learnerGroupMembers, Now),
+                null!,
+                new FakeDateTime(Now),
+                new FakeUnitOfWork());
         }
 
         private sealed record CourseAssignmentServiceHarness(
@@ -355,6 +443,34 @@ namespace iLearn.Tests
             public DateTime Now { get; }
             public System.Globalization.CultureInfo CultureInfo => System.Globalization.CultureInfo.InvariantCulture;
             public DateTime UnixTime => Now;
+        }
+
+        private sealed class FakeLearnerApiService : ILearnerApiService
+        {
+            public Task<ExternalLearnerDto> GetLearnerByCodeAsync(string Code) => throw new NotSupportedException();
+            public Task<AllLearnersApiResponse> GetLearnerAsync() => throw new NotSupportedException();
+            public Task<DivisionApiResponse> GetLearnersByDivisionsAsync(string[] divisions, int skip = 0, int take = 20) => throw new NotSupportedException();
+            public Task<string> GetLearnersDxGridAsync(string queryString) => throw new NotSupportedException();
+            public Task<object> GetSectionsAsync(string queryString) => throw new NotSupportedException();
+            public Task<object> GetDivisionsAsync(string queryString) => throw new NotSupportedException();
+            public Task<object> GetDepartmentsAsync(string queryString) => throw new NotSupportedException();
+            public Task<object> GetPositionsAsync(string queryString) => throw new NotSupportedException();
+
+            public Task<Dictionary<string, ExternalLearnerDto>> GetLearnersByCodesAsync(IEnumerable<string> codes)
+            {
+                return Task.FromResult(codes
+                    .Where(code => !string.IsNullOrWhiteSpace(code))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        code => code,
+                        code => new ExternalLearnerDto { Code = code, Name = code },
+                        StringComparer.OrdinalIgnoreCase));
+            }
+
+            public Task<Dictionary<string, EmployeeCsvDto>> GetEmployeesByNidsAsync(IEnumerable<string> nids)
+            {
+                return Task.FromResult(new Dictionary<string, EmployeeCsvDto>(StringComparer.OrdinalIgnoreCase));
+            }
         }
 
         private sealed class FakeUnitOfWork : IUnitOfWork
@@ -482,7 +598,7 @@ namespace iLearn.Tests
 
             public IQueryable<T> GetQuery()
             {
-                return Items.Where(x => !x.IsDeleted).AsQueryable();
+                return new TestAsyncEnumerable<T>(Items.Where(x => !x.IsDeleted).AsQueryable());
             }
 
             public Task HardDeleteAsync(T entity)
@@ -522,6 +638,80 @@ namespace iLearn.Tests
                 {
                     Items.Add(entity);
                 }
+            }
+        }
+
+        private sealed class TestAsyncEnumerable<T> : EnumerableQuery<T>, IAsyncEnumerable<T>, IQueryable<T>
+        {
+            public TestAsyncEnumerable(IQueryable<T> queryable)
+                : base(queryable.Expression)
+            {
+                Provider = new TestAsyncQueryProvider<T>(queryable.Provider);
+            }
+
+            public TestAsyncEnumerable(Expression expression)
+                : base(expression)
+            {
+                Provider = new TestAsyncQueryProvider<T>(this);
+            }
+
+            IQueryProvider IQueryable.Provider => Provider;
+            public IQueryProvider Provider { get; }
+
+            public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+            {
+                return new TestAsyncEnumerator<T>(this.AsEnumerable().GetEnumerator());
+            }
+        }
+
+        private sealed class TestAsyncQueryProvider<TEntity> : IAsyncQueryProvider, IQueryProvider
+        {
+            private readonly IQueryProvider _inner;
+
+            public TestAsyncQueryProvider(IQueryProvider inner)
+            {
+                _inner = inner;
+            }
+
+            public IQueryable CreateQuery(Expression expression)
+                => new TestAsyncEnumerable<TEntity>(expression);
+
+            public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
+                => new TestAsyncEnumerable<TElement>(expression);
+
+            public object? Execute(Expression expression) => _inner.Execute(expression);
+            public TResult Execute<TResult>(Expression expression) => _inner.Execute<TResult>(expression);
+
+            public TResult ExecuteAsync<TResult>(Expression expression, CancellationToken cancellationToken = default)
+            {
+                var resultType = typeof(TResult).GetGenericArguments()[0];
+                var executeMethod = typeof(IQueryProvider)
+                    .GetMethod(nameof(IQueryProvider.Execute), 1, [typeof(Expression)])!
+                    .MakeGenericMethod(resultType);
+                var result = executeMethod.Invoke(_inner, [expression]);
+                return (TResult)typeof(Task).GetMethod(nameof(Task.FromResult))!
+                    .MakeGenericMethod(resultType)
+                    .Invoke(null, [result])!;
+            }
+        }
+
+        private sealed class TestAsyncEnumerator<T> : IAsyncEnumerator<T>
+        {
+            private readonly IEnumerator<T> _inner;
+
+            public TestAsyncEnumerator(IEnumerator<T> inner)
+            {
+                _inner = inner;
+            }
+
+            public T Current => _inner.Current;
+
+            public ValueTask<bool> MoveNextAsync() => new(_inner.MoveNext());
+
+            public ValueTask DisposeAsync()
+            {
+                _inner.Dispose();
+                return ValueTask.CompletedTask;
             }
         }
     }

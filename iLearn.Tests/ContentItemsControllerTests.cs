@@ -4,6 +4,7 @@ using iLearn.Application.Interfaces.Repositories;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -70,6 +71,21 @@ namespace iLearn.Tests
             Assert.Equal(1, totalCount3);
             Assert.Single(data3);
             Assert.Equal("Basic Safety", data3[0].Name);
+        }
+
+        [Theory]
+        [InlineData(nameof(ContentItemsController.Upload))]
+        [InlineData(nameof(ContentItemsController.SetPublic))]
+        [InlineData(nameof(ContentItemsController.Unpublish))]
+        [InlineData(nameof(ContentItemsController.Delete))]
+        public void ContentItemMutations_AreAvailableToAdmins(string actionName)
+        {
+            var method = typeof(ContentItemsController).GetMethods()
+                .Single(m => m.Name == actionName);
+            var attribute = Assert.Single(method.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: false)
+                .Cast<AuthorizeAttribute>());
+
+            Assert.Equal("AdminOnly", attribute.Policy);
         }
 
         private static ContentItemsController CreateController(IGenericRepository<ContentItem> contentRepository)

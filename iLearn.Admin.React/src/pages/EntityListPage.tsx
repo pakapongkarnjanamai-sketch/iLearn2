@@ -12,7 +12,6 @@ import { createRestDataSource } from '../lib/createRestDataSource'
 import { fetchWithAccessControl } from '../lib/apiClient'
 import { toast } from '../lib/toast'
 import type { AdminListConfig } from './moduleConfigs'
-import { useSession } from '../lib/sessionContext'
 
 type EntityListPageProps = {
   config: AdminListConfig
@@ -20,7 +19,6 @@ type EntityListPageProps = {
 
 export function EntityListPage({ config }: EntityListPageProps) {
   const navigate = useNavigate()
-  const { isSuperAdmin } = useSession()
   const title = t(config.title)
   
   const [divisions, setDivisions] = useState<any[]>([])
@@ -212,7 +210,7 @@ export function EntityListPage({ config }: EntityListPageProps) {
         </>
       )}
 
-      {config.controller === 'ContentItemsCRUD' && isSuperAdmin && (
+      {config.controller === 'ContentItemsCRUD' && (
         <Link to="/content-library/new">
           <AppButton variant="primary" icon={Plus}>
             {t(ADMIN_LABELS.uploadScorm)}

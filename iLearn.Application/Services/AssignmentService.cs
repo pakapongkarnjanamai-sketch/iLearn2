@@ -967,32 +967,6 @@ namespace iLearn.Application.Services
                 ? new Dictionary<string, ExternalLearnerDto>(StringComparer.OrdinalIgnoreCase)
                 : await _learnerApiService.GetLearnersByCodesAsync(uniqueLearnerCodes);
 
-            var groupsByCode = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-            if (uniqueLearnerCodes.Count > 0)
-            {
-                var memberQuery = _learnerGroupMemberRepo.GetQuery()
-                    .AsNoTracking()
-                    .Where(m => uniqueLearnerCodes.Contains(m.LearnerCode) && !m.IsDeleted);
-
-                if (divisionId.HasValue)
-                {
-                    memberQuery = memberQuery.Where(m => m.LearnerGroup != null && m.LearnerGroup.DivisionId == divisionId.Value);
-                }
-
-                var groupMembers = await memberQuery
-                    .Where(m => m.LearnerGroup != null && !m.LearnerGroup.IsDeleted)
-                    .Select(m => new { m.LearnerCode, GroupName = m.LearnerGroup.Name })
-                    .ToListAsync(cancellationToken);
-
-                groupsByCode = groupMembers
-                    .GroupBy(m => m.LearnerCode, StringComparer.OrdinalIgnoreCase)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.Select(x => x.GroupName).OrderBy(name => name).ToList(),
-                        StringComparer.OrdinalIgnoreCase
-                    );
-            }
-
             var learnersByCode = learnerRows
                 .GroupBy(row => row.LearnerCode)
                 .Select(group => new
@@ -1056,7 +1030,10 @@ namespace iLearn.Application.Services
                     var status = AssignmentStatusKeys.GetScheduledLearnerStatus(
                         row.IsCompleted, row.Progress, row.StartDate, row.DueDate, now);
                     var learnerInfo = learnerNames.GetValueOrDefault(row.LearnerCode);
-                    var learnerGroups = groupsByCode.GetValueOrDefault(row.LearnerCode) ?? new List<string>();
+                    var learnerGroups = assignment?.LearnerGroupId.HasValue == true
+                        && !string.IsNullOrWhiteSpace(assignment.LearnerGroupName)
+                        ? new List<string> { assignment.LearnerGroupName }
+                        : new List<string>();
                     return new LearnerProgressDto
                     {
                         LearnerCode = row.LearnerCode,

@@ -24,6 +24,18 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-31] GitHub Copilot — PLAN-182 Content Library Admin rights parity
+- ทำอะไร: แก้สิทธิหน้า content detail/list/editor ให้ Admin ใช้งานเท่า SuperAdmin สำหรับ content item ปกติ: เปิด route upload/edit, แสดงปุ่ม edit metadata/publish/unpublish/delete และเปลี่ยน backend mutation endpoints จาก `SuperAdminOnly` เป็น `AdminOnly`
+- ไฟล์หลักที่แตะ: `iLearn.API/Controllers/{ContentItemsController.cs,Base/ContentItemsCRUDController.cs}`, `iLearn.Admin.React/src/{App.tsx,pages/EntityListPage.tsx,pages/content-library/ContentItemDetailPage.tsx}`, `iLearn.Tests/{ContentItemsControllerTests.cs,ContentItemsCrudControllerTests.cs}`, `DOC/PLANS/PLAN-182-*.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): API shape ไม่เปลี่ยน; authorization semantics ของ normal Content Library mutations = `AdminOnly` (Admin+SuperAdmin); bulk maintenance endpoints ยัง `SuperAdminOnly`
+- Verified: focused ContentItems tests 10/10 ✓; React lint/build ✓; QA API `20260731113853` + React `index-YLZeN2CC.js` ✓; PROD API `20260731114031` + React `index-YLZeN2CC.js` ✓; PROD content item 1747 page/API = 200
+
+## [2026-07-31] GitHub Copilot — PLAN-181 assignment report learner-group scope fix
+- ทำอะไร: แก้หน้า assignment report/export ที่แสดง learner groups ไม่เกี่ยวข้องกับ assignment โดยให้ dashboard rows ใช้ target group จาก `Assignment.LearnerGroupId/Name` แทน current learner membership และไม่สร้าง `Ungrouped` summary/export row เอง
+- ไฟล์หลักที่แตะ: `iLearn.Application/Services/AssignmentService.cs`, `iLearn.Admin.React/src/pages/assignments/AssignmentReportPage.tsx`, `iLearn.Tests/AssignmentFlowTests.cs`, `DOC/PLANS/PLAN-181-*.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): API shape ไม่เปลี่ยน; semantics ของ `AssignmentDashboardDto.Learners[].LearnerGroups` = assignment target groups ไม่ใช่ current memberships
+- Verified: focused `dotnet test` 2/2 ✓; React lint/build ✓; QA API `20260731112144` + React `index-CmNTH0OX.js` ✓; PROD API `20260731112350` + React `index-CmNTH0OX.js` ✓; PROD assignment 280 group/export summary rows = 0
+
 ## [2026-07-31] Claude Code — รีวิว+แก้ PLAN-180 เอง (VERIFIED) + deploy QA
 - ทำอะไร: ผู้ใช้แจ้งหน้า gantt บน QA ยังพัง → ตรวจด้วย Playwright/Chromium จริง พบตารางซ้ายถูกวางทับบนแผนภูมิ (CSS `.wx-layout{flex-direction:column}` ทับ layout ของ SVAR) แก้ 6 จุด: layout chain, ป้ายซ้ำบนแท่งสั้น, วันที่เกินจริง 1 วัน (`data.end` เป็น exclusive), หัวคอลัมน์ day zoom ล้น, `.wx-bar` height dead rule, zebra ที่คลาสไม่มีจริง; ทำเส้น "วันนี้" สำเร็จผ่าน `highlightTime` (markers ถูก community build เคลียร์)
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/index.css`, `.../gantt/AssignmentSvarGanttChart.tsx`, `.../gantt/svarGanttMapping.ts`, `.../lib/format.ts`, `.../lib/labels.ts`, `DOC/PLANS/PLAN-180-*.md`, `DOC/AGENT_LOG.md`

@@ -77,20 +77,12 @@ export function App() {
         <Route path="content-library" element={<EntityListPage config={adminListConfigs.contentLibrary} />} />
         <Route
           path="content-library/new"
-          element={
-            <RequireRole superAdminOnly>
-              <Remount><ContentItemEditorPage /></Remount>
-            </RequireRole>
-          }
+          element={<Remount><ContentItemEditorPage /></Remount>}
         />
         <Route path="content-library/:id" element={<Remount><ContentItemDetailPage /></Remount>} />
         <Route
           path="content-library/:id/edit"
-          element={
-            <RequireRole superAdminOnly>
-              <Remount><ContentItemEditorPage /></Remount>
-            </RequireRole>
-          }
+          element={<Remount><ContentItemEditorPage /></Remount>}
         />
 
         {/* Assignments */}

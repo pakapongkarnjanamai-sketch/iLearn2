@@ -270,13 +270,13 @@ namespace iLearn.API.Controllers.Base
         }
 
         [HttpPost("Post")]
-        [Authorize(Policy = "SuperAdminOnly")]
+        [Authorize(Policy = "AdminOnly")]
         public override async Task<IActionResult> Post([FromForm] string values)
         {
             return await base.Post(values);
         }
 
-        [Authorize(Policy = "SuperAdminOnly")]
+        [Authorize(Policy = "AdminOnly")]
         [HttpPut("Put")]
         public override async Task<IActionResult> Put([FromForm] int key, [FromForm] string values)
         {
@@ -332,7 +332,7 @@ namespace iLearn.API.Controllers.Base
             return Ok(contentItem);
         }
 
-        [Authorize(Policy = "SuperAdminOnly")]
+        [Authorize(Policy = "AdminOnly")]
         [HttpDelete("Delete")]
         public override async Task<IActionResult> Delete([FromForm] int key)
         {

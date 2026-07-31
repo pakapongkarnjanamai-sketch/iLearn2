@@ -29,7 +29,6 @@ import { toast } from '../../lib/toast'
 import { useBreadcrumbs } from '../../lib/breadcrumbContext'
 import { formatBytes, formatDateTime, formatNumber } from '../../lib/format'
 import { COMMON_LABELS, COURSE_LABELS, UI_LABELS, contentTypeLabel, t } from '../../lib/labels'
-import { useSession } from '../../lib/sessionContext'
 
 // Mirrors ContentItemCourseReferenceDto (iLearn.Application/DTOs/ContentItemDto.cs)
 type CourseReference = {
@@ -67,7 +66,6 @@ export function ContentItemDetailPage() {
   const navigate = useNavigate()
   const { confirm, confirmDialog } = useConfirm()
   const { setLabel } = useBreadcrumbs()
-  const { isSuperAdmin } = useSession()
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [item, setItem] = useState<ContentItemDetail | null>(null)
@@ -217,18 +215,16 @@ export function ContentItemDetailPage() {
       <DetailLayout
         sidebar={
           <ControlsSidebar>
-            {isSuperAdmin && (
-              <ControlAction
-                icon={Edit3}
-                onClick={() => {
-                  setEditName(item.name)
-                  setEditTypeId(item.typeId)
-                  setShowEditMetadataModal(true)
-                }}
-              >
-                {t(COURSE_LABELS.editGeneralInfo)}
-              </ControlAction>
-            )}
+            <ControlAction
+              icon={Edit3}
+              onClick={() => {
+                setEditName(item.name)
+                setEditTypeId(item.typeId)
+                setShowEditMetadataModal(true)
+              }}
+            >
+              {t(COURSE_LABELS.editGeneralInfo)}
+            </ControlAction>
             <ControlAction
               icon={ExternalLink}
               disabled={!item.isActive || !item.url || busy}
@@ -243,15 +239,13 @@ export function ContentItemDetailPage() {
             >
               {t(COURSE_LABELS.openScormPlayer)}
             </ControlAction>
-            {isSuperAdmin && (
-              <ControlAction
-                icon={item.isActive ? PowerOff : Power}
-                disabled={busy}
-                onClick={item.isActive ? handleUnpublish : handlePublish}
-              >
-                {t(item.isActive ? COURSE_LABELS.unpublish : COURSE_LABELS.publish)}
-              </ControlAction>
-            )}
+            <ControlAction
+              icon={item.isActive ? PowerOff : Power}
+              disabled={busy}
+              onClick={item.isActive ? handleUnpublish : handlePublish}
+            >
+              {t(item.isActive ? COURSE_LABELS.unpublish : COURSE_LABELS.publish)}
+            </ControlAction>
             <ControlAction
               icon={Download}
               disabled={!item.fileStorageId}
@@ -264,17 +258,15 @@ export function ContentItemDetailPage() {
             >
               {t(COURSE_LABELS.downloadZip)}
             </ControlAction>
-            {isSuperAdmin && (
-              <ControlAction
-                icon={Trash2}
-                disabled={item.isActive || busy}
-                onClick={handleDelete}
-                variant="danger"
-                title={item.isActive ? t(COURSE_LABELS.unpublish) : undefined}
-              >
-                {t(COURSE_LABELS.delete)}
-              </ControlAction>
-            )}
+            <ControlAction
+              icon={Trash2}
+              disabled={item.isActive || busy}
+              onClick={handleDelete}
+              variant="danger"
+              title={item.isActive ? t(COURSE_LABELS.unpublish) : undefined}
+            >
+              {t(COURSE_LABELS.delete)}
+            </ControlAction>
           </ControlsSidebar>
         }
       >

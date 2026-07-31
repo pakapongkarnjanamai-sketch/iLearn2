@@ -168,17 +168,10 @@ export function AssignmentReportPage() {
     const groups = new Map<string, LearnerRow[]>()
     data.learners.forEach((row) => {
       const learnerGroups = row.learnerGroups
-      if (!learnerGroups || learnerGroups.length === 0) {
-        const key = 'Ungrouped'
-        const list = groups.get(key)
-        if (list) {
-          list.push(row)
-        } else {
-          groups.set(key, [row])
-        }
-      } else {
+      if (learnerGroups && learnerGroups.length > 0) {
         learnerGroups.forEach((gName) => {
-          const key = gName.trim() || 'Ungrouped'
+          const key = gName.trim()
+          if (!key) return
           const list = groups.get(key)
           if (list) {
             list.push(row)
@@ -199,8 +192,6 @@ export function AssignmentReportPage() {
         }
       })
       .sort((a, b) => {
-        if (a.groupName === 'Ungrouped') return 1
-        if (b.groupName === 'Ungrouped') return -1
         return a.groupName.localeCompare(b.groupName)
       })
   }, [data])

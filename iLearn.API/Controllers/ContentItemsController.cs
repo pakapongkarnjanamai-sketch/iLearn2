@@ -234,7 +234,7 @@ namespace iLearn.API.Controllers
             return File(fileStorage.Data, "application/octet-stream", safeFileName);
         }
 
-        [Authorize(Policy = "SuperAdminOnly")]
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost("upload")]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(ScormPackageLimits.MaxRequestEnvelopeBytes)]
@@ -294,7 +294,7 @@ namespace iLearn.API.Controllers
             return Ok(savedContentItem.ToDto());
         }
 
-        [Authorize(Policy = "SuperAdminOnly")]
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost("SetPublic")]
         public async Task<IActionResult> SetPublic([FromQuery] int key)
         {
@@ -353,7 +353,7 @@ namespace iLearn.API.Controllers
             }
         }
 
-        [Authorize(Policy = "SuperAdminOnly")]
+        [Authorize(Policy = "AdminOnly")]
         [HttpPost("Unpublish")]
         public async Task<IActionResult> Unpublish([FromQuery] int key)
         {
@@ -379,7 +379,7 @@ namespace iLearn.API.Controllers
             }
         }
 
-        [Authorize(Policy = "SuperAdminOnly")]
+        [Authorize(Policy = "AdminOnly")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
