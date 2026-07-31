@@ -205,7 +205,7 @@ namespace iLearn.API.Controllers
             //    ใช้ ignoreQueryFilters เพื่อให้โหลด Course ที่ถูก Soft Delete ได้ด้วย
             var enrollments = await _enrollmentRepo.GetAsync(
                 filter: e => e.LearnerCode == code,
-                includeProperties: "Course,AssignmentLinks",
+                includeProperties: "Course,AssignmentLinks.Assignment",
                 ignoreQueryFilters: true
             );
 
@@ -216,26 +216,35 @@ namespace iLearn.API.Controllers
             //    isAssignmentCancelled = เคยถูก Assign แต่ link ถูกลบทั้งหมดแล้ว
             var history = activeEnrollments
                 .OrderByDescending(e => e.StartDate ?? e.CompletedDate)
-                .Select(e => new
+                .Select(e =>
                 {
-                    enrollmentId = e.Id,
-                    courseId = e.CourseId,
-                    courseCode = e.Course != null ? e.Course.Code : "-",
-                    courseTitle = e.Course != null ? e.Course.Title : "Unknown Course",
-                    isCourseDeleted = e.Course != null && e.Course.IsDeleted,
-                    progress = e.Progress,
-                    isCompleted = e.IsCompleted,
-                    startDate = e.StartDate,
-                    dueDate = e.DueDate,
-                    completedDate = e.CompletedDate,
-                    totalScore = e.TotalScore,
-                    totalTimeSpent = e.TotalTimeSpent,
-                    hasActiveAssignment = e.AssignmentLinks.Any(),
-                    // Enrollment ที่ไม่มี link เหลือ, ยังไม่จบ และเคยมี StartDate/DueDate
-                    // = เคยถูก Assign แต่ Assignment ถูกลบไปแล้ว
-                    isAssignmentCancelled = !e.AssignmentLinks.Any()
-                                           && !e.IsCompleted
-                                           && (e.StartDate.HasValue || e.DueDate.HasValue)
+                    var activeAssignmentLinks = e.AssignmentLinks
+                        .Where(link => !link.IsDeleted && link.Assignment != null && !link.Assignment.IsDeleted)
+                        .ToList();
+                    var hasAnyAssignmentLinks = e.AssignmentLinks.Any();
+
+                    return new
+                    {
+                        enrollmentId = e.Id,
+                        courseId = e.CourseId,
+                        courseCode = e.Course != null ? e.Course.Code : "-",
+                        courseTitle = e.Course != null ? e.Course.Title : "Unknown Course",
+                        isCourseDeleted = e.Course != null && e.Course.IsDeleted,
+                        progress = e.Progress,
+                        isCompleted = e.IsCompleted,
+                        startDate = e.StartDate,
+                        dueDate = e.DueDate,
+                        completedDate = e.CompletedDate,
+                        totalScore = e.TotalScore,
+                        totalTimeSpent = e.TotalTimeSpent,
+                        hasActiveAssignment = activeAssignmentLinks.Any(),
+                        // Enrollment ที่ไม่มี active link เหลือ, ยังไม่จบ และเคยมี StartDate/DueDate
+                        // = เคยถูก Assign แต่ Assignment ถูกลบไปแล้ว
+                        isAssignmentCancelled = hasAnyAssignmentLinks
+                                               && !activeAssignmentLinks.Any()
+                                               && !e.IsCompleted
+                                               && (e.StartDate.HasValue || e.DueDate.HasValue)
+                    };
                 }).ToList();
 
             // 4. KPI — คิดเฉพาะ Course ที่ยังใช้งานอยู่ (ไม่ถูก Soft Delete)

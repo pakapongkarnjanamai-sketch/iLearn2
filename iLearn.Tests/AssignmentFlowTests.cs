@@ -323,6 +323,56 @@ namespace iLearn.Tests
             Assert.Empty(learner.LearnerGroups);
         }
 
+        [Fact]
+        public async Task AssignmentDashboardService_GetDashboardAsync_ExcludesDeletedRulesFromCurrentCounts()
+        {
+            var activeCourse = new Course { Id = 30, Code = "C-30", Title = "Course 30" };
+            var deletedRuleCourse = new Course { Id = 31, Code = "C-31", Title = "Course 31" };
+            var activeRule = new Assignment
+            {
+                Id = 50,
+                AssignmentNo = "AS-MIXED-001",
+                CourseId = activeCourse.Id,
+                Course = activeCourse,
+                DivisionId = 5,
+            };
+            var deletedRule = new Assignment
+            {
+                Id = 51,
+                AssignmentNo = activeRule.AssignmentNo,
+                CourseId = deletedRuleCourse.Id,
+                Course = deletedRuleCourse,
+                DivisionId = 5,
+                IsDeleted = true,
+            };
+            var activeEnrollment = new Enrollment { Id = 60, LearnerCode = "490222", CourseId = activeCourse.Id, Course = activeCourse };
+            var deletedRuleEnrollment = new Enrollment { Id = 61, LearnerCode = "490333", CourseId = deletedRuleCourse.Id, Course = deletedRuleCourse };
+            var assignmentRepo = new InMemoryGenericRepository<Assignment>([activeRule, deletedRule], Now);
+            var service = new AssignmentDashboardService(
+                assignmentRepo,
+                new InMemoryGenericRepository<EnrollmentAssignment>([
+                    new EnrollmentAssignment { Id = 70, AssignmentId = activeRule.Id, EnrollmentId = activeEnrollment.Id, Enrollment = activeEnrollment },
+                    new EnrollmentAssignment { Id = 71, AssignmentId = deletedRule.Id, EnrollmentId = deletedRuleEnrollment.Id, Enrollment = deletedRuleEnrollment },
+                ], Now),
+                new InMemoryGenericRepository<Course>([activeCourse, deletedRuleCourse], Now),
+                new AssignmentBatchService(assignmentRepo, new FakeCurrentUserService { DivisionId = 5 }),
+                new FakeLearnerApiService(),
+                null!,
+                new FakeCurrentUserService { DivisionId = 5 },
+                new FakeDateTime(Now),
+                new FakeUnitOfWork());
+
+            var dashboard = await service.GetDashboardAsync(activeRule.Id);
+
+            Assert.NotNull(dashboard);
+            Assert.Equal(1, dashboard.TotalCourses);
+            Assert.Equal(1, dashboard.TotalEmployees);
+            Assert.Single(dashboard.Courses);
+            Assert.Single(dashboard.Learners);
+            Assert.Equal(activeRule.Id, dashboard.Courses.Single().AssignmentRuleId);
+            Assert.Equal("490222", dashboard.Learners.Single().LearnerCode);
+        }
+
         private static CourseAssignmentServiceHarness CreateCourseAssignmentService(
             IEnumerable<Course> courses,
             IEnumerable<Enrollment> enrollments,

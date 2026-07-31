@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using iLearn.API.Controllers;
 using iLearn.Application.Interfaces.Services;
 using iLearn.Application.Interfaces.Repositories;
+using iLearn.Domain.Common;
 using iLearn.Domain.Entities;
 using Xunit;
 using iLearn.Application.DTOs;
@@ -166,6 +170,54 @@ namespace iLearn.Tests
             Assert.Contains("\"HR Department\"", decodedFilter);
         }
 
+        [Fact]
+        public async Task GetProfile_DeletedOnlyAssignmentLink_IsCancelledNotActive()
+        {
+            var course = new Course { Id = 10, Code = "C-10", Title = "Course 10" };
+            var deletedAssignment = new Assignment { Id = 20, AssignmentNo = "ASG-DEL", IsDeleted = true };
+            var enrollment = new Enrollment
+            {
+                Id = 30,
+                LearnerCode = "EMP001",
+                CourseId = course.Id,
+                Course = course,
+                StartDate = new DateTime(2026, 7, 1),
+                DueDate = new DateTime(2026, 7, 31),
+                Progress = 10,
+            };
+            enrollment.AssignmentLinks.Add(new EnrollmentAssignment
+            {
+                Id = 40,
+                EnrollmentId = enrollment.Id,
+                Enrollment = enrollment,
+                AssignmentId = deletedAssignment.Id,
+                Assignment = deletedAssignment,
+                IsDeleted = true,
+            });
+
+            var controller = new LearnersController(
+                new FakeLearnerApiService
+                {
+                    GetLearnerByCodeAsyncHandler = _ => Task.FromResult(new ExternalLearnerDto
+                    {
+                        Code = "EMP001",
+                        Name = "Learner One",
+                        Division = "QA"
+                    })
+                },
+                new InMemoryGenericRepository<Enrollment>([enrollment]),
+                null!,
+                new FakeCurrentUserService());
+
+            var result = await controller.GetProfile("EMP001");
+
+            var ok = Assert.IsType<OkObjectResult>(result);
+            using var json = JsonDocument.Parse(JsonSerializer.Serialize(ok.Value));
+            var historyRow = json.RootElement.GetProperty("data").GetProperty("enrollments")[0];
+            Assert.False(historyRow.GetProperty("hasActiveAssignment").GetBoolean());
+            Assert.True(historyRow.GetProperty("isAssignmentCancelled").GetBoolean());
+        }
+
         private sealed class FakeCurrentUserService : ICurrentUserService
         {
             public string UserId => "1";
@@ -179,6 +231,7 @@ namespace iLearn.Tests
         private sealed class FakeLearnerApiService : ILearnerApiService
         {
             public Func<string, Task<string>>? GetLearnersDxGridAsyncHandler { get; set; }
+            public Func<string, Task<ExternalLearnerDto>>? GetLearnerByCodeAsyncHandler { get; set; }
 
             public Task<string> GetLearnersDxGridAsync(string queryString)
             {
@@ -187,7 +240,9 @@ namespace iLearn.Tests
                     : Task.FromResult("{\"data\": [], \"totalCount\": 0}");
             }
 
-            public Task<ExternalLearnerDto> GetLearnerByCodeAsync(string Code) => throw new NotImplementedException();
+            public Task<ExternalLearnerDto> GetLearnerByCodeAsync(string Code) => GetLearnerByCodeAsyncHandler != null
+                ? GetLearnerByCodeAsyncHandler(Code)
+                : throw new NotImplementedException();
             public Task<AllLearnersApiResponse> GetLearnerAsync() => throw new NotImplementedException();
             public Task<DivisionApiResponse> GetLearnersByDivisionsAsync(string[] divisions, int skip = 0, int take = 20) => throw new NotImplementedException();
             public Task<object> GetSectionsAsync(string queryString) => throw new NotImplementedException();
@@ -196,6 +251,40 @@ namespace iLearn.Tests
             public Task<object> GetPositionsAsync(string queryString) => throw new NotImplementedException();
             public Task<Dictionary<string, ExternalLearnerDto>> GetLearnersByCodesAsync(IEnumerable<string> codes) => throw new NotImplementedException();
             public Task<Dictionary<string, EmployeeCsvDto>> GetEmployeesByNidsAsync(IEnumerable<string> nids) => throw new NotImplementedException();
+        }
+
+        private sealed class InMemoryGenericRepository<T> : IGenericRepository<T> where T : BaseEntity
+        {
+            private readonly List<T> _items;
+
+            public InMemoryGenericRepository(IEnumerable<T> items)
+            {
+                _items = items.ToList();
+            }
+
+            public Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>>? filter = null, string? includeProperties = null, bool ignoreQueryFilters = false)
+            {
+                var query = ignoreQueryFilters ? _items.AsEnumerable() : _items.Where(item => !item.IsDeleted);
+                if (filter != null)
+                {
+                    query = query.Where(filter.Compile());
+                }
+
+                return Task.FromResult<IReadOnlyList<T>>(query.ToList());
+            }
+
+            public Task<IReadOnlyList<T>> GetAllAsync() => throw new NotImplementedException();
+            public Task<T?> GetByIdAsync(int id) => throw new NotImplementedException();
+            public Task<T> AddAsync(T entity) => throw new NotImplementedException();
+            public Task<T> AddWithoutSaveAsync(T entity) => throw new NotImplementedException();
+            public Task UpdateAsync(T entity) => throw new NotImplementedException();
+            public void UpdateWithoutSave(T entity) => throw new NotImplementedException();
+            public Task DeleteAsync(T entity) => throw new NotImplementedException();
+            public void DeleteWithoutSave(T entity) => throw new NotImplementedException();
+            public Task HardDeleteAsync(T entity) => throw new NotImplementedException();
+            public IQueryable<T> GetQuery() => throw new NotImplementedException();
+            public Task<int> CountAsync(Expression<Func<T, bool>>? filter = null) => throw new NotImplementedException();
+            public Task<IEnumerable<TResult>> GetAsync<TResult>(Expression<Func<T, bool>>? filter = null, Expression<Func<T, TResult>>? selector = null) => throw new NotImplementedException();
         }
 
         [Fact]

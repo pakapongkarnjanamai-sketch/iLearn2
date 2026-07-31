@@ -53,7 +53,10 @@ namespace iLearn.Application.Services
             }
 
             var allRules = await _assignmentBatchService.LoadBatchAsync(mainRule, includeProperties: "Course", ignoreQueryFilters: true);
-            var ruleIds = allRules.Select(r => r.Id).ToList();
+            var activeRules = allRules.Where(r => !r.IsDeleted).ToList();
+            if (activeRules.Count == 0) return null;
+
+            var ruleIds = activeRules.Select(r => r.Id).ToList();
 
             var links = await _enrollmentAssignmentRepo.GetAsync(
                 ea => ruleIds.Contains(ea.AssignmentId),
@@ -92,7 +95,7 @@ namespace iLearn.Application.Services
             double completionRate    = totalEnrollments == 0
                 ? 0 : Math.Round((double)completedEnrollments / totalEnrollments * 100);
 
-            var courseSummaries = allRules.Select(r => new CourseSummaryDto
+            var courseSummaries = activeRules.Select(r => new CourseSummaryDto
             {
                 AssignmentRuleId  = r.Id,
                 CourseCode        = r.Course?.Code ?? "-",
@@ -105,7 +108,7 @@ namespace iLearn.Application.Services
             var uniqueCodes  = enrollments.Select(e => e.LearnerCode).Distinct().ToList();
             var learnerNames = await LookupLearnerNamesAsync(uniqueCodes);
 
-            var ruleCourseMap = allRules.ToDictionary(r => r.Id, r => r.Course);
+            var ruleCourseMap = activeRules.ToDictionary(r => r.Id, r => r.Course);
 
             var learnersProgress = enrollments.Select(e =>
             {
@@ -140,7 +143,7 @@ namespace iLearn.Application.Services
                 StartDate        = mainRule.StartDate,
                 DueDate          = mainRule.DueDate,
                 TotalEmployees   = uniqueLearnersCount,
-                TotalCourses     = allRules.Count,
+                TotalCourses     = activeRules.Count,
                 CompletionRate   = completionRate,
                 HasDeletedCourse = hasDeletedCourse,
                 ChartData        = new DashboardChartDto
