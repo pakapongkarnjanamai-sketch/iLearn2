@@ -28,6 +28,7 @@ namespace iLearn.Application.DTOs
         /// <summary>Ancestor category chain from root to direct parent (empty when group sits at root).</summary>
         public List<LearnerGroupCategoryAncestorDto> CategoryAncestors { get; set; } = new();
         public List<LearnerGroupMemberDto> Members { get; set; } = new();
+        public List<LearnerGroupRelatedAssignmentPreviewDto> Assignments { get; set; } = new();
     }
 
     public class LearnerGroupCategoryAncestorDto

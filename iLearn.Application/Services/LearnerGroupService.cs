@@ -188,6 +188,10 @@ namespace iLearn.Application.Services
             }).ToList();
 
             var categoryAncestors = await LoadCategoryAncestorsAsync(group.Category);
+            var assignmentContexts = await LoadRelatedAssignmentContextsAsync(
+                group.Id,
+                selectedStatuses: null,
+                filterByStatus: false);
 
             return new LearnerGroupDetailDto
             {
@@ -198,7 +202,8 @@ namespace iLearn.Application.Services
                 CategoryId        = group.CategoryId,
                 CategoryName      = group.Category?.Name,
                 CategoryAncestors = categoryAncestors,
-                Members           = memberDtos
+                Members           = memberDtos,
+                Assignments       = assignmentContexts.Select(context => context.Preview).ToList()
             };
         }
 
@@ -715,7 +720,11 @@ namespace iLearn.Application.Services
             }
         }
 
-        private async Task<List<RelatedAssignmentContext>> LoadRelatedAssignmentContextsAsync(int groupId, IEnumerable<string>? selectedStatuses, IEnumerable<int>? selectedAssignmentIds = null)
+        private async Task<List<RelatedAssignmentContext>> LoadRelatedAssignmentContextsAsync(
+            int groupId,
+            IEnumerable<string>? selectedStatuses,
+            IEnumerable<int>? selectedAssignmentIds = null,
+            bool filterByStatus = true)
         {
             var selectedStatusSet = selectedStatuses?
                 .Where(status => !string.IsNullOrWhiteSpace(status))
@@ -790,7 +799,7 @@ namespace iLearn.Application.Services
                         }
                     };
                 })
-                .Where(context => selectedStatusSet.Contains(context.Status))
+                .Where(context => !filterByStatus || selectedStatusSet.Contains(context.Status))
                 .Where(context => selectedIdSet.Count == 0 || context.Rules.Any(rule => selectedIdSet.Contains(rule.Id)))
                 .OrderByDescending(context => context.StartDate ?? DateTime.MinValue)
                 .ThenByDescending(context => context.Preview.AssignmentNo)

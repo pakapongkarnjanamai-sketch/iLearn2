@@ -1,6 +1,7 @@
 import { useCallback, useState, useEffect, useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import {
+  Calendar,
   Users,
   Settings,
   UserPlus,
@@ -15,6 +16,7 @@ import { AppButton } from '../../components/ui/AppButton'
 import { Badge } from '../../components/ui/Badge'
 import { IconButton } from '../../components/ui/IconButton'
 import { SegmentedToggle } from '../../components/ui/SegmentedToggle'
+import { StatusBadge } from '../../components/ui/StatusBadge'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { NotFoundState } from '../../components/ui/NotFoundState'
 import { ControlsSidebar, ControlAction } from '../../components/ui/ControlsSidebar'
@@ -28,27 +30,44 @@ import { LearnerDirectorySelector, type LearnerSelection } from '../../component
 import { AppTreeView, type TreeViewNode } from '../../components/ui/AppTreeView'
 import { DetailTabs } from '../../components/ui/DetailTabs'
 import { DETAIL_TABLE_CHUNK_SIZE, shouldLoadMoreOnScroll } from '../../lib/tableStandards'
-import { LEARNER_LABELS, UI_LABELS, t, tf } from '../../lib/labels'
+import { formatDate, formatNumber } from '../../lib/format'
+import { LEARNER_LABELS, UI_LABELS, learnerStatusLabel, t, tf } from '../../lib/labels'
 
 type LearnerGroupMember = {
   id: number
   learnerCode: string
-  learnerName: string
+  learnerName?: string | null
   division?: string
   department?: string
   section?: string
   position?: string
 }
 
+// Mirrors LearnerGroupRelatedAssignmentPreviewDto (iLearn.Application/DTOs/LearnerGroupDto.cs).
+type LearnerGroupRelatedAssignment = {
+  id: number
+  assignmentNo?: string | null
+  description?: string | null
+  courseNames: string
+  courseCount: number
+  status: string
+  startDate?: string | null
+  dueDate?: string | null
+  currentLearnerCount: number
+  estimatedEnrollmentCount: number
+}
+
+// Mirrors LearnerGroupDetailDto returned by GET LearnerGroups/{id} (iLearn.Application/DTOs/LearnerGroupDto.cs).
 type LearnerGroupDetail = {
   id: number
   name: string
-  description: string
-  createdBy: string
+  description?: string | null
+  createdBy?: string | null
   categoryId?: number
-  categoryName?: string
+  categoryName?: string | null
   categoryAncestors?: Array<{ id: number; name: string }>
   members: LearnerGroupMember[]
+  assignments?: LearnerGroupRelatedAssignment[]
 }
 
 type PreviewAddResult = {
@@ -66,14 +85,7 @@ type PreviewAddResult = {
     department?: string
     isAlreadyMember: boolean
   }>
-  assignments: Array<{
-    id: number
-    assignmentNo: string
-    description: string
-    courseNames: string
-    status: string
-    estimatedEnrollmentCount: number
-  }>
+  assignments: LearnerGroupRelatedAssignment[]
 }
 
 type PreviewRemoveResult = {
@@ -332,8 +344,9 @@ export function LearnerGroupDetailPage() {
 
   // Modal / Operations drawers
   const [managerMode, setManagerMode] = useState<'none' | 'add' | 'remove'>('none')
-  const [activeDetailTab, setActiveDetailTab] = useState<'members'>('members')
+  const [activeDetailTab, setActiveDetailTab] = useState<'members' | 'assignments'>('members')
   const [visibleMemberRows, setVisibleMemberRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
+  const [visibleAssignmentRows, setVisibleAssignmentRows] = useState(DETAIL_TABLE_CHUNK_SIZE)
   
   // Member additions workspace state
   const [memberAddTab, setMemberAddTab] = useState<'picker' | 'bulk'>('picker')
@@ -371,6 +384,7 @@ export function LearnerGroupDetailPage() {
 
   useEffect(() => {
     setVisibleMemberRows(DETAIL_TABLE_CHUNK_SIZE)
+    setVisibleAssignmentRows(DETAIL_TABLE_CHUNK_SIZE)
   }, [id])
 
   const parseLearnerCodes = (value: string) => {
@@ -564,11 +578,19 @@ export function LearnerGroupDetailPage() {
     )
   }
 
+  const relatedAssignments = group.assignments ?? []
   const visibleMembers = group.members.slice(0, visibleMemberRows)
+  const visibleAssignments = relatedAssignments.slice(0, visibleAssignmentRows)
 
   const handleMembersScroll = (event: React.UIEvent<HTMLDivElement>) => {
     if (visibleMemberRows < group.members.length && shouldLoadMoreOnScroll(event.currentTarget)) {
       setVisibleMemberRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)
+    }
+  }
+
+  const handleAssignmentsScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (visibleAssignmentRows < relatedAssignments.length && shouldLoadMoreOnScroll(event.currentTarget)) {
+      setVisibleAssignmentRows(prev => prev + DETAIL_TABLE_CHUNK_SIZE)
     }
   }
 
@@ -629,7 +651,10 @@ export function LearnerGroupDetailPage() {
           </Card>
 
           <DetailTabs
-            tabs={[{ key: 'members', label: tf(LEARNER_LABELS.membersWithCount, group.members.length) }]}
+            tabs={[
+              { key: 'members', label: tf(LEARNER_LABELS.membersWithCount, group.members.length) },
+              { key: 'assignments', label: tf(LEARNER_LABELS.relatedAssignmentsWithCount, relatedAssignments.length) },
+            ]}
             active={activeDetailTab}
             onChange={setActiveDetailTab}
           />
@@ -672,7 +697,7 @@ export function LearnerGroupDetailPage() {
                               />
                             </td>
                             <td className="p-3 font-mono font-bold text-slate-800">{m.learnerCode}</td>
-                            <td className="p-3 font-semibold text-slate-900">{m.learnerName}</td>
+                            <td className="p-3 font-semibold text-slate-900">{m.learnerName || m.learnerCode}</td>
                             <td className="p-3 text-slate-500 text-xs font-semibold">
                               {m.division || t(LEARNER_LABELS.emptyValue)} {m.department ? `/ ${m.department}` : ''}
                             </td>
@@ -688,6 +713,69 @@ export function LearnerGroupDetailPage() {
                           </tr>
                         )
                       })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {activeDetailTab === 'assignments' && (
+            <Card
+              icon={Calendar}
+              title={tf(LEARNER_LABELS.relatedAssignmentsWithCount, relatedAssignments.length)}
+              className="min-w-0"
+            >
+              <div onScroll={handleAssignmentsScroll} className="overflow-x-auto max-h-120 custom-scrollbar">
+                <table className="w-full text-left text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-xxs">
+                      <th className="p-3">{t(LEARNER_LABELS.assignmentNo)}</th>
+                      <th className="p-3">{t(LEARNER_LABELS.assignmentCourses)}</th>
+                      <th className="p-3">{t(LEARNER_LABELS.assignmentStartDate)}</th>
+                      <th className="p-3">{t(LEARNER_LABELS.assignmentDueDate)}</th>
+                      <th className="p-3">{t(LEARNER_LABELS.assignmentStatus)}</th>
+                      <th className="p-3 text-right">{t(LEARNER_LABELS.currentLearners)}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {relatedAssignments.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-slate-400">
+                          {t(LEARNER_LABELS.noRelatedAssignments)}
+                        </td>
+                      </tr>
+                    ) : (
+                      visibleAssignments.map((assignment) => (
+                        <tr key={assignment.id} className="hover:bg-slate-50/60 transition">
+                          <td className="p-3 align-top">
+                            <Link to={`/assignments/${assignment.id}`} className="font-mono font-bold text-indigo-600 hover:underline">
+                              {assignment.assignmentNo || t(LEARNER_LABELS.emptyValue)}
+                            </Link>
+                            {assignment.description && (
+                              <div className="mt-1 max-w-64 truncate text-xxs font-semibold text-slate-400">
+                                {assignment.description}
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-3 align-top">
+                            <div className="flex max-w-90 flex-col gap-1">
+                              <span className="truncate text-xs font-semibold text-slate-700">{assignment.courseNames || t(LEARNER_LABELS.emptyValue)}</span>
+                              <Badge tone="neutral" variant="tag" size="xxs" className="w-fit">
+                                {tf(LEARNER_LABELS.coursesCount, formatNumber(assignment.courseCount))}
+                              </Badge>
+                            </div>
+                          </td>
+                          <td className="p-3 align-top text-xs font-semibold text-slate-500">{formatDate(assignment.startDate)}</td>
+                          <td className="p-3 align-top text-xs font-semibold text-slate-500">{formatDate(assignment.dueDate)}</td>
+                          <td className="p-3 align-top">
+                            <StatusBadge size="xxs">{learnerStatusLabel(assignment.status)}</StatusBadge>
+                          </td>
+                          <td className="p-3 align-top text-right text-xs font-extrabold text-slate-800">
+                            {formatNumber(assignment.currentLearnerCount)}
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>

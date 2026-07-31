@@ -24,6 +24,37 @@ Format ต่อ entry:
 
 ---
 
+## [2026-07-31] GitHub Copilot — PLAN-189 assignment archive system plan
+- ทำอะไร: สร้างแผน READY สำหรับระบบ archive assignments แยกจาก delete/current tracking โดยคง enrollment snapshots และ historical reports
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-189-assignment-archive-system.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผนเท่านั้น); proposed contract ในแผนคือ archive fields + archive/restore endpoints
+- Verified: `pwsh tools/plan-status.ps1 -Next` ได้ `PLAN-189`; อ่าน lifecycle/status/dictionary และ code path `AssignmentService`/`AssignmentsCRUDController` ก่อนเขียนแผน
+
+## [2026-07-31] GitHub Copilot — PLAN-188 learner group related assignments
+- ทำอะไร: เพิ่ม assignments ที่เกี่ยวข้องใน `GET /api/LearnerGroups/{id}` และหน้า React `/learner-groups/:id` โดย reuse batch/status logic เดิมของ `LearnerGroupService`; deploy PROD API+React แล้ว
+- ไฟล์หลักที่แตะ: `iLearn.Application/DTOs/LearnerGroupDto.cs`, `iLearn.Application/Services/LearnerGroupService.cs`, `iLearn.Admin.React/src/pages/learner-groups/LearnerGroupDetailPage.tsx`, `iLearn.Admin.React/src/lib/labels.ts`, `DOC/PLANS/PLAN-188-*.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): เพิ่ม `data.assignments` ใน `GET /api/LearnerGroups/{id}`; ไม่มี DB/route change
+- Verified: `dotnet build iLearn.Tests` ✓; `dotnet test` 294/294 ✓; React build/lint ✓; PROD API `20260731163725` ✓; React `index-BMwSsivA.js` ✓; smoke group 32 API 200 (`AssignmentCount=0` currently)
+
+## [2026-07-31] Claude Code — เปิด PLAN-187 ลบ dead code จาก Reviewer Notes ของ PLAN-185
+- ทำอะไร: สร้างแผน READY assigned GPT — ลบ `AssignmentDashboardService.GetDashboardAsync` (ไม่มี call site, ตัวจริงคือ `AssignmentService`) + private helper/dependency ที่ตายตาม + test ที่คุม dead code; เพิ่ม regression test เคส never-linked enrollment (self-enroll ไม่ควรขึ้น badge `Cancelled`)
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-187-remove-dead-assignment-dashboard-method.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (แผนเท่านั้น ยังไม่ได้แก้โค้ด)
+- Verified: `pwsh tools/plan-status.ps1 -Next` ได้ `PLAN-187`; grep ยืนยัน call site เหลือแค่ `AssignmentsController.cs:77` → `AssignmentService`; `plan-status.ps1` อ่าน header ไฟล์ใหม่ได้
+
+## [2026-07-31] Claude Code — รีวิว PLAN-185 (VERIFIED)
+- ทำอะไร: รีวิว fix ignored-query-filter ของ Copilot — ตรวจ audit table ทุกแถวเทียบโค้ดจริง (11 usages), ยืนยัน predicate ใหม่ตรง convention เดิม 3 จุด (`CourseService` ×2, `GetEffectiveSchedule`); พบ `AssignmentDashboardService.GetDashboardAsync` เป็น **dead code** (ไม่มี call site) ⇒ fix ตัวที่ 2 ไม่มีผลกับ production; พบว่า fix แถม badge `Self Enroll` ที่เคยขึ้น `Cancelled` ผิดแต่ยังไม่มี test คุม; แก้ header entry PLAN-186 ที่หายไป
+- ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-185-*.md` (Status → VERIFIED + Reviewer Notes), `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (เอกสารเท่านั้น ไม่ได้แก้โค้ด)
+- Verified: `dotnet build iLearn.Tests` 0 error; `dotnet test` **294/294 ผ่าน** (implementer รันแค่ 39)
+
+## [2026-07-31] GitHub Copilot — PLAN-185 ignored-query-filter audit fixes
+- ทำอะไร: audit จุด `ignoreQueryFilters`/`.IgnoreQueryFilters()` ครบ 11 usages; แก้ 2 current-state leaks: learner profile deleted-only assignment link flags และ legacy `AssignmentDashboardService` deleted-rule counts
+- ไฟล์หลักที่แตะ: `iLearn.API/Controllers/LearnersController.cs`, `iLearn.Application/Services/AssignmentDashboardService.cs`, `iLearn.Tests/{LearnersControllerTests.cs,AssignmentFlowTests.cs}`, `DOC/PLANS/PLAN-185-*.md`, `DOC/AGENT_LOG.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี; semantics ของ learner profile `hasActiveAssignment/isAssignmentCancelled` ใช้ active assignment links เท่านั้น
+- Verified: focused tests 1/1 + 1/1 ✓; regression set `LearnersControllerTests|AssignmentFlowTests|CourseServiceVisibilityTests|ReportServiceTests|CourseContentReadinessTests` 39/39 ✓ (มี NU1903 warnings เดิมของ Negotiate)
+
+## [2026-07-31] GitHub Copilot — PLAN-186 ย้าย Apply Active Version เข้าตาราง Versions
 - ทำอะไร: ย้าย `Apply Active Version` ออกจาก Controls sidebar ไปอยู่ใน action ของตาราง Versions; inactive version เปิด modal `Set Active Version`, active version เปิด modal `Apply Active Version`; เปลี่ยนชื่อปุ่ม `Add Version Package` เป็น `Add Version`; ย้ายข้อความใหม่ทั้งหมดเข้า `COURSE_LABELS` สองภาษา
 - ไฟล์หลักที่แตะ: `iLearn.Admin.React/src/pages/courses/CourseDetailPage.tsx`, `iLearn.Admin.React/src/lib/labels.ts`, `DOC/PLANS/PLAN-186-*.md`, `DOC/AGENT_LOG.md`
 - Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี (UI เท่านั้น ใช้ endpoint จาก PLAN-183)
