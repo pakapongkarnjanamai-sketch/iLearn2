@@ -218,6 +218,47 @@ namespace iLearn.Tests
             Assert.True(historyRow.GetProperty("isAssignmentCancelled").GetBoolean());
         }
 
+        // Self-enroll / legacy enrollment: ไม่เคยมี assignment link เลย แม้จะมี StartDate/DueDate
+        // และยังไม่จบ ก็ไม่ใช่ "assignment ถูกยกเลิก" — UI ต้องขึ้น badge Self Enroll ไม่ใช่ Cancelled
+        // (PLAN-185 fix, regression test เพิ่มใน PLAN-187)
+        [Fact]
+        public async Task GetProfile_EnrollmentWithoutAssignmentLinks_IsNeitherActiveNorCancelled()
+        {
+            var course = new Course { Id = 11, Code = "C-11", Title = "Course 11" };
+            var enrollment = new Enrollment
+            {
+                Id = 31,
+                LearnerCode = "EMP002",
+                CourseId = course.Id,
+                Course = course,
+                StartDate = new DateTime(2026, 7, 1),
+                DueDate = new DateTime(2026, 7, 31),
+                Progress = 40,
+            };
+
+            var controller = new LearnersController(
+                new FakeLearnerApiService
+                {
+                    GetLearnerByCodeAsyncHandler = _ => Task.FromResult(new ExternalLearnerDto
+                    {
+                        Code = "EMP002",
+                        Name = "Learner Two",
+                        Division = "QA"
+                    })
+                },
+                new InMemoryGenericRepository<Enrollment>([enrollment]),
+                null!,
+                new FakeCurrentUserService());
+
+            var result = await controller.GetProfile("EMP002");
+
+            var ok = Assert.IsType<OkObjectResult>(result);
+            using var json = JsonDocument.Parse(JsonSerializer.Serialize(ok.Value));
+            var historyRow = json.RootElement.GetProperty("data").GetProperty("enrollments")[0];
+            Assert.False(historyRow.GetProperty("hasActiveAssignment").GetBoolean());
+            Assert.False(historyRow.GetProperty("isAssignmentCancelled").GetBoolean());
+        }
+
         private sealed class FakeCurrentUserService : ICurrentUserService
         {
             public string UserId => "1";

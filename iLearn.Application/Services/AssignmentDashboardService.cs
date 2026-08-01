@@ -14,7 +14,6 @@ namespace iLearn.Application.Services
         private readonly IGenericRepository<EnrollmentAssignment> _enrollmentAssignmentRepo;
         private readonly IGenericRepository<Course> _courseRepo;
         private readonly IAssignmentBatchService _assignmentBatchService;
-        private readonly ILearnerApiService _learnerApiService;
         private readonly ILearnerGroupService _learnerGroupService;
         private readonly ICurrentUserService _currentUser;
         private readonly IDateTime _dateTime;
@@ -25,7 +24,6 @@ namespace iLearn.Application.Services
             IGenericRepository<EnrollmentAssignment> enrollmentAssignmentRepo,
             IGenericRepository<Course> courseRepo,
             IAssignmentBatchService assignmentBatchService,
-            ILearnerApiService learnerApiService,
             ILearnerGroupService learnerGroupService,
             ICurrentUserService currentUser,
             IDateTime dateTime,
@@ -35,126 +33,10 @@ namespace iLearn.Application.Services
             _enrollmentAssignmentRepo = enrollmentAssignmentRepo;
             _courseRepo = courseRepo;
             _assignmentBatchService = assignmentBatchService;
-            _learnerApiService = learnerApiService;
             _learnerGroupService = learnerGroupService;
             _currentUser = currentUser;
             _dateTime = dateTime;
             _unitOfWork = unitOfWork;
-        }
-
-        public async Task<AssignmentDashboardDto?> GetDashboardAsync(int assignmentId)
-        {
-            var mainRule = await _assignmentRepo.GetByIdAsync(assignmentId);
-            if (mainRule == null) return null;
-
-            if (!IsAccessibleToCurrentDivision(mainRule.DivisionId))
-            {
-                return null;
-            }
-
-            var allRules = await _assignmentBatchService.LoadBatchAsync(mainRule, includeProperties: "Course", ignoreQueryFilters: true);
-            var activeRules = allRules.Where(r => !r.IsDeleted).ToList();
-            if (activeRules.Count == 0) return null;
-
-            var ruleIds = activeRules.Select(r => r.Id).ToList();
-
-            var links = await _enrollmentAssignmentRepo.GetAsync(
-                ea => ruleIds.Contains(ea.AssignmentId),
-                includeProperties: "Enrollment,Enrollment.Course"
-            );
-
-            var enrollments = links
-                .Where(ea => ea.Enrollment != null)
-                .Select(ea => new EnrollmentProjection
-                {
-                    LearnerCode   = ea.Enrollment!.LearnerCode,
-                    AssignmentId  = ea.AssignmentId,
-                    Progress      = ea.SnapshotCompleted ? ea.SnapshotProgress : ea.Enrollment.Progress,
-                    IsCompleted   = ea.SnapshotCompleted || ea.Enrollment.IsCompleted,
-                    CompletedDate = ea.SnapshotCompleted ? ea.SnapshotCompletedDate : ea.Enrollment.CompletedDate,
-                    StartDate     = ea.StartDate,
-                    DueDate       = ea.DueDate,
-                    Course        = ea.Enrollment.Course
-                }).ToList();
-
-            var learnerEnrollments = enrollments
-                .GroupBy(e => e.LearnerCode)
-                .Select(g => new
-                {
-                    LearnerCode  = g.Key,
-                    AllCompleted = g.All(e => e.IsCompleted),
-                    AnyStarted   = g.Any(e => e.IsCompleted || e.Progress > 0)
-                }).ToList();
-
-            int uniqueLearnersCount  = learnerEnrollments.Count;
-            int completedCount       = learnerEnrollments.Count(s => s.AllCompleted);
-            int inProgressCount      = learnerEnrollments.Count(s => !s.AllCompleted && s.AnyStarted);
-            int notStartedCount      = learnerEnrollments.Count(s => !s.AllCompleted && !s.AnyStarted);
-            int totalEnrollments     = enrollments.Count;
-            int completedEnrollments = enrollments.Count(e => e.IsCompleted);
-            double completionRate    = totalEnrollments == 0
-                ? 0 : Math.Round((double)completedEnrollments / totalEnrollments * 100);
-
-            var courseSummaries = activeRules.Select(r => new CourseSummaryDto
-            {
-                AssignmentRuleId  = r.Id,
-                CourseCode        = r.Course?.Code ?? "-",
-                CourseTitle       = r.Course?.Title ?? "Unknown Course",
-                CompletedLearners = enrollments.Count(e => e.AssignmentId == r.Id && e.IsCompleted),
-                TotalLearners     = enrollments.Count(e => e.AssignmentId == r.Id),
-                IsCourseDeleted   = r.Course?.IsDeleted ?? false
-            }).ToList();
-
-            var uniqueCodes  = enrollments.Select(e => e.LearnerCode).Distinct().ToList();
-            var learnerNames = await LookupLearnerNamesAsync(uniqueCodes);
-
-            var ruleCourseMap = activeRules.ToDictionary(r => r.Id, r => r.Course);
-
-            var learnersProgress = enrollments.Select(e =>
-            {
-                var course = e.Course ?? (ruleCourseMap.TryGetValue(e.AssignmentId, out var c) ? c : null);
-                var status = AssignmentStatusKeys.GetLearnerStatus(e.IsCompleted, e.Progress);
-                return new LearnerProgressDto
-                {
-                    LearnerCode      = e.LearnerCode,
-                    LearnerName      = learnerNames.GetValueOrDefault(e.LearnerCode, e.LearnerCode),
-                    AssignmentRuleId = e.AssignmentId,
-                    CourseCode       = course?.Code ?? "-",
-                    CourseTitle      = course?.Title ?? "Unknown Course",
-                    Progress         = e.Progress,
-                    IsCompleted      = e.IsCompleted,
-                    Status           = status,
-                    CompletedDate    = e.CompletedDate,
-                    StartDate        = e.StartDate,
-                    DueDate          = e.DueDate
-                };
-            }).ToList();
-
-            bool hasDeletedCourse = courseSummaries.Any(c => c.IsCourseDeleted);
-
-            var createdByName = await LookupCreatedByNameAsync(mainRule.CreatedBy);
-
-            return new AssignmentDashboardDto
-            {
-                AssignmentNo     = mainRule.AssignmentNo ?? string.Empty,
-                Description      = mainRule.Description ?? string.Empty,
-                CreatedBy        = mainRule.CreatedBy,
-                CreatedByName    = createdByName,
-                StartDate        = mainRule.StartDate,
-                DueDate          = mainRule.DueDate,
-                TotalEmployees   = uniqueLearnersCount,
-                TotalCourses     = activeRules.Count,
-                CompletionRate   = completionRate,
-                HasDeletedCourse = hasDeletedCourse,
-                ChartData        = new DashboardChartDto
-                {
-                    Completed  = completedCount,
-                    InProgress = inProgressCount,
-                    NotStarted = notStartedCount
-                },
-                Courses  = courseSummaries,
-                Learners = learnersProgress
-            };
         }
 
         public async Task<ValidateBeforeAssignResult> ValidateBeforeAssignAsync(BulkAssignDto dto)
@@ -330,66 +212,6 @@ namespace iLearn.Application.Services
                     ? string.Join(", ", deletedCourses.Select(c => c!.Title ?? "Unknown"))
                     : null
             };
-        }
-
-        private async Task<string?> LookupCreatedByNameAsync(string? createdByNid)
-        {
-            if (string.IsNullOrWhiteSpace(createdByNid)) return null;
-
-            try
-            {
-                var result = await _learnerApiService.GetEmployeesByNidsAsync(new[] { createdByNid });
-                if (result.TryGetValue(createdByNid, out var employee))
-                {
-                    var fullName = employee.FullName;
-                    return string.IsNullOrWhiteSpace(fullName) ? null : fullName;
-                }
-                return null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        private async Task<Dictionary<string, string>> LookupLearnerNamesAsync(List<string> codes)
-        {
-            if (codes.Count == 0) return new Dictionary<string, string>();
-
-            try
-            {
-                var bulk = await _learnerApiService.GetLearnersByCodesAsync(codes);
-                return bulk.ToDictionary(kv => kv.Key, kv => kv.Value.Name ?? kv.Key);
-            }
-            catch
-            {
-                var dict = new Dictionary<string, string>();
-                foreach (var code in codes)
-                {
-                    try
-                    {
-                        var s = await _learnerApiService.GetLearnerByCodeAsync(code);
-                        dict[code] = s?.Name ?? code;
-                    }
-                    catch
-                    {
-                        dict[code] = code;
-                    }
-                }
-                return dict;
-            }
-        }
-
-        private sealed class EnrollmentProjection
-        {
-            public string LearnerCode { get; set; } = string.Empty;
-            public int AssignmentId { get; set; }
-            public double Progress { get; set; }
-            public bool IsCompleted { get; set; }
-            public DateTime? CompletedDate { get; set; }
-            public DateTime? StartDate { get; set; }
-            public DateTime? DueDate { get; set; }
-            public Course? Course { get; set; }
         }
 
         public async Task<List<AssignmentGroupHistoryDto>> GetGroupHistoryAsync(int groupId)

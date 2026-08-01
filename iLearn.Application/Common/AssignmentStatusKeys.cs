@@ -43,18 +43,6 @@ namespace iLearn.Application.Common
             return Batch.InProgress;
         }
 
-        public static string GetLearnerStatus(bool isCompleted, double progress)
-        {
-            if (isCompleted)
-            {
-                return Learner.Completed;
-            }
-
-            return progress > 0
-                ? Learner.InProgress
-                : Learner.NotStarted;
-        }
-
         public static string GetScheduledLearnerStatus(bool isCompleted, double progress, DateTime? startDate, DateTime? dueDate, DateTime currentDate)
         {
             if (isCompleted)

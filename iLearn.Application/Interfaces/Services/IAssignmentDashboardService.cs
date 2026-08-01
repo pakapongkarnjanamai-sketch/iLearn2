@@ -8,9 +8,6 @@ namespace iLearn.Application.Interfaces.Services
     /// </summary>
     public interface IAssignmentDashboardService
     {
-        /// <summary>Get the full dashboard data for a specific assignment group.</summary>
-        Task<AssignmentDashboardDto?> GetDashboardAsync(int assignmentId);
-
         /// <summary>Validate potential conflicts before a bulk-assign operation.</summary>
         Task<ValidateBeforeAssignResult> ValidateBeforeAssignAsync(BulkAssignDto dto);
 

@@ -36,6 +36,12 @@ Format ต่อ entry:
 - Contract ที่เปลี่ยน (API shape / props / DB): เพิ่ม `data.assignments` ใน `GET /api/LearnerGroups/{id}`; ไม่มี DB/route change
 - Verified: `dotnet build iLearn.Tests` ✓; `dotnet test` 294/294 ✓; React build/lint ✓; PROD API `20260731163725` ✓; React `index-BMwSsivA.js` ✓; smoke group 32 API 200 (`AssignmentCount=0` currently)
 
+## [2026-08-01] Claude Code — implement PLAN-187 เอง (VERIFIED)
+- ทำอะไร: ผู้ใช้สั่งให้ Claude implement เองแทน GPT — ลบ `AssignmentDashboardService.GetDashboardAsync` (dead code) + private helper/`ILearnerApiService` ที่ตายตาม + `AssignmentStatusKeys.GetLearnerStatus` + test ที่คุม dead code; เพิ่ม test `GetProfile_EnrollmentWithoutAssignmentLinks_IsNeitherActiveNorCancelled`; เจอเพิ่ม: ลบ stub `GetDashboardAsync` ใน `FakeAssignmentDashboardService` 2 ไฟล์
+- ไฟล์หลักที่แตะ: `iLearn.Application/{Interfaces/Services/IAssignmentDashboardService.cs,Services/AssignmentDashboardService.cs,Common/AssignmentStatusKeys.cs}`, `iLearn.Tests/{AssignmentFlowTests.cs,AssignmentStatusKeysTests.cs,LearnersControllerTests.cs,EnrollmentsPlayerInfoTests.cs}`, `DOC/PLANS/PLAN-187-*.md`
+- Contract ที่เปลี่ยน (API shape / props / DB): ไม่มี — `IAssignmentDashboardService.GetDashboardAsync` ที่ลบไม่มี caller (endpoint `/api/Assignments/{id}/dashboard` ใช้ `AssignmentService` คนละตัว) ไม่แตะ runtime path ใด ๆ ไม่ต้อง deploy
+- Verified: build 0 error, warning 100 → 97 (ไม่มีใหม่); `dotnet test` **290/290 ✓** (294−1 fact−4 InlineData+1 ใหม่ ตรงตามแผน); พิสูจน์ test ใหม่ด้วยการ revert guard ชั่วคราวแล้ว fail จริง
+
 ## [2026-07-31] Claude Code — เปิด PLAN-187 ลบ dead code จาก Reviewer Notes ของ PLAN-185
 - ทำอะไร: สร้างแผน READY assigned GPT — ลบ `AssignmentDashboardService.GetDashboardAsync` (ไม่มี call site, ตัวจริงคือ `AssignmentService`) + private helper/dependency ที่ตายตาม + `AssignmentStatusKeys.GetLearnerStatus` (เป็น special case เป๊ะ ๆ ของ `GetScheduledLearnerStatus`) + test ที่คุม dead code; เพิ่ม regression test เคส never-linked enrollment (self-enroll ไม่ควรขึ้น badge `Cancelled`)
 - ไฟล์หลักที่แตะ: `DOC/PLANS/PLAN-187-remove-dead-assignment-dashboard-method.md`, `DOC/AGENT_LOG.md`

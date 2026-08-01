@@ -1,7 +1,7 @@
 # PLAN-187: ลบ dead code `AssignmentDashboardService.GetDashboardAsync` + เติม test เคส never-linked enrollment
 
-- **Status:** READY
-- **Assigned:** GPT
+- **Status:** VERIFIED
+- **Assigned:** Claude Code (เดิม assigned GPT — ผู้ใช้สั่งให้ Claude implement เอง 2026-08-01)
 - **Reviewer:** Claude Code
 - **Priority:** Low
 - **Estimated scope:** 6 ไฟล์ (1 service, 1 interface, 1 common helper, 3 test files) — ลบโค้ดเป็นหลัก + เพิ่ม test 1 ตัว
@@ -100,3 +100,27 @@ Remove-Item -Recurse -Force artifacts\verify-plan187
 ไม่ต้องรัน React lint/build (ไม่แตะฝั่ง React) และไม่ต้อง deploy
 
 ## Implementer Notes
+
+ทำโดย Claude Code (2026-08-01) ตามคำสั่งผู้ใช้ให้ implement เอง แทนที่จะส่งต่อให้ GPT
+
+**ทำครบตาม Scope ทั้ง 4 ข้อ:**
+
+1. ลบ `GetDashboardAsync` ออกจาก `IAssignmentDashboardService` + ตัว implementation ใน `AssignmentDashboardService` (115 บรรทัด)
+2. ลบ private ที่ตายตาม: `LookupCreatedByNameAsync`, `LookupLearnerNamesAsync`, `EnrollmentProjection` และ dependency `ILearnerApiService` (field + ctor param) — ไม่ต้องแตะ `DependencyInjection.cs` ตามที่แผนคาดไว้จริง
+3. ลบ test `AssignmentDashboardService_GetDashboardAsync_ExcludesDeletedRulesFromCurrentCounts`
+4. ลบ `AssignmentStatusKeys.GetLearnerStatus` + theory `GetLearnerStatus_ReturnsCanonicalKeys` — ยืนยันแล้วว่า theory ตัว `GetScheduledLearnerStatus` ครอบพฤติกรรมครบทั้ง 3 แบบผ่าน row ที่ date offset เป็น null ทั้งคู่ **ไม่ต้องเติม InlineData ใด ๆ**
+5. เพิ่ม test `GetProfile_EnrollmentWithoutAssignmentLinks_IsNeitherActiveNorCancelled`
+
+**เจอเพิ่มนอกแผน (แก้แล้ว):** `FakeAssignmentDashboardService` ใน `iLearn.Tests/AssignmentFlowTests.cs` และ `iLearn.Tests/EnrollmentsPlayerInfoTests.cs` มี stub `GetDashboardAsync` ของ interface member ที่ลบไป — C# ไม่ error เพราะเป็นแค่ public method ส่วนเกิน แต่เป็น dead stub จึงลบทิ้งทั้ง 2 จุด (แผนไม่ได้ระบุไว้ เพราะตอนเขียนแผน grep เจอแต่ production call site)
+
+**Acceptance criteria ผ่านครบ:**
+
+- `rg "GetDashboardAsync"` เหลือแค่ `AssignmentService` / `IAssignmentService` / `AssignmentsController.cs:77` + test ของ `AssignmentService` (ตัว live) — ไม่มี stub ค้าง
+- `rg "GetLearnerStatus"` / `rg "_learnerApiService"` ใน service = ไม่พบผลลัพธ์ (exit 1)
+- build 0 error และ warning **ลดลง 100 → 97** (ไม่มี warning ใหม่)
+- test **294 → 290** ตรงตามที่แผนคำนวณไว้เป๊ะ (−1 fact, −4 InlineData, +1 test ใหม่)
+- **พิสูจน์ว่า test ใหม่คุมของจริงแล้ว:** revert เงื่อนไข `hasAnyAssignmentLinks` ออกจาก `LearnersController.cs:243` ชั่วคราว → test fail จริง (`Assert.False() Failure / Expected: False / Actual: True` ที่ `LearnersControllerTests.cs:259`) แล้วคืนโค้ดเดิมด้วย `git checkout --`
+
+## Reviewer Notes (Claude Code, 2026-08-01)
+
+implement + verify โดย agent เดียวกัน (ผู้ใช้สั่งให้ทำเอง) — ไม่มี second pair of eyes ในรอบนี้ ความเสี่ยงต่ำเพราะเป็นการลบ dead code ที่พิสูจน์แล้วว่าไม่มี caller และ test suite เต็มชุดยังเขียว 290/290 ถ้าต้องการรีวิวซ้ำโดย agent อื่นให้ดู diff ของ commit ที่อ้างใน `AGENT_LOG.md`

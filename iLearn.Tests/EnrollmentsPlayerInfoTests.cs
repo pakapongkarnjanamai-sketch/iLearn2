@@ -583,7 +583,6 @@ namespace iLearn.Tests
 
         private sealed class FakeAssignmentDashboardService : IAssignmentDashboardService
         {
-            public Task<AssignmentDashboardDto?> GetDashboardAsync(int assignmentId) => Task.FromResult<AssignmentDashboardDto?>(null);
             public Task<ValidateBeforeAssignResult> ValidateBeforeAssignAsync(BulkAssignDto dto) => Task.FromResult(new ValidateBeforeAssignResult { Success = true });
             public Task<PagedResult<AssignmentHistoryDto>> GetAssignmentHistoryPagedAsync(PaginationParams p) => Task.FromResult(new PagedResult<AssignmentHistoryDto>());
             public Task<List<AssignmentGroupHistoryDto>> GetGroupHistoryAsync(int groupId) => Task.FromResult(new List<AssignmentGroupHistoryDto>());

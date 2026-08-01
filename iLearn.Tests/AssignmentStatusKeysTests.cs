@@ -5,18 +5,6 @@ namespace iLearn.Tests
     public class AssignmentStatusKeysTests
     {
         [Theory]
-        [InlineData(true, 0, AssignmentStatusKeys.Learner.Completed)]
-        [InlineData(true, 100, AssignmentStatusKeys.Learner.Completed)]
-        [InlineData(false, 25, AssignmentStatusKeys.Learner.InProgress)]
-        [InlineData(false, 0, AssignmentStatusKeys.Learner.NotStarted)]
-        public void GetLearnerStatus_ReturnsCanonicalKeys(bool isCompleted, double progress, string expected)
-        {
-            var result = AssignmentStatusKeys.GetLearnerStatus(isCompleted, progress);
-
-            Assert.Equal(expected, result);
-        }
-
-        [Theory]
         [InlineData(true, 0, null, null, AssignmentStatusKeys.Learner.Completed)]
         [InlineData(false, 0, 1, null, AssignmentStatusKeys.Learner.Upcoming)]
         [InlineData(false, 0, null, -1, AssignmentStatusKeys.Learner.Overdue)]
