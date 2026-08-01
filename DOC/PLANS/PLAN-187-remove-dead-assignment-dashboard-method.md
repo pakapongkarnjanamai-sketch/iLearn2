@@ -4,7 +4,7 @@
 - **Assigned:** GPT
 - **Reviewer:** Claude Code
 - **Priority:** Low
-- **Estimated scope:** 4 ไฟล์ (1 service, 1 interface, 2 test files) — ลบโค้ดเป็นหลัก + เพิ่ม test 1 ตัว
+- **Estimated scope:** 6 ไฟล์ (1 service, 1 interface, 1 common helper, 3 test files) — ลบโค้ดเป็นหลัก + เพิ่ม test 1 ตัว
 
 ## Problem
 
@@ -55,11 +55,25 @@ GetProfile_EnrollmentWithoutAssignmentLinks_IsNeitherActiveNorCancelled
 - assert: `hasActiveAssignment == false` **และ** `isAssignmentCancelled == false`
 - ใส่คอมเมนต์สั้น ๆ ว่าเคสนี้ = self-enroll/legacy enrollment ⇒ UI ต้องขึ้น badge `Self Enroll` ไม่ใช่ `Cancelled` (อ้าง PLAN-185/PLAN-187)
 
+### 4. ลบ `AssignmentStatusKeys.GetLearnerStatus` ที่ตายตาม
+
+หลังลบ `GetDashboardAsync` แล้ว `GetLearnerStatus` จะไม่มี production caller เหลือเลย (เดิมมีที่เดียวคือ `AssignmentDashboardService.cs:116`) และมันคือ **special case แบบเป๊ะ ๆ ของ `GetScheduledLearnerStatus`** อยู่แล้ว:
+
+`GetScheduledLearnerStatus(isCompleted, progress, startDate: null, dueDate: null, currentDate)` จะข้าม branch `Upcoming`/`Overdue` ทั้งคู่ แล้วตกมาที่ logic `isCompleted → Completed` / `progress > 0 → InProgress` / else `NotStarted` = พฤติกรรมเดียวกับ `GetLearnerStatus` ทุกกรณี ⇒ **ไม่มี behavior ไหนหายไป ไม่ต้อง migrate caller ใด ๆ**
+
+`iLearn.Application/Common/AssignmentStatusKeys.cs`
+- ลบ `GetLearnerStatus` (บรรทัด 46-56)
+- **ห้ามแตะ** `GetScheduledLearnerStatus`, `GetBatchStatus`, `IsDueSoon`, `GetDueSoonCutoff`, const `DueSoonWindowDays` และ nested class `Batch` / `Learner` ทั้งหมด (ยังถูกใช้อยู่)
+
+`iLearn.Tests/AssignmentStatusKeysTests.cs`
+- ลบ theory `GetLearnerStatus_ReturnsCanonicalKeys` (บรรทัด 7-17, 4 InlineData)
+- **ไม่ต้องย้าย case ไปที่อื่น** — theory `GetScheduledLearnerStatus_ReturnsCanonicalKeys` ที่อยู่ถัดลงมาครอบคลุมทั้ง 4 พฤติกรรมนั้นแล้วผ่าน row ที่ `startOffsetDays`/`dueOffsetDays` เป็น `null` ทั้งคู่ (`Completed` / `InProgress` / `NotStarted`) ⇒ ลบแล้ว coverage ไม่ลด
+- ถ้าเจอว่าไม่จริงตอนลงมือ (เช่น row ไหนหายไป) **ห้ามลบทิ้งเฉย ๆ** ให้เติม InlineData ที่ขาดเข้า theory ตัว scheduled แล้วจดใน Implementer Notes
+
 ## Out of scope (ห้ามแตะ)
 
 - **ห้ามลบ `AssignmentDashboardService` ทั้ง class หรือ interface** — method ที่เหลืออีก 5 ตัวยังถูกเรียกจาก `AssignmentsController` / `EnrollmentService` / `CourseAssignmentService`
 - **ห้ามลบ DTO** `AssignmentDashboardDto` / `CourseSummaryDto` / `LearnerProgressDto` / `DashboardChartDto` — `AssignmentService` (dashboard ตัวจริง) ยังใช้ทั้งหมด
-- **ห้ามลบ `AssignmentStatusKeys.GetLearnerStatus`** ถึงแม้หลังงานนี้จะเหลือแค่ `AssignmentStatusKeysTests` ที่เรียก — เป็น public helper ใน `Common` ที่มี test คุมอยู่แล้ว (ตัวที่ใช้จริงใน `AssignmentService` คือ `GetScheduledLearnerStatus` คนละตัว) การตัดสินใจลบ/รวม 2 helper นี้เป็นงานคนละเรื่อง ให้จดใน Implementer Notes ถ้าคิดว่าควรทำ
 - **ห้ามแตะ `AssignmentService.GetDashboardAsync` / `BuildAssignmentDashboardAsync`** — คือ path ที่ production ใช้จริง ผ่านรีวิว PLAN-185 มาแล้วว่า `Safe`
 - ไม่ต้องรวม `InMemoryGenericRepository<T>` ที่ซ้ำกันระหว่าง `LearnersControllerTests` กับ helper ของ `AssignmentFlowTests` (Reviewer Notes ข้อ 3 ของ PLAN-185) — เป็นงาน test refactor แยก ถ้าจะทำให้เปิดแผนใหม่
 - ไม่ต้อง deploy — งานนี้ไม่เปลี่ยนพฤติกรรม runtime ใด ๆ
@@ -68,8 +82,9 @@ GetProfile_EnrollmentWithoutAssignmentLinks_IsNeitherActiveNorCancelled
 
 - [ ] `rg "GetDashboardAsync" --glob "*.cs"` เหลือเฉพาะ `AssignmentService` / `IAssignmentService` / `AssignmentsController.cs:77`
 - [ ] `rg "_learnerApiService" iLearn.Application/Services/AssignmentDashboardService.cs` ไม่พบผลลัพธ์
+- [ ] `rg "GetLearnerStatus" --glob "*.cs"` ไม่พบผลลัพธ์เลย (ทั้ง definition, caller และ test) — ระวังอย่าไปโดน `GetScheduledLearnerStatus` ซึ่งต้องเหลืออยู่
 - [ ] build ผ่านโดยไม่มี warning ใหม่ (โดยเฉพาะ CS0169 unused field / CS0414)
-- [ ] test เดิมทั้งหมดยังเขียว และจำนวน test ลดลง 1 (ลบ) + เพิ่ม 1 (ใหม่) = **294 เท่าเดิม**
+- [ ] test เดิมทั้งหมดยังเขียว จำนวนรวม **294 → 290** = −1 (dashboard fact) −4 (`GetLearnerStatus` theory 4 InlineData) +1 (test ใหม่ข้อ 3) — ถ้าได้เลขอื่นแปลว่าลบเกิน/ลบขาด ให้ตรวจก่อนปิดงาน
 - [ ] test ใหม่ `GetProfile_EnrollmentWithoutAssignmentLinks_IsNeitherActiveNorCancelled` **fail ถ้า revert เงื่อนไข `hasAnyAssignmentLinks` ออกจาก `LearnersController.cs:243`** (ยืนยันว่า test คุมของจริง — ลอง revert ชั่วคราวแล้วรันดู ก่อนใส่กลับ)
 - [ ] endpoint `GET /api/Assignments/{id}/dashboard` ยังคืน response เดิม (ไม่ได้แตะ path ที่ใช้จริง)
 
